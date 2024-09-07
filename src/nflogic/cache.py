@@ -1,4 +1,5 @@
 import pickle
+from pathlib import Path
 from os import path, makedirs
 
 
@@ -9,8 +10,14 @@ CACHE_TYPES = ["passed", "failed", "keys"]
 makedirs(CACHE_PATH, exist_ok=True)
 
 
-class AlreadyProcessedError(Exception):
+class KeyAlreadyProcessedError(Exception):
     """Indica que um arquivo já foi processado antes."""
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class KeyNotFoundError(Exception):
+    """Indica que uma chave procurada não foi encontrada."""
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
@@ -18,54 +25,57 @@ class AlreadyProcessedError(Exception):
 class CacheHandler:
     def __init__(self, cachename: str) -> None:
         self.cachefile = path.join(CACHE_PATH, cachename + ".cache")
-        if not path.exists(self.cachefile):
-            with open(self.cachefile, "x"): pass
-        self.data = self.load()
+        self.data = self._load()
 
-    def load(self) -> list:
+
+    def _load(self) -> list:
+        Path(self.cachefile).touch(exist_ok=True)
         with open(self.cachefile, "rb") as cache:
             try:
                 return pickle.load(cache)
             except EOFError:
                 return []
 
+
+    def add(self, item) -> None:
+        if item in self._load():
+            raise KeyAlreadyProcessedError(f"{item} já está na lista")
+
+        self._heal()
+
+        with open(self.cachefile, "wb") as cache:
+            pickle.dump(obj=self.data + [item], file=cache)
+
+        self.data = self._load()
+
+
     def rm(self, item) -> None:
-        cached = self.load()
-
-        if item not in cached:
-            raise FileNotFoundError(f"Arquivo não foi registrado em {self.cachefile}")
-
-        if len(self.data) != len(cached):
-            self._heal()
+        if item not in self.data:
+            file_name = path.split(self.cachefile)[1]
+            raise KeyNotFoundError(f"Arquivo não foi registrado em {file_name}")
+        
+        self._heal()
 
         with open(self.cachefile, "wb") as cache:
             idx = self.data.index(item)
             _ = self.data.pop(idx)
             pickle.dump(obj=self.data, file=cache)
 
-        self.data = self.load()
+        self.data = self._load()
 
-
-    def add(self, item) -> None:
-        cached = self.load()
-
-        if item in cached:
-            raise AlreadyProcessedError("Este arquivo já foi processado antes")
-
-        if len(self.data) != len(cached):
-            self._heal()
-
-        with open(self.cachefile, "wb") as cache:
-            pickle.dump(obj=self.data + [item], file=cache)
-
-        self.data = self.load()
 
     def _heal(self) -> None:
         # TODO: Warn inconsistent sizes
-        cached = self.load()
-        count = 0
-        for item in cached:
-            if item not in self.data:
-                self.data.append(item)
-                count = count + 1
-        # TODO: Info how many items were restored from cache to memory
+        size_diff = len(self._load()) - len(self.data)
+        if size_diff == 0:
+            return
+        
+        if size_diff < 0:
+            Path(self.cachefile).touch(exist_ok=True)
+            with open(self.cachefile, "wb") as cache:
+                pickle.dump(obj=self.data , file=cache)
+            # TODO: Info how many items were restored from memory to cache
+
+        else:
+            self.data = self._load()
+            # TODO: Info how many items were restored from cache to memory
