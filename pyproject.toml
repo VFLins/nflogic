@@ -1,0 +1,43 @@
+[project]
+name = "nflogic"
+authors = [
+    {name = "Vitor F. Lins", email = "vflins@live.com"},
+]
+description = "Transforme séries de Notas Fiscais Eletrônicas .xml em conjuntos de dados prontos para análise!"
+requires-python = ">=3.10"
+keywords = ["datasets", "data-mining", "fiscal", "data-engineering"]
+license = {file = "LICENSE"}
+readme = "README.md"
+classifiers = [
+    "Topic :: Office/Business :: Financial :: Accounting",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Natural Language :: Portuguese (Brazilian)",
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "License :: OSI Approved :: MIT License"
+]
+version = "0.1.0"
+dependencies = [
+    "xmltodict==0.13.*",
+]
+
+[project.optional-dependencies]
+dev=[
+    "pytest-cov>=5.0.0",
+    "black>=24.4.2"
+]
+
+[build-system]
+requires = ["setuptools", "setuptools-scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+pythonpath = "src"
+addopts = "--cov=src --cov-report html"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
