@@ -1,10 +1,6 @@
 import pytest
 from pathlib import Path
-from nflogic.cache import (
-    CacheHandler,
-    KeyAlreadyProcessedError,
-    KeyNotFoundError
-)
+from nflogic.cache import CacheHandler, KeyAlreadyProcessedError, KeyNotFoundError
 
 
 def test_add_rm_value():
@@ -13,11 +9,11 @@ def test_add_rm_value():
 
     for i, v in enumerate(values):
         ch.add(v)
-        assert ch.data == values[:i+1]
+        assert ch.data == values[: i + 1]
 
     for i, v in enumerate(values):
         ch.rm(v)
-        assert ch.data == values[i+1:]
+        assert ch.data == values[i + 1 :]
 
     Path(ch.cachefile).unlink()
 
