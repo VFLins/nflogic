@@ -65,7 +65,7 @@ class RowElem:
         TotalDesconto: FloatCoercible,
         TotalTributos: FloatCoercible,
     ):
-        
+
         self.ChaveNFe = ChaveNFe
         self.DataHoraEmi = DataHoraEmi
         self.PagamentoTipo = PagamentoTipo
@@ -126,7 +126,7 @@ def insert_row(row: RowElem, table: str):
     """Inserts a `RowElem` as a row to `table`."""
     if not type(row) == RowElem:
         raise TypeError(f"Expected type `RowElem`, got {type(row)}")
-    
+
     create_table(table=table)
 
     dbcon = sqlite3.connect(DB_PATH)

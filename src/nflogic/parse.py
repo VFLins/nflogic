@@ -11,6 +11,7 @@ BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
 # VALIDATORS
 ###############
 
+
 def valid_int(val: any):
     """
     Return `True` if `val` is of type `int` or coercible, `False` otherwise.
@@ -36,11 +37,13 @@ def valid_float(val: any):
 # PARSER
 ###############
 
+
 class DictParser:
     """
     Classe de objeto que contém os dados de uma nota fiscal .xml em formato
     de dicionário.
     """
+
     def __init__(self, path: str):
         with open(path) as doc:
             self.xml = xmltodict.parse(doc.read())

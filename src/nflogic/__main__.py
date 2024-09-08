@@ -16,10 +16,12 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 # RUN
 ###############
 
+
 def run_failed(path: str):
     pass
 
-def run(path: str, retry_failed = False):
+
+def run(path: str, retry_failed=False):
     # 1. [DONE] get list of processable files
     # 2. [DONE] get list of already processed (success and fail)
     # 3. [DONE] parse
@@ -45,7 +47,7 @@ def run(path: str, retry_failed = False):
         if parser.key in ignore_keys:
             # TODO: Info pulando arquivo já processado
             continue
-        
+
         try:
             parser.parse()
             if parser.rowdata is not None:
@@ -53,6 +55,7 @@ def run(path: str, retry_failed = False):
                 success.add(parser.key)
         except Exception:
             failed.add(parser.key)
+
 
 if __name__ == "__main__":
     pass
