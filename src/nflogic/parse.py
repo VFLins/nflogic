@@ -49,6 +49,7 @@ class DictParser:
             self.xml = xmltodict.parse(doc.read())
         self.path = path
         self.key = self.get_key()
+        self.version = self._get_version()
 
         self.erroed: bool = False
         self.err: Exception | None = None
@@ -60,8 +61,16 @@ class DictParser:
     def __exit__(self, err_type, err_val, traceback):
         pass
 
+    def _get_version(self):
+        """return a `str` with the version nuber of the document"""
+        return self.xml["nfeProc"]["@versao"]
+
     def get_pay(self):
         """return the payment section of the `.xml` in ``"""
+        if self.version == "4.00":
+            pay = self.xml['nfeProc']['NFe']['infNFe']['pag']['detPag']
+            return {"type": pay["tPag"], "amount": pay["vPag"]}
+            
         try:
             pay = self.xml["NFe"]["infNFe"]["total"]["ICMSTot"]["pag"]["detPag"]
         except KeyError:
@@ -134,7 +143,7 @@ class DictParser:
         }
 
         try:
-            self.rowdata = db.RowElemSales(**self.data)
+            self.rowdata = db.RowElem(**self.data)
         except Exception as err:
             self.erroed = True
             self.err = err

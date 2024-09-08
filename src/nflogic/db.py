@@ -76,23 +76,19 @@ class RowElem:
 
         self._validate_all()
 
-    def _valid_key(key):
+    def _valid_key(self, key):
         if len(key) == 44 and type(key) == str:
             return True
         return False
 
-    def _valid_dt(dt):
-        try:
-            _ = datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
-            return True
-        except Exception:
-            return False
+    def _valid_dt(self, dt):
+        return type(dt) == datetime
 
-    def _valid_list_of_numbers(string):
+    def _valid_list_of_numbers(self, string):
         pattern = r"^[0-9;.]+$"
         return bool(re.match(pattern, string))
 
-    def _valid_float(floating_point):
+    def _valid_float(self, floating_point):
         try:
             _ = float(floating_point)
             return True
@@ -102,7 +98,7 @@ class RowElem:
     def _validate_all(self):
         types = self.__init__.__annotations__
 
-        for var in type.keys():
+        for var in types.keys():
             value = getattr(self, var)
 
             if types[var] == KeyType:
