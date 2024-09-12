@@ -57,7 +57,9 @@ class CacheHandler:
         size_diff = len(self._load()) - len(self.data)
         if size_diff == 0:
             return
-        log.warning(f"Inconsistente cache sizes, starting '_heal' method from {self.cachename}.log")
+        log.warning(
+            f"Inconsistente cache sizes, starting '_heal' method from {self.cachename}.log"
+        )
 
         if size_diff < 0:
             # recreate file and write contents from memory

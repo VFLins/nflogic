@@ -68,9 +68,9 @@ class DictParser:
     def get_pay(self):
         """return the payment section of the `.xml` in ``"""
         if self.version == "4.00":
-            pay = self.xml['nfeProc']['NFe']['infNFe']['pag']['detPag']
+            pay = self.xml["nfeProc"]["NFe"]["infNFe"]["pag"]["detPag"]
             return {"type": pay["tPag"], "amount": pay["vPag"]}
-            
+
         try:
             pay = self.xml["NFe"]["infNFe"]["total"]["ICMSTot"]["pag"]["detPag"]
         except KeyError:
