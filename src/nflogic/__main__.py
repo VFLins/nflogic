@@ -1,7 +1,7 @@
 import os
-from cache import CacheHandler
-from parse import DictParser
-import db
+from nflogic.cache import CacheHandler
+from nflogic.parse import DictParser
+from nflogic import db
 
 
 # CONSTANTS
