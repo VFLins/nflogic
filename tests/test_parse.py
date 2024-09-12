@@ -43,7 +43,7 @@ def test_get_data():
     if dp.erroed:
         raise dp.err
 
-    assert dp.data["ChaveNFe"] == "26240811122233344455550010029490131741852894"
+    assert dp.data["ChaveNFe"] == "26240811122233344455550010045645641789789784"
     assert dp.data["DataHoraEmi"] == datetime(
         2024, 8, 31, 16, 17, 16, tzinfo=tzBrazilEast()
     )
