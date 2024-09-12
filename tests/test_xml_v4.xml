@@ -2,19 +2,19 @@
 <nfeProc versao="4.00"
     xmlns="http://www.portalfiscal.inf.br/nfe">
     <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
-        <infNFe versao="4.00" Id="NFe26240811122233344455550010029490131741852894">
+        <infNFe versao="4.00" Id="NFe26240811122233344455550010045645641789789784">
             <ide>
                 <cUF>26</cUF>
-                <cNF>74185289</cNF>
+                <cNF>78978978</cNF>
                 <natOp>VND COMERCIALIZACAO</natOp>
                 <mod>55</mod>
                 <serie>1</serie>
-                <nNF>2949013</nNF>
+                <nNF>4564564</nNF>
                 <dhEmi>2024-08-31T16:17:16-03:00</dhEmi>
                 <dhSaiEnt>2024-08-31T16:20:16-03:00</dhSaiEnt>
                 <tpNF>1</tpNF>
                 <idDest>1</idDest>
-                <cMunFG>2606804</cMunFG>
+                <cMunFG>2158904</cMunFG>
                 <tpImp>1</tpImp>
                 <tpEmis>1</tpEmis>
                 <cDV>4</cDV>
@@ -35,7 +35,7 @@
                     <nro>S/N</nro>
                     <xCpl>S/N</xCpl>
                     <xBairro>COLMEIA</xBairro>
-                    <cMun>2606804</cMun>
+                    <cMun>2158904</cMun>
                     <xMun>TARAGAS</xMun>
                     <UF>AM</UF>
                     <CEP>53625815</CEP>
@@ -64,13 +64,13 @@
                 </enderDest>
                 <indIEDest>1</indIEDest>
                 <IE>012601624</IE>
-                <email>josedersirco@hotmail.com</email>
+                <email>imperador@augusto.com</email>
             </dest>
             <det nItem="1">
                 <prod>
                     <cProd>12310</cProd>
                     <cEAN>17896607100041</cEAN>
-                    <xProd>CACHACA PITU LATA</xProd>
+                    <xProd>AGUARDENTE ARDENTE</xProd>
                     <NCM>22084000</NCM>
                     <CEST>0200400</CEST>
                     <CFOP>5405</CFOP>
@@ -123,7 +123,7 @@
                 <prod>
                     <cProd>65991</cProd>
                     <cEAN>17896607100539</cEAN>
-                    <xProd>CACHACA PITU LATA</xProd>
+                    <xProd>AGUARDENTE FERVENTE</xProd>
                     <NCM>22084000</NCM>
                     <CEST>0200400</CEST>
                     <CFOP>5405</CFOP>
@@ -176,7 +176,7 @@
                 <prod>
                     <cProd>88378</cProd>
                     <cEAN>17896031203356</cEAN>
-                    <xProd>FIAMBRE KITUT</xProd>
+                    <xProd>FIAMBRE MORTADELO</xProd>
                     <NCM>16025000</NCM>
                     <CEST>1707906</CEST>
                     <CFOP>5102</CFOP>
@@ -225,7 +225,7 @@
                 <prod>
                     <cProd>51043</cProd>
                     <cEAN>17896347501856</cEAN>
-                    <xProd>PAPEL HIG.NOVO FSBQ 30M</xProd>
+                    <xProd>PAPEL HIG MOLHADO 10M</xProd>
                     <NCM>48181000</NCM>
                     <CEST>2004200</CEST>
                     <CFOP>5403</CFOP>
@@ -343,17 +343,17 @@
                 <infCpl>TOT.APROX.TRIBUTOS:R$ 348,77  (34,99%)??**CONFERIR AS MERCADORIAS NO ATO DA ENTREGA.</infCpl>
             </infAdic>
             <infRespTec>
-                <CNPJ>01471899000193</CNPJ>
-                <xContato>Thiago Taffi</xContato>
+                <CNPJ>11223399000193</CNPJ>
+                <xContato>Rei Salomao</xContato>
                 <email>email@empresa.com.br</email>
-                <fone>1155018300</fone>
+                <fone>1155897300</fone>
             </infRespTec>
         </infNFe>
         <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
             <SignedInfo>
                 <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
                 <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
-                <Reference URI="#NFe26240811122233344455550010029490131741852894">
+                <Reference URI="#NFe26240811122233344455550010045645641789789784">
                     <Transforms>
                         <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
                         <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
@@ -375,7 +375,7 @@
         <infProt Id="NFe1">
             <tpAmb>1</tpAmb>
             <verAplic>NFEPE_P_3.6.0</verAplic>
-            <chNFe>26240811122233344455550010029490131741852894</chNFe>
+            <chNFe>26240811122233344455550010045645641789789784</chNFe>
             <dhRecbto>2024-08-31T16:18:39-03:00</dhRecbto>
             <nProt>126240081344608</nProt>
             <digVal>7xr98ZzWX4/IYSgBUzzYgQx+UTM=</digVal>
