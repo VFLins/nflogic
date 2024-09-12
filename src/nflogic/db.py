@@ -13,13 +13,29 @@ SCRIPT_DIR = os.path.split(SCRIPT_PATH)[0]
 DB_PATH = r"C:\databases\pdv.sqlite"
 
 
-def create_table(table: str):
-    """Create table if doesn't exist"""
-    dbcon = sqlite3.connect(DB_PATH)
-    dbcur = dbcon.cursor()
+def gen_tablename(name: str):
+    """Transforms strings to a format that SQLite would accept as a table name:
+
+    1. Removes all leading numbers,
+    2. Removes all special characters,
+    3. Replace spaces by underscores,
+    4. All letters uppercased.
+    """
+
+    return re.sub(r"[^\w\s]", "", re.sub(r"^\d+", "", name)).replace(" ", "_").upper()
+
+
+def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
+    """Create table with the provided name formatted by `nflogic.db.gen_tablename()`.
+
+    **Does nothing if:**
+    - table already exists
+    - invalid name
+    """
+    dbcur = con.cursor()
     dbcur.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS {table} (
+        CREATE TABLE IF NOT EXISTS {gen_tablename(tablename)} (
             Id INTEGER PRIMARY KEY,
             ChaveNFe TEXT NOT NULL UNIQUE,
             DataHoraEmi TEXT,
@@ -28,10 +44,11 @@ def create_table(table: str):
             TotalProdutos REAL,
             TotalDesconto REAL,
             TotalTributos REAL
-        )
+        );
         """
     )
-    dbcon.close()
+    if close:
+        con.close()
 
 
 class KeyType(str):
@@ -118,15 +135,14 @@ class RowElem:
                     raise ValueError(f"Invalid value in {var}: {value}")
 
 
-def insert_row(row: RowElem, table: str):
+def insert_row(con: sqlite3.Connection, row: RowElem, table: str):
     """Inserts a `RowElem` as a row to `table`."""
     if not type(row) == RowElem:
         raise TypeError(f"Expected type `RowElem`, got {type(row)}")
 
-    create_table(table=table)
+    create_table(con, table=table)
 
-    dbcon = sqlite3.connect(DB_PATH)
-    dbcur = dbcon.cursor()
+    dbcur = con.cursor()
     dbcur.execute(
         f"""
         INSERT INTO {table} (
@@ -148,4 +164,4 @@ def insert_row(row: RowElem, table: str):
         );
         """
     )
-    dbcon.close()
+    con.close()
