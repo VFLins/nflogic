@@ -1,3 +1,3 @@
 # NFLogic
 
-Transforme séries de Notas Fiscais Eletrônicas .xml em conjuntos de dados prontos para análise!
+Transforme séries de Notas Fiscais Eletrônicas XML em conjuntos de dados prontos para análise!
