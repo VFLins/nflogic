@@ -94,7 +94,7 @@ class RowElem:
         self._validate_all()
 
     def _valid_key(self, key):
-        if len(key) == 44 and type(key) == str:
+        if type(key) == str and len(key) == 44 and key.isdigit():
             return True
         return False
 
