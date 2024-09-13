@@ -12,7 +12,8 @@ from nflogic.db import (
 class tzBrazilEast(tzinfo):
     def utcoffset(self, dt: datetime | None = None) -> timedelta:
         return timedelta(hours=-3)
-
+    def tzname(self, dt: datetime | None) -> str | None:
+        return "Brazil/East"
     def dst(self, dt: datetime | None = None):
         return None
 
@@ -41,25 +42,50 @@ def test_create_table():
         assert cursor.fetchall() == [("NOME_DA_EMPRESA", ), ("EMPRESA_COM_NÚMERO_345", )]
 
 
-# TODO: Add invalid examples
 @pytest.mark.parametrize(
         "rowdata,valid",
         [
-            ({
+            ({# correct format
                 "ChaveNFe": "12312312312312312312312312312312312312312312",
                 "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
-                "PagamentoTipo": "[1;4]",
-                "PagamentoValor": "[100.0;10.2]",
+                "PagamentoTipo": "1;4",
+                "PagamentoValor": "100.0;10.2",
                 "TotalProdutos": "110.2",
                 "TotalDesconto": "0",
                 "TotalTributos": "22.2"}, True),
+            ({# incorrect PagamentoValor
+                "ChaveNFe": "12312312312312312312312312312312312312312312",
+                "DataHoraEmi": datetime(2020, 1, 1, 12, 12),
+                "PagamentoTipo": "1;4",
+                "PagamentoValor": "100,0;10,2]",
+                "TotalProdutos": "110.2",
+                "TotalDesconto": "0",
+                "TotalTributos": "22.2"}, False),
+            ({# incorrect TotalDesconto
+                "ChaveNFe": "12312312312312312312312312312312312312312312",
+                "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
+                "PagamentoTipo": "1;4",
+                "PagamentoValor": "100.0;10.2",
+                "TotalProdutos": "110.2",
+                "TotalDesconto": "abc",
+                "TotalTributos": "22.2"}, False),
+            ({# incorrect ChaveNFe
+                "ChaveNFe": "123text23not12allowed32312312312312312312312",
+                "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
+                "PagamentoTipo": "1;4",
+                "PagamentoValor": "100.0;10.2",
+                "TotalProdutos": "110.2",
+                "TotalDesconto": "0",
+                "TotalTributos": "22.2"}, False),
         ]
 )
 def test_validation(rowdata: dict, valid):
     if not valid:
         with pytest.raises(ValueError):
             # calls "self._validate_all()" on self.__init__()
-            row = RowElem(**rowdata)
+            _ = RowElem(**rowdata)
     else:
-        assert True == True
+        row = RowElem(**rowdata)
+        for elem in rowdata.keys():
+            assert rowdata[elem] == row.__dict__[elem]
             
