@@ -19,14 +19,14 @@ class tzBrazilEast(tzinfo):
 
 
 @pytest.mark.parametrize(
-        "name,expect",
-        [
-            ("123 empresa diferente 11122233", "_EMPRESA_DIFERENTE_11122233"),
-            ("MERC. COMERCIANTES", "MERC_COMERCIANTES"),
-            ("Sociedade Anônima S/A", "SOCIEDADE_ANÔNIMA_SA"),
-            ("algo com asterisco* ltda.", "ALGO_COM_ASTERISCO_LTDA"),
-            ("ACADEMIA DOS NÚMEROS IND.-COM.", "ACADEMIA_DOS_NÚMEROS_INDCOM")
-        ]
+    "name,expect",
+    [
+        ("123 empresa diferente 11122233", "_EMPRESA_DIFERENTE_11122233"),
+        ("MERC. COMERCIANTES", "MERC_COMERCIANTES"),
+        ("Sociedade Anônima S/A", "SOCIEDADE_ANÔNIMA_SA"),
+        ("algo com asterisco* ltda.", "ALGO_COM_ASTERISCO_LTDA"),
+        ("ACADEMIA DOS NÚMEROS IND.-COM.", "ACADEMIA_DOS_NÚMEROS_INDCOM"),
+    ],
 )
 def test_gen_tablename(name: str, expect: str):
     assert gen_tablename(name) == expect
@@ -39,45 +39,73 @@ def test_create_table():
         cursor = con.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 
-        assert cursor.fetchall() == [("NOME_DA_EMPRESA", ), ("EMPRESA_COM_NÚMERO_345", )]
+        assert cursor.fetchall() == [("NOME_DA_EMPRESA",), ("EMPRESA_COM_NÚMERO_345",)]
 
 
 @pytest.mark.parametrize(
-        "rowdata,valid",
-        [
-            ({# correct format
+    "rowdata,valid",
+    [
+        (
+            {  # correct format
                 "ChaveNFe": "12312312312312312312312312312312312312312312",
                 "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
                 "PagamentoTipo": "1;4",
                 "PagamentoValor": "100.0;10.2",
                 "TotalProdutos": "110.2",
                 "TotalDesconto": "0",
-                "TotalTributos": "22.2"}, True),
-            ({# incorrect PagamentoValor
+                "TotalTributos": "22.2",
+            },
+            True,
+        ),
+        (
+            {  # incorrect PagamentoValor
                 "ChaveNFe": "12312312312312312312312312312312312312312312",
                 "DataHoraEmi": datetime(2020, 1, 1, 12, 12),
                 "PagamentoTipo": "1;4",
                 "PagamentoValor": "100,0;10,2]",
                 "TotalProdutos": "110.2",
                 "TotalDesconto": "0",
-                "TotalTributos": "22.2"}, False),
-            ({# incorrect TotalDesconto
+                "TotalTributos": "22.2",
+            },
+            False,
+        ),
+        (
+            {  # incorrect DataHoraEmi
+                "ChaveNFe": "12312312312312312312312312312312312312312312",
+                "DataHoraEmi": "2020-01-01T12:12:00-03:00",
+                "PagamentoTipo": "1;4",
+                "PagamentoValor": "100.0;10.2",
+                "TotalProdutos": "110.2",
+                "TotalDesconto": "0",
+                "TotalTributos": "22.2",
+            },
+            False,
+        ),
+        (
+            {  # incorrect TotalDesconto
                 "ChaveNFe": "12312312312312312312312312312312312312312312",
                 "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
                 "PagamentoTipo": "1;4",
                 "PagamentoValor": "100.0;10.2",
                 "TotalProdutos": "110.2",
                 "TotalDesconto": "abc",
-                "TotalTributos": "22.2"}, False),
-            ({# incorrect ChaveNFe
+                "TotalTributos": "22.2",
+            },
+            False,
+        ),
+        (
+            {  # incorrect ChaveNFe
                 "ChaveNFe": "123text23not12allowed32312312312312312312312",
                 "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
                 "PagamentoTipo": "1;4",
                 "PagamentoValor": "100.0;10.2",
                 "TotalProdutos": "110.2",
                 "TotalDesconto": "0",
-                "TotalTributos": "22.2"}, False),
-        ]
+                "TotalTributos": "22.2",
+            },
+            False,
+        ),
+    ],
 )
 def test_validation(rowdata: dict, valid):
     if not valid:
