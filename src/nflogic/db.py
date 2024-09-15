@@ -62,7 +62,7 @@ class KeyType(str):
         super().__init__()
 
 
-class DTType(str):
+class DTType(datetime):
     def __init__(self) -> None:
         super().__init__()
 
@@ -98,6 +98,15 @@ class RowElem:
         self.TotalTributos = TotalTributos
 
         self._validate_all()
+        self.values = (
+            self.ChaveNFe,
+            self.DataHoraEmi.strftime("%Y-%m-%d %H:%M:%S %z"),
+            self.PagamentoTipo,
+            self.PagamentoValor,
+            float(self.TotalProdutos),
+            float(self.TotalDesconto),
+            float(self.TotalTributos),
+        )
 
     def _valid_key(self, key):
         if type(key) == str and len(key) == 44 and key.isdigit():
@@ -141,17 +150,16 @@ class RowElem:
                     raise ValueError(f"Invalid value in {var}: {value}")
 
 
-def insert_row(con: sqlite3.Connection, row: RowElem, table: str):
+def insert_row(con: sqlite3.Connection, row: RowElem, tablename: str, close: bool = False):
     """Inserts a `RowElem` as a row to `table`."""
     if not type(row) == RowElem:
         raise TypeError(f"Expected type `RowElem`, got {type(row)}")
 
-    create_table(con, table=table)
+    create_table(con, tablename=tablename)
 
     dbcur = con.cursor()
     dbcur.execute(
-        f"""
-        INSERT INTO {table} (
+        f"""INSERT INTO {gen_tablename(tablename)} (
             ChaveNFe,
             DataHoraEmi,
             PagamentoTipo,
@@ -159,15 +167,8 @@ def insert_row(con: sqlite3.Connection, row: RowElem, table: str):
             TotalProdutos,
             TotalDesconto,
             TotalTributos
-        ) VALUES (
-            {row.ChaveNFe},
-            {row.DataHoraEmi},
-            {row.PagamentoTipo},
-            {row.PagamentoValor},
-            {row.TotalProdutos},
-            {row.TotalDesconto},
-            {row.TotalTributos}
-        );
-        """
-    )
-    con.close()
+        ) VALUES (?,?,?,?,?,?,?);""",
+        row.values)
+
+    if close:
+        con.close()
