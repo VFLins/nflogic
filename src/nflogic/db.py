@@ -10,8 +10,14 @@ import os
 
 SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_DIR = os.path.split(SCRIPT_PATH)[0]
-DB_PATH = r"C:\databases\pdv.sqlite"
+DB_DIR = os.path.join(SCRIPT_DIR, "database")
+DB_PATH = os.path.join(DB_DIR, "db.sqlite")
 
+os.makedirs(DB_DIR, exist_ok=True)
+
+
+# DB HANDLING
+###############
 
 def gen_tablename(name: str):
     """Transforms strings to a format that SQLite would accept as a table name:
