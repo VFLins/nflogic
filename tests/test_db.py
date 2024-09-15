@@ -1,5 +1,6 @@
 import pytest
 import sqlite3
+import copy
 from datetime import datetime, timedelta, tzinfo
 
 from nflogic.db import (
@@ -9,13 +10,26 @@ from nflogic.db import (
     insert_row,
 )
 
+
 class tzBrazilEast(tzinfo):
+
     def utcoffset(self, dt: datetime | None = None) -> timedelta:
-        return timedelta(hours=-3)
+        return timedelta(hours=-3) + self.dst(dt)
+    def dst(self, dt: datetime | None = None):
+        return timedelta(0)
     def tzname(self, dt: datetime | None) -> str | None:
         return "Brazil/East"
-    def dst(self, dt: datetime | None = None):
-        return None
+    
+
+CORRECT_ROWDATA = {
+    "ChaveNFe": "12312312312312312312312312312312312312312312",
+    "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
+    "PagamentoTipo": "1;4",
+    "PagamentoValor": "100.0;10.2",
+    "TotalProdutos": "110.2",
+    "TotalDesconto": "0",
+    "TotalTributos": "22.2",
+}
 
 
 @pytest.mark.parametrize(
@@ -43,71 +57,20 @@ def test_create_table():
 
 
 @pytest.mark.parametrize(
-    "rowdata,valid",
+    "upd_key,val,valid",
     [
-        (
-            {  # correct format
-                "ChaveNFe": "12312312312312312312312312312312312312312312",
-                "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
-                "PagamentoTipo": "1;4",
-                "PagamentoValor": "100.0;10.2",
-                "TotalProdutos": "110.2",
-                "TotalDesconto": "0",
-                "TotalTributos": "22.2",
-            },
-            True,
-        ),
-        (
-            {  # incorrect PagamentoValor
-                "ChaveNFe": "12312312312312312312312312312312312312312312",
-                "DataHoraEmi": datetime(2020, 1, 1, 12, 12),
-                "PagamentoTipo": "1;4",
-                "PagamentoValor": "100,0;10,2]",
-                "TotalProdutos": "110.2",
-                "TotalDesconto": "0",
-                "TotalTributos": "22.2",
-            },
-            False,
-        ),
-        (
-            {  # incorrect DataHoraEmi
-                "ChaveNFe": "12312312312312312312312312312312312312312312",
-                "DataHoraEmi": "2020-01-01T12:12:00-03:00",
-                "PagamentoTipo": "1;4",
-                "PagamentoValor": "100.0;10.2",
-                "TotalProdutos": "110.2",
-                "TotalDesconto": "0",
-                "TotalTributos": "22.2",
-            },
-            False,
-        ),
-        (
-            {  # incorrect TotalDesconto
-                "ChaveNFe": "12312312312312312312312312312312312312312312",
-                "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
-                "PagamentoTipo": "1;4",
-                "PagamentoValor": "100.0;10.2",
-                "TotalProdutos": "110.2",
-                "TotalDesconto": "abc",
-                "TotalTributos": "22.2",
-            },
-            False,
-        ),
-        (
-            {  # incorrect ChaveNFe
-                "ChaveNFe": "123text23not12allowed32312312312312312312312",
-                "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
-                "PagamentoTipo": "1;4",
-                "PagamentoValor": "100.0;10.2",
-                "TotalProdutos": "110.2",
-                "TotalDesconto": "0",
-                "TotalTributos": "22.2",
-            },
-            False,
-        ),
+        (None, None, True),
+        ("PagamentoValor", "100,0;10,2]", False,),
+        ("DataHoraEmi", "2020-01-01T12:12:00-03:00", False),
+        ("TotalDesconto", "abc", False),
+        ("ChaveNFe", "123text23not12allowed32312312312312312312312", False),
     ],
 )
-def test_validation(rowdata: dict, valid):
+def test_validation(upd_key: str, val: any, valid:bool):
+    rowdata = copy.deepcopy(CORRECT_ROWDATA)
+    if upd_key:
+        rowdata[upd_key] = val
+
     if not valid:
         with pytest.raises(ValueError):
             # calls "self._validate_all()" on self.__init__()
@@ -116,4 +79,3 @@ def test_validation(rowdata: dict, valid):
         row = RowElem(**rowdata)
         for elem in rowdata.keys():
             assert rowdata[elem] == row.__dict__[elem]
-            
