@@ -61,23 +61,41 @@ class DictParser:
     def __exit__(self, err_type, err_val, traceback):
         pass
 
+    def _get_dict_key(self, d: dict, key):
+        """
+        Traverse the dictionary `d` looking for the specified `key`.
+
+        ***Args***
+            d (dict): The dictionary to search.
+            key (any): The key to search for.
+
+        ***Raises***
+            KeyError: If `key` is not found at any level of `d`.
+
+        ***Returns***
+            The value associated to the first occurrence of `key` in `d`.
+        """
+        for k in d.keys():
+            if k == key:
+                return d[k]
+            else:
+                try:
+                    if type(d[k]) == dict:
+                        return self._get_dict_key(d[k], key=key)
+                except KeyError:
+                    continue
+        raise KeyError("Key wasn't found in the provided dictionary.")
+
     def _get_version(self):
         """return a `str` with the version nuber of the document"""
         return self.xml["nfeProc"]["@versao"]
 
     def get_pay(self):
         """return the payment section of the `.xml` in ``"""
-        if self.version == "4.00":
-            pay = self.xml["nfeProc"]["NFe"]["infNFe"]["pag"]["detPag"]
-            return {"type": pay["tPag"], "amount": pay["vPag"]}
-
         try:
-            pay = self.xml["NFe"]["infNFe"]["total"]["ICMSTot"]["pag"]["detPag"]
+            pay = self._get_dict_key(self.xml, "detPag")
         except KeyError:
-            try:
-                pay = self.xml["nfeProc"]["NFe"]["infNFe"]["pag"]["detPag"]
-            except KeyError:
-                pay = self.xml["NFe"]["infNFe"]["pag"]
+            pay = self.xml["NFe"]["infNFe"]["pag"]
         if type(pay["detPag"]) is list:
             return {
                 "type": ";".join([x["tPag"] if valid_int(x) else "NaN" for x in pay]),
@@ -89,16 +107,11 @@ class DictParser:
             return {"type": pay["detPag"]["tPag"], "amount": pay["detPag"]["vPag"]}
 
     def get_key(self):
-        try:
-            return self.xml["nfeProc"]["NFe"]["infNFe"]["@Id"][3:]
-        except KeyError:
-            return self.xml["NFe"]["infNFe"]["@Id"][3:]
+        return self._get_dict_key(self.xml, "@Id")[3:]
+
 
     def get_dt(self):
-        try:
-            dt = self.xml["nfeProc"]["NFe"]["infNFe"]["ide"]["dhEmi"]
-        except KeyError:
-            dt = self.xml["NFe"]["infNFe"]["ide"]["dhEmi"]
+        dt = self._get_dict_key(self.xml, "dhEmi")
         return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
 
     def get_total(self):
@@ -148,3 +161,4 @@ class DictParser:
             self.erroed = True
             self.err = err
             return
+            
