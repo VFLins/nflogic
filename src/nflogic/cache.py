@@ -58,7 +58,7 @@ class CacheHandler:
         if size_diff == 0:
             return
         log.warning(
-            f"Inconsistente cache sizes, starting '_heal' method from {self.cachename}.log"
+            f"Inconsistente cache sizes, starting '_heal' method from {self.cachename}.cache"
         )
 
         if size_diff < 0:
@@ -66,12 +66,12 @@ class CacheHandler:
             Path(self.cachefile).touch(exist_ok=True)
             with open(self.cachefile, "wb") as cache:
                 pickle.dump(obj=self.data, file=cache)
-            log.info(f"Restored {abs(size_diff)} items to {self.cachename}.log")
+            log.info(f"Restored {abs(size_diff)} items to {self.cachename}.cache")
 
         else:
             # read file contents
             self.data = self._load()
-            log.info(f"Restored {size_diff} items from {self.cachename}.log")
+            log.info(f"Restored {size_diff} items from {self.cachename}.cache")
 
     def add(self, item) -> None:
         if item in self._load():
