@@ -150,7 +150,7 @@ class RowElem:
                     raise ValueError(f"Invalid value in {var}: {value}")
 
 
-def insert_row(con: sqlite3.Connection, row: RowElem, tablename: str, close: bool = False):
+def insert_row(row: RowElem, tablename: str, con: sqlite3.Connection = sqlite3.connect(DB_PATH), close: bool = False):
     """Inserts a `RowElem` as a row to `table`."""
     if not type(row) == RowElem:
         raise TypeError(f"Expected type `RowElem`, got {type(row)}")
@@ -169,6 +169,7 @@ def insert_row(con: sqlite3.Connection, row: RowElem, tablename: str, close: boo
             TotalTributos
         ) VALUES (?,?,?,?,?,?,?);""",
         row.values)
+    con.commit()
 
     if close:
         con.close()
