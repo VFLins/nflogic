@@ -1,6 +1,6 @@
 import os
 from nflogic.cache import CacheHandler
-from nflogic.parse import DictParser
+from nflogic.parse import FactParser
 from nflogic import db
 
 
@@ -26,7 +26,7 @@ def run(path: str, retry_failed=False):
     # 2. [DONE] get list of already processed (success and fail)
     # 3. [DONE] parse
     # 4. [DONE] insert data
-    # 5. save list of already processed (success and fail)
+    # 5. [DONE] save list of already processed (success and fail)
 
     nfes = [
         os.path.join(path, filename)
@@ -38,11 +38,12 @@ def run(path: str, retry_failed=False):
     fail = CacheHandler("fail")
 
     ignore_keys = success.data
+    # TODO: fix exception when `retry_failed=True`
     if not retry_failed:
         ignore_keys = ignore_keys + fail.data
 
     for file in nfes:
-        parser = DictParser(file)
+        parser = FactParser(file)
         if parser.key in ignore_keys:
             # TODO: Info pulando arquivo já processado
             continue
@@ -50,9 +51,8 @@ def run(path: str, retry_failed=False):
         try:
             parser.parse()
             if not parser.rowdata:
-                raise Exception("no data available")
-            # TODO: handle tablename
-            db.insert_row(row = parser.rowdata, tablename = "test", close = True)
+                raise Exception(f"Could not fetch data from {parser.path}")
+            db.insert_row(row=parser.rowdata, tablename=parser.tablename, close=True)
             success.add(parser.key)
 
         except Exception:

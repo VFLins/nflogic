@@ -19,13 +19,20 @@ os.makedirs(DB_DIR, exist_ok=True)
 # DB HANDLING
 ###############
 
-def gen_tablename(name: str):
+
+def gen_tablename(self, name: str):
     """Transforms strings to a format that SQLite would accept as a table name:
 
     1. Removes all leading numbers,
     2. Removes all special characters,
     3. Replace spaces by underscores,
     4. All letters uppercased.
+
+    **Args**
+        name (str): The name to be formatted.
+
+    **Returns** (str)
+        The formatted `name`.
     """
 
     return re.sub(r"[^\w\s]", "", re.sub(r"^\d+", "", name)).replace(" ", "_").upper()
@@ -150,7 +157,12 @@ class RowElem:
                     raise ValueError(f"Invalid value in {var}: {value}")
 
 
-def insert_row(row: RowElem, tablename: str, con: sqlite3.Connection = sqlite3.connect(DB_PATH), close: bool = False):
+def insert_row(
+    row: RowElem,
+    tablename: str,
+    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+    close: bool = False,
+):
     """Inserts a `RowElem` as a row to `table`."""
     if not type(row) == RowElem:
         raise TypeError(f"Expected type `RowElem`, got {type(row)}")
@@ -168,7 +180,8 @@ def insert_row(row: RowElem, tablename: str, con: sqlite3.Connection = sqlite3.c
             TotalDesconto,
             TotalTributos
         ) VALUES (?,?,?,?,?,?,?);""",
-        row.values)
+        row.values,
+    )
     con.commit()
 
     if close:

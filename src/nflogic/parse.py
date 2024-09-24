@@ -1,11 +1,20 @@
-import xmltodict
+from typing import TypedDict
 from datetime import datetime
+import xmltodict
 import os
 from nflogic import db
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
 BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
+
+# TYPES
+###############
+
+PayInfo = TypedDict("PayInfo", {"type": str, "amount": str})
+TotalInfo = TypedDict(
+    "TotalInfo", {"products": float, "discount": float, "taxes": float}
+)
 
 
 # VALIDATORS
@@ -38,7 +47,7 @@ def valid_float(val: any):
 ###############
 
 
-class DictParser:
+class FactParser:
     """
     Classe de objeto que contém os dados de uma nota fiscal .xml em formato
     de dicionário.
@@ -50,6 +59,7 @@ class DictParser:
         self.path = path
         self.key = self.get_key()
         self.version = self._get_version()
+        self.tablename = self._get_tablename()
         self.rowdata = None
 
         self.erroed: bool = False
@@ -73,7 +83,7 @@ class DictParser:
         ***Raises***
             KeyError: If `key` is not found at any level of `d`.
 
-        ***Returns***
+        ***Returns*** (any)
             The value associated to the first occurrence of `key` in `d`.
         """
         for k in d.keys():
@@ -87,11 +97,14 @@ class DictParser:
                     continue
         raise KeyError("Key wasn't found in the provided dictionary.")
 
-    def _get_version(self):
+    def _get_tablename(self) -> str:
+        return db.gen_tablename(self._get_dict_key(self.xml, "dest")["xNome"])
+
+    def _get_version(self) -> str:
         """return a `str` with the version nuber of the document"""
         return self.xml["nfeProc"]["@versao"]
 
-    def get_pay(self):
+    def get_pay(self) -> PayInfo:
         """return the payment section of the `.xml` in ``"""
         try:
             pay = self._get_dict_key(self.xml, "pag")
@@ -107,15 +120,14 @@ class DictParser:
         else:
             return {"type": pay["detPag"]["tPag"], "amount": pay["detPag"]["vPag"]}
 
-    def get_key(self):
+    def get_key(self) -> str:
         return self._get_dict_key(self.xml, "@Id")[3:]
 
-
-    def get_dt(self):
+    def get_dt(self) -> datetime:
         dt = self._get_dict_key(self.xml, "dhEmi")
         return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
 
-    def get_total(self):
+    def get_total(self) -> TotalInfo:
         try:
             total = self.xml["nfeProc"]["NFe"]["infNFe"]["total"]["ICMSTot"]
         except KeyError:
@@ -162,4 +174,3 @@ class DictParser:
             self.erroed = True
             self.err = err
             return
-            
