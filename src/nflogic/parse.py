@@ -50,6 +50,7 @@ class DictParser:
         self.path = path
         self.key = self.get_key()
         self.version = self._get_version()
+        self.rowdata = None
 
         self.erroed: bool = False
         self.err: Exception | None = None
@@ -93,7 +94,7 @@ class DictParser:
     def get_pay(self):
         """return the payment section of the `.xml` in ``"""
         try:
-            pay = self._get_dict_key(self.xml, "detPag")
+            pay = self._get_dict_key(self.xml, "pag")
         except KeyError:
             pay = self.xml["NFe"]["infNFe"]["pag"]
         if type(pay["detPag"]) is list:
