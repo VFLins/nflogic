@@ -34,13 +34,12 @@ def run(path: str, retry_failed=False):
         if (len(filename) > 10) and (".xml" in filename)
     ]
 
-    with open(CACHE_FILE) as cache:
-        success = CacheHandler("success")
-        failed = CacheHandler("failed")
+    success = CacheHandler("success")
+    fail = CacheHandler("fail")
 
-        ignore_keys = success.data
-        if not retry_failed:
-            ignore_keys = ignore_keys + failed.data
+    ignore_keys = success.data
+    if not retry_failed:
+        ignore_keys = ignore_keys + fail.data
 
     for file in nfes:
         parser = DictParser(file)
@@ -50,11 +49,15 @@ def run(path: str, retry_failed=False):
 
         try:
             parser.parse()
-            if parser.rowdata is not None:
-                db.insert_row(parser.rowdata)
-                success.add(parser.key)
+            if not parser.rowdata:
+                raise Exception("no data available")
+            # TODO: handle tablename
+            db.insert_row(row = parser.rowdata, tablename = "test", close = True)
+            success.add(parser.key)
+
         except Exception:
-            failed.add(parser.key)
+            # TODO: add exception management
+            fail.add(parser.key)
 
 
 if __name__ == "__main__":
