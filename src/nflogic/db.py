@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import List
 import sqlite3
 import re
 import os
+
+from nflogic.parse import FactParser
 
 
 # CONSTANTS
@@ -20,7 +21,7 @@ os.makedirs(DB_DIR, exist_ok=True)
 ###############
 
 
-def gen_tablename(self, name: str):
+def gen_tablename(name: str):
     """Transforms strings to a format that SQLite would accept as a table name:
 
     1. Removes all leading numbers,
@@ -31,7 +32,7 @@ def gen_tablename(self, name: str):
     **Args**
         name (str): The name to be formatted.
 
-    **Returns** (str)
+    **Returns** str
         The formatted `name`.
     """
 
@@ -40,10 +41,18 @@ def gen_tablename(self, name: str):
 
 def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
     """Create table with the provided name formatted by `nflogic.db.gen_tablename()`.
+    Should *not* be called directly.
 
     **Does nothing if:**
     - table already exists
     - invalid name
+
+    **Args**
+        con (sqlite3.Connection): Connection to desired database.
+        tablename (str): Name of the table that will be created.
+        close (bool): Should close the connection `con` after the operation completes?
+
+    **Returns** None
     """
     dbcur = con.cursor()
     dbcur.execute(
@@ -158,15 +167,29 @@ class RowElem:
 
 
 def insert_row(
-    row: RowElem,
-    tablename: str,
+    parser: FactParser,
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ):
-    """Inserts a `RowElem` as a row to `table`."""
-    if not type(row) == RowElem:
-        raise TypeError(f"Expected type `RowElem`, got {type(row)}")
+    """
+    Inserts a row of data on the database associated with `con` the table
+    name will be collected from `parser` and formatted by `gen_tablename()`.
 
+    **Args**
+        parser (nflogic.parse.FactParser): Parser that holds the data that will be inserted.
+        con (sqlite3.Connection): Connection to desired database;
+        close (bool): Should close the connection `con` after the operation completes?
+
+    **Returns** None
+
+    **Raises**
+        `ValueError` if *parser* doesn't hold data.
+    """
+    if not parser.data:
+        raise ValueError(f"Parser '{parser.key}' doesn't have any data to insert.")
+
+    row = RowElem(**parser.data)
+    tablename = gen_tablename(parser.name)
     create_table(con, tablename=tablename)
 
     dbcur = con.cursor()

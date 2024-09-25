@@ -50,12 +50,13 @@ def run(path: str, retry_failed=False):
 
         try:
             parser.parse()
-            if not parser.rowdata:
+            if not parser.data:
                 raise Exception(f"Could not fetch data from {parser.path}")
-            db.insert_row(row=parser.rowdata, tablename=parser.tablename, close=True)
+            db.insert_row(parser=parser, close=True)
             success.add(parser.key)
 
-        except Exception:
+        except Exception as err:
+            print(str(err))
             # TODO: add exception management
             fail.add(parser.key)
 

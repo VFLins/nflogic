@@ -2,11 +2,11 @@ from typing import TypedDict
 from datetime import datetime
 import xmltodict
 import os
-from nflogic import db
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
 BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
+
 
 # TYPES
 ###############
@@ -14,6 +14,18 @@ BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
 PayInfo = TypedDict("PayInfo", {"type": str, "amount": str})
 TotalInfo = TypedDict(
     "TotalInfo", {"products": float, "discount": float, "taxes": float}
+)
+FactParserData = TypedDict(
+    "FactParserData",
+    {
+        "ChaveNFe": str,
+        "DataHoraEmi": datetime,
+        "PagamentoTipo": str,
+        "PagamentoValor": str,
+        "TotalProdutos": float,
+        "TotalDesconto": float,
+        "TotalTributos": float,
+    },
 )
 
 
@@ -56,11 +68,11 @@ class FactParser:
     def __init__(self, path: str):
         with open(path) as doc:
             self.xml = xmltodict.parse(doc.read())
-        self.path = path
-        self.key = self.get_key()
-        self.version = self._get_version()
-        self.tablename = self._get_tablename()
-        self.rowdata = None
+        self.path: str = path
+        self.key: str = self.get_key()
+        self.version: str = self._get_version()
+        self.name: str = self._get_name()
+        self.data: FactParserData = None
 
         self.erroed: bool = False
         self.err: Exception | None = None
@@ -97,8 +109,8 @@ class FactParser:
                     continue
         raise KeyError("Key wasn't found in the provided dictionary.")
 
-    def _get_tablename(self) -> str:
-        return db.gen_tablename(self._get_dict_key(self.xml, "dest")["xNome"])
+    def _get_name(self) -> str:
+        return self._get_dict_key(self.xml, "dest")["xNome"]
 
     def _get_version(self) -> str:
         """return a `str` with the version nuber of the document"""
@@ -167,10 +179,3 @@ class FactParser:
             "TotalDesconto": total["discount"],
             "TotalTributos": total["taxes"],
         }
-
-        try:
-            self.rowdata = db.RowElem(**self.data)
-        except Exception as err:
-            self.erroed = True
-            self.err = err
-            return
