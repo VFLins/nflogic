@@ -41,9 +41,7 @@ def gen_tablename(name: str):
 
 def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
     """Create table with the provided name formatted by `nflogic.db.gen_tablename()`.
-    Should *not* be called directly.
-
-    **Does nothing if:**
+    Should *not* be called directly. *Does nothing if:*
     - table already exists
     - invalid name
 

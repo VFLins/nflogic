@@ -4,7 +4,7 @@ import os
 from nflogic.parse import (
     valid_int,
     valid_float,
-    DictParser,
+    FactParser,
 )
 
 
@@ -37,7 +37,7 @@ def test_valid_float(val, expected):
 
 
 def test_get_data():
-    dp = DictParser(path=TEST_XML_V4)
+    dp = FactParser(path=TEST_XML_V4)
     dp.parse()
 
     if dp.erroed:
