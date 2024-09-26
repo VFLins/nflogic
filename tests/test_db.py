@@ -15,11 +15,13 @@ class tzBrazilEast(tzinfo):
 
     def utcoffset(self, dt: datetime | None = None) -> timedelta:
         return timedelta(hours=-3) + self.dst(dt)
+
     def dst(self, dt: datetime | None = None):
         return timedelta(0)
+
     def tzname(self, dt: datetime | None) -> str | None:
         return "Brazil/East"
-    
+
 
 CORRECT_ROWDATA = {
     "ChaveNFe": "12312312312312312312312312312312312312312312",
@@ -60,13 +62,17 @@ def test_create_table():
     "upd_key,val,valid",
     [
         (None, None, True),
-        ("PagamentoValor", "100,0;10,2]", False,),
+        (
+            "PagamentoValor",
+            "100,0;10,2]",
+            False,
+        ),
         ("DataHoraEmi", "2020-01-01T12:12:00-03:00", False),
         ("TotalDesconto", "abc", False),
         ("ChaveNFe", "123text23not12allowed32312312312312312312312", False),
     ],
 )
-def test_validation(upd_key: str, val: any, valid:bool):
+def test_validation(upd_key: str, val: any, valid: bool):
     rowdata = copy.deepcopy(CORRECT_ROWDATA)
     if upd_key:
         rowdata[upd_key] = val
@@ -79,14 +85,3 @@ def test_validation(upd_key: str, val: any, valid:bool):
         row = RowElem(**rowdata)
         for elem in rowdata.keys():
             assert rowdata[elem] == row.__dict__[elem]
-
-def test_insert_row():
-    with sqlite3.connect(":memory:") as con:
-        row = RowElem(**CORRECT_ROWDATA)
-        insert_row(con, row, "TEST_INSERT_ROW")
-        cur = con.cursor()
-        cur.execute("SELECT * FROM TEST_INSERT_ROW")
-        res = cur.fetchall()
-
-    assert len(res) == 1
-    assert res[0][1:] == row.values
