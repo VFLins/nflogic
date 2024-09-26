@@ -110,7 +110,7 @@ class FactParser:
         raise KeyError("Key wasn't found in the provided dictionary.")
 
     def _get_name(self) -> str:
-        return self._get_dict_key(self.xml, "dest")["xNome"]
+        return self._get_dict_key(self.xml, "emit")["xNome"]
 
     def _get_version(self) -> str:
         """return a `str` with the version nuber of the document"""

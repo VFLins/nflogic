@@ -12,7 +12,7 @@ SCRIPT_DIR = os.path.split(SCRIPT_PATH)[0]
 def test_tablename():
     p = FactParser(os.path.join(SCRIPT_DIR, "test_xml_v4.xml"))
     tname = gen_tablename(p.name)
-    assert tname == "IMPERADOR_AUGUSTO_MERCEARIA"
+    assert tname == "FORNECEDOR"
 
 
 def test_insert_row():
