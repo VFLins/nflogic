@@ -39,6 +39,35 @@ def gen_tablename(name: str):
     return re.sub(r"[^\w\s]", "", re.sub(r"^\d+", "", name)).replace(" ", "_").upper()
 
 
+def processed_keys(
+    tablename: str,
+    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+    close: bool = False,
+):
+    """Read `tablename` and returns all keys present in table.
+
+    **Args**
+        con (sqlite3.Connection): Connection to desired database.
+        tablename (str): Name of the table that will be read.
+        close (bool): Should close the connection `con` after the operation completes?
+
+    **Returns** List[str]
+        List of all corresponding keys.
+
+    **Raises**
+        `sqlite3.OperationalError` if table doesn't exist.
+    """
+
+    dbcur = con.cursor()
+    dbcur.execute(f"SELECT ChaveNFe FROM {tablename}")
+    output = dbcur.fetchall()
+
+    if close:
+        con.close()
+
+    return [elem[0] for elem in output]
+
+
 def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
     """Create table with the provided name formatted by `nflogic.db.gen_tablename()`.
     Should *not* be called directly. *Does nothing if:*
@@ -182,6 +211,7 @@ def insert_row(
 
     **Raises**
         `ValueError` if *parser* doesn't hold data.
+        `sqlite3.OperationalError` if table doesn't exist.
     """
     if not parser.data:
         raise ValueError(f"Parser '{parser.key}' doesn't have any data to insert.")
