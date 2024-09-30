@@ -65,14 +65,14 @@ class FactParser:
     de dicionário.
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, buy: bool = True):
         with open(path) as doc:
             self.xml = xmltodict.parse(doc.read())
         self.path: str = path
         self.key: str = self.get_key()
         self.version: str = self._get_version()
-        self.name: str = self._get_name()
-        self.data: FactParserData = None
+        self.name: str = self._get_name(buy)
+        self.data: FactParserData | None = None
 
         self.erroed: bool = False
         self.err: Exception | None = None
@@ -109,8 +109,11 @@ class FactParser:
                     continue
         raise KeyError("Key wasn't found in the provided dictionary.")
 
-    def _get_name(self) -> str:
-        return self._get_dict_key(self.xml, "emit")["xNome"]
+    def _get_name(self, buy: bool) -> str:
+        if buy:
+            return f"COMPRA {self._get_dict_key(self.xml, "dest")["xNome"]}"
+        else:
+            return f"VENDA {self._get_dict_key(self.xml, "emit")["xNome"]}"
 
     def _get_version(self) -> str:
         """return a `str` with the version nuber of the document"""
