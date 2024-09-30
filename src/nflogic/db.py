@@ -58,6 +58,9 @@ def processed_keys(
         `sqlite3.OperationalError` if table doesn't exist.
     """
 
+    tablename = gen_tablename(tablename)
+    create_table(con, tablename)
+
     dbcur = con.cursor()
     dbcur.execute(f"SELECT ChaveNFe FROM {tablename}")
     output = dbcur.fetchall()
