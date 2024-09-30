@@ -21,7 +21,7 @@ def run_failed(path: str):
     pass
 
 
-def run(path: str, retry_failed=False):
+def run(path: str, buy: bool, retry_failed=False):
     # 1. [DONE] get list of processable files
     # 2. [DONE] get list of already processed (success and fail)
     # 3. [DONE] parse
@@ -34,16 +34,16 @@ def run(path: str, retry_failed=False):
         if (len(filename) > 10) and (".xml" in filename)
     ]
 
-    success = CacheHandler("success")
-    fail = CacheHandler("fail")
-
-    ignore_keys = success.data
     # TODO: fix exception when `retry_failed=True`
-    if not retry_failed:
-        ignore_keys = ignore_keys + fail.data
 
     for file in nfes:
-        parser = FactParser(file)
+        parser = FactParser(file, buy)
+        ignore_keys = db.processed_keys(parser.name)
+
+        if not retry_failed:
+            failed = CacheHandler(parser.name)
+            ignore_keys = ignore_keys + failed.data
+
         if parser.key in ignore_keys:
             # TODO: Info pulando arquivo já processado
             continue
@@ -52,13 +52,14 @@ def run(path: str, retry_failed=False):
             parser.parse()
             if not parser.data:
                 raise Exception(f"Could not fetch data from {parser.path}")
-            db.insert_row(parser=parser, close=True)
-            success.add(parser.key)
+            db.insert_row(parser=parser, close=False)
+            if retry_failed:
+                failed.rm(parser.key)
 
         except Exception as err:
             print(str(err))
             # TODO: add exception management
-            fail.add(parser.key)
+            failed.add(parser.key)
 
 
 if __name__ == "__main__":
