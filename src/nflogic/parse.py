@@ -66,11 +66,12 @@ class FactParser:
     """
 
     def __init__(self, path: str, buy: bool = True):
+        # Should NOT RAISE on __init__
         with open(path) as doc:
             self.xml = xmltodict.parse(doc.read())
         self.path: str = path
         self.key: str = self.get_key()
-        self.version: str = self._get_version()
+        self.version: str | None = self._get_version()
         self.name: str = self._get_name(buy)
         self.data: FactParserData | None = None
 
@@ -110,14 +111,24 @@ class FactParser:
         raise KeyError("Key wasn't found in the provided dictionary.")
 
     def _get_name(self, buy: bool) -> str:
-        if buy:
-            return f"COMPRA {self._get_dict_key(self.xml, "dest")["xNome"]}"
-        else:
-            return f"VENDA {self._get_dict_key(self.xml, "emit")["xNome"]}"
+        try:
+            if buy:
+                return f"COMPRA {self._get_dict_key(self.xml, "dest")["xNome"]}"
+            else:
+                return f"VENDA {self._get_dict_key(self.xml, "emit")["xNome"]}"
+        except Exception as err:
+            self.erroed = True
+            self.err = err
+            return "ERROR_FETCHING_NAME"
 
     def _get_version(self) -> str:
-        """return a `str` with the version nuber of the document"""
-        return self.xml["nfeProc"]["@versao"]
+        """return a `str` with the version number of the document"""
+        try:
+            return self._get_dict_key(self.xml, "nfeProc")["@versao"]
+        except Exception as err:
+            self.erroed = True
+            self.err = err
+            return None                        
 
     def get_pay(self) -> PayInfo:
         """return the payment section of the `.xml` in ``"""
@@ -136,7 +147,12 @@ class FactParser:
             return {"type": pay["detPag"]["tPag"], "amount": pay["detPag"]["vPag"]}
 
     def get_key(self) -> str:
-        return self._get_dict_key(self.xml, "@Id")[3:]
+        try:
+            return self._get_dict_key(self.xml, "@Id")[3:]
+        except Exception as err:
+            self.erroed = True
+            self.err = err
+            return "00000000000000000000000000000000000000000000"
 
     def get_dt(self) -> datetime:
         dt = self._get_dict_key(self.xml, "dhEmi")

@@ -38,11 +38,16 @@ def run(path: str, buy: bool, retry_failed=False):
 
     for file in nfes:
         parser = FactParser(file, buy)
+        failed = CacheHandler(parser.name)
+        if parser.erroed:
+            print(str(parser.err))
+            failed.add(parser.path)
+
         ignore_keys = db.processed_keys(parser.name)
 
-        if not retry_failed:
-            failed = CacheHandler(parser.name)
-            ignore_keys = ignore_keys + failed.data
+        if not retry_failed and parser.path in failed.data:
+            # TODO: Info pulando arquivo que já deu erro
+            continue
 
         if parser.key in ignore_keys:
             # TODO: Info pulando arquivo já processado
@@ -54,12 +59,12 @@ def run(path: str, buy: bool, retry_failed=False):
                 raise Exception(f"Could not fetch data from {parser.path}")
             db.insert_row(parser=parser, close=False)
             if retry_failed:
-                failed.rm(parser.key)
+                failed.rm(parser.path)
 
         except Exception as err:
             print(str(err))
             # TODO: add exception management
-            failed.add(parser.key)
+            failed.add(parser.path)
 
 
 if __name__ == "__main__":
