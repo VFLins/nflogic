@@ -3,6 +3,8 @@ import logging
 from pathlib import Path
 from os import path, makedirs
 
+from nflogic.parse import ParserInput
+
 
 SCRIPT_PATH = path.split(path.realpath(__file__))[0]
 CACHE_PATH = path.join(SCRIPT_PATH, "cache")
@@ -72,8 +74,15 @@ class CacheHandler:
             # read file contents
             self.data = self._load()
             log.info(f"Restored {size_diff} items from {self.cachename}.cache")
+    
+    def _check_item(self, item: ParserInput):
+        for param, typ in ParserInput.__annotations__.items():
+            if type(item[param]) != typ:
+                raise TypeError()
 
-    def add(self, item) -> None:
+    def add(self, item: ParserInput) -> None:
+        self._check_item(item=item)
+        
         if item in self._load():
             raise KeyAlreadyProcessedError(f"{item} já está na lista")
 
@@ -84,7 +93,7 @@ class CacheHandler:
 
         self.data = self._load()
 
-    def rm(self, item) -> None:
+    def rm(self, item: ParserInput) -> None:
         if item not in self.data:
             file_name = path.split(self.cachefile)[1]
             raise KeyNotFoundError(f"Arquivo não foi registrado em {file_name}")
