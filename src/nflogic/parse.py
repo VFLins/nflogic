@@ -11,6 +11,7 @@ BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
 # TYPES
 ###############
 
+ParserInput = TypedDict("ParserInput", {"path": str, "buy": bool})
 PayInfo = TypedDict("PayInfo", {"type": str, "amount": str})
 TotalInfo = TypedDict(
     "TotalInfo", {"products": float, "discount": float, "taxes": float}
@@ -65,16 +66,19 @@ class FactParser:
     de dicionário.
     """
 
-    def __init__(self, path: str, buy: bool = True):
+    def __init__(self, parser_input: ParserInput):
+        # --------------------------------------
+        # TODO: handle raises in this portion
         # Should NOT RAISE on __init__
+        self.INPUTS = parser_input
+        path = parser_input["path"]
+        buy = parser_input["buy"]
+
         with open(path) as doc:
             self.xml = xmltodict.parse(doc.read())
-        self.path: str = path
-        self.key: str = self.get_key()
-        self.version: str | None = self._get_version()
         self.name: str = self._get_name(buy)
+        # --------------------------------------
         self.data: FactParserData | None = None
-
         self.erroed: bool = False
         self.err: Exception | None = None
 
@@ -152,7 +156,6 @@ class FactParser:
         except Exception as err:
             self.erroed = True
             self.err = err
-            return "00000000000000000000000000000000000000000000"
 
     def get_dt(self) -> datetime:
         dt = self._get_dict_key(self.xml, "dhEmi")
