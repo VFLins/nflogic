@@ -71,10 +71,10 @@ class FactParser:
         # TODO: handle raises in this portion
         # Should NOT RAISE on __init__
         self.INPUTS = parser_input
-        path = parser_input["path"]
+        xmldir = parser_input["path"]
         buy = parser_input["buy"]
 
-        with open(path) as doc:
+        with open(xmldir) as doc:
             self.xml = xmltodict.parse(doc.read())
         self.name: str = self._get_name(buy)
         # --------------------------------------
@@ -132,7 +132,7 @@ class FactParser:
         except Exception as err:
             self.erroed = True
             self.err = err
-            return None                        
+            return None
 
     def get_pay(self) -> PayInfo:
         """return the payment section of the `.xml` in ``"""

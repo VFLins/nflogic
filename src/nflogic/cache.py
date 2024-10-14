@@ -74,7 +74,7 @@ class CacheHandler:
             # read file contents
             self.data = self._load()
             log.info(f"Restored {size_diff} items from {self.cachename}.cache")
-    
+
     def _check_item(self, item: ParserInput):
         for param, typ in ParserInput.__annotations__.items():
             if type(item[param]) != typ:
@@ -82,7 +82,7 @@ class CacheHandler:
 
     def add(self, item: ParserInput) -> None:
         self._check_item(item=item)
-        
+
         if item in self._load():
             raise KeyAlreadyProcessedError(f"{item} já está na lista")
 
