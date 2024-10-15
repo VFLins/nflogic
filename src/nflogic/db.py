@@ -51,7 +51,7 @@ def processed_keys(
         tablename (str): Name of the table that will be read.
         close (bool): Should close the connection `con` after the operation completes?
 
-    **Returns** List[str]
+    **Returns** `List[str]`
         List of all corresponding keys.
 
     **Raises**

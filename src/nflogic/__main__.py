@@ -15,7 +15,17 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 ###############
 
 
-def diagnose():
+def diagnose(display_summary: bool = True):
+    """Prompts the user to select a cache file, and then recreates all errors stored in the selected file, storing information about all of them in a `pandas.DataFrame`.
+    
+    If i isn't able to recreate the error, will give `ERROR TYPE = "<class 'NoneType'>"` and `ERROR MESSAGE = "None"`.
+
+    **Args**
+        display_summary (bool): Should print a brief summary of the errors captured to stdout?
+
+    **Returns** `pandas.DataFrame`
+        Data frame with information on all errors caputred.
+    """
     cachefiles = os.listdir(cache.CACHE_PATH)
     cacheoptions = [f[:-6] for f in cachefiles if f[-6:] == ".cache"]
 
@@ -24,23 +34,47 @@ def diagnose():
     cacheid = int(input("Insert the id number of the desired cache file: "))
     cacheselec = cacheoptions_df.iloc[cacheid, 0]
 
-    errors_df = pd.DataFrame({"Input": [], "Error type": [], "Error message": []})
+    df_columns = ["INPUTS", "ERROR TYPE", "ERROR MESSAGE", "ERROR CONTEXT"]
+    errors_df = pd.DataFrame(columns=df_columns)
     c = cache.CacheHandler(cacheselec)
     for inputs in c.data:
         parser = parse.FactParser(inputs)
         parser.parse()
 
         if parser.erroed:
-            new_row_errors_df = pd.DataFrame(
-                {
-                    "Input": [parser.INPUTS],
-                    "Error type": [str(type(parser.err))],
-                    "Error message": [str(parser.err)],
-                }
-            )
-            errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
-    errors_count_df = errors_df.groupby(["Error type", "Error message"])["Input"].count()
-    print(errors_count_df)
+            err_raised = parser.err
+            err_context = "parse"
+
+        else:
+            try:
+                _ = db.RowElem(**parser.data)
+                err_raised = None
+                err_context = None
+            except Exception as err:
+                err_raised = err
+                err_context = "data validation"
+
+        new_row_errors_df = pd.DataFrame(
+            [[parser.INPUTS, str(type(err_raised)), str(err_raised), err_context]],
+            columns=df_columns,
+        )
+        errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
+
+    if display_summary:
+        errors_count_df = (
+            errors_df[["ERROR TYPE", "ERROR MESSAGE", "ERROR CONTEXT"]]
+            .value_counts()
+            .rename("COUNT")
+            .reset_index()
+        )
+
+        print(
+            "\n==== Summary of errors retrieved ====",
+            errors_count_df.to_string(index=False),
+            "========== end of summary ===========",
+            sep="\n\n",
+        )
+
     return errors_df
 
 
