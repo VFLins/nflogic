@@ -60,27 +60,45 @@ def valid_float(val: any):
 ###############
 
 
-class FactParser:
-    """
-    Classe de objeto que contém os dados de uma nota fiscal .xml em formato
-    de dicionário.
-    """
-
+class BaseParser:
+    """"""
     def __init__(self, parser_input: ParserInput):
-        # --------------------------------------
-        # TODO: handle raises in this portion
-        # Should NOT RAISE on __init__
         self.INPUTS = parser_input
-        xmldir = parser_input["path"]
-        buy = parser_input["buy"]
+        self.data = None
+        self.xml = None
+        self.name = None
+        self.version = None
 
-        with open(xmldir) as doc:
-            self.xml = xmltodict.parse(doc.read())
-        self.name: str = self._get_name(buy)
+        self.erroed = False
+        self.err = None
+
         # --------------------------------------
-        self.data: FactParserData | None = None
-        self.erroed: bool = False
-        self.err: Exception | None = None
+        # Should NOT RAISE on __init__
+        try:
+            xmlpath = parser_input["path"]
+            buy = parser_input["buy"]
+        except KeyError:
+            self.erroed = True
+            self.err = KeyError("Invalid input, expected key not found.")
+            return
+
+        try:
+            with open(xmlpath) as doc:
+                self.xml = xmltodict.parse(doc.read())
+        except Exception as err:
+            self.erroed = True
+            self.err = err
+            return
+        
+        try:
+            self.name: str = self._get_name(buy)
+        except Exception as _get_name_err:
+            self.erroed = True
+            self.err = _get_name_err
+            return
+
+        self.version = self._get_version()
+        # --------------------------------------
 
     def __enter__(self):
         self.__init__()
@@ -125,7 +143,7 @@ class FactParser:
             self.err = err
             return "ERROR_FETCHING_NAME"
 
-    def _get_version(self) -> str:
+    def _get_version(self) -> str | None:
         """return a `str` with the version number of the document"""
         try:
             return self._get_dict_key(self.xml, "nfeProc")["@versao"]
@@ -133,6 +151,13 @@ class FactParser:
             self.erroed = True
             self.err = err
             return None
+
+
+class FactParser(BaseParser):
+    """
+    Classe de objeto que contém os dados de uma nota fiscal .xml em formato
+    de dicionário.
+    """
 
     def get_pay(self) -> PayInfo:
         """return the payment section of the `.xml` in ``"""
