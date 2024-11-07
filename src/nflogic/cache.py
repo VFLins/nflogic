@@ -80,6 +80,22 @@ class CacheHandler:
             if type(item[param]) != typ:
                 raise TypeError()
 
+    def is_valid(self):
+        if type(self.data) != list:
+            print("Is not list")
+            return False
+        for idx, elem in enumerate(self.data):
+            if not type(elem) != dict:
+                print(f"self.data[{idx}] is not dict")
+                return False
+            if type(elem["path"]) != str:
+                print(f"Found key {elem["path"]=} not str")
+                return False
+            if type(elem["buy"]) != bool:
+                print(f"Found key {elem["buy"]=} not bool")
+                return False
+        return True
+
     def add(self, item: ParserInput) -> None:
         self._check_item(item=item)
 

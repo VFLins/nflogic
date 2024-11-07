@@ -15,6 +15,23 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 ###############
 
 
+def check_cachename(cachename: str) -> bool:
+    """Verifies if a cachename exists and return the answer as a boolean value."""
+    cachefile_path = os.path.join(SCRIPT_DIR, "cache", f"{cachename}.cache")
+    file_exists = os.path.isfile(cachefile_path)
+    cache = cache.CacheHandler(cachename)
+    return file_exists and cache.is_valid()
+
+
+def get_cachenames() -> list[str]:
+    """"""
+
+
+def rebuild_errors(cachename: str):
+    """"""
+
+
+
 def diagnose(display_summary: bool = True):
     """Prompts the user to select a cache file, and then recreates all errors stored in the selected file, storing information about all of them in a `pandas.DataFrame`.
     
