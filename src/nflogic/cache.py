@@ -1,29 +1,51 @@
 import pickle
 import logging
 from pathlib import Path
-from os import path, makedirs
+import os
 
 from nflogic.parse import ParserInput
 
 
-SCRIPT_PATH = path.split(path.realpath(__file__))[0]
-CACHE_PATH = path.join(SCRIPT_PATH, "cache")
-LOG_PATH = path.join(SCRIPT_PATH, "log")
-LOG_FILE = path.join(SCRIPT_PATH, "log", f"{__name__}.log")
+SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
+CACHE_PATH = os.path.join(SCRIPT_PATH, "cache")
+LOG_PATH = os.path.join(SCRIPT_PATH, "log")
+LOG_FILE = os.path.join(SCRIPT_PATH, "log", f"{__name__}.log")
 
 for directory in [CACHE_PATH, LOG_PATH]:
-    makedirs(directory, exist_ok=True)
+    os.makedirs(directory, exist_ok=True)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-makedirs(path.split(LOG_FILE)[0], exist_ok=True)
+os.makedirs(os.path.split(LOG_FILE)[0], exist_ok=True)
 loghandler = logging.FileHandler(filename=LOG_FILE)
 logformat = logging.Formatter(fmt="%(asctime)s %(levelname)s :: %(message)s")
 loghandler.setFormatter(logformat)
 loghandler.setLevel(logging.INFO)
 log.addHandler(loghandler)
 log.propagate = False
+
+
+def valid_cachename(cachename: str) -> bool:
+    """Verifies if a cachename exists *and* is valid. Return the answer as a boolean value."""
+    cachefile_path = os.path.join(CACHE_PATH, f"{cachename}.cache")
+    file_exists = os.path.isfile(cachefile_path)
+    c = CacheHandler(cachename)
+    return file_exists and c.is_valid()
+
+
+def get_cachenames() -> list[str]:
+    """Returns a list of available cache names."""
+    cachenames = []
+
+    for f in os.listdir(CACHE_PATH):
+        fullpath = os.path.join(CACHE_PATH, f)
+        no_ext_filename = os.path.splitext(f)[0]
+
+        if os.path.isfile(fullpath) and valid_cachename(no_ext_filename):
+            cachenames.append(no_ext_filename)
+
+    return cachenames
 
 
 class KeyAlreadyProcessedError(Exception):
@@ -43,7 +65,7 @@ class KeyNotFoundError(Exception):
 class CacheHandler:
     def __init__(self, cachename: str) -> None:
         self.cachename = cachename
-        self.cachefile = path.join(CACHE_PATH, f"{cachename}.cache")
+        self.cachefile = os.path.join(CACHE_PATH, f"{cachename}.cache")
         self.data = self._load()
 
     def _load(self) -> list:
@@ -80,20 +102,35 @@ class CacheHandler:
             if type(item[param]) != typ:
                 raise TypeError()
 
-    def is_valid(self):
-        if type(self.data) != list:
-            print("Is not list")
-            return False
+    def _first_invalid_elem(self) -> ParserInput | None:
+        """Returns the first item in `self.data` that is not a `nflogic.cache.ParserInput`."""
         for idx, elem in enumerate(self.data):
-            if not type(elem) != dict:
+            if type(elem) != dict:
                 print(f"self.data[{idx}] is not dict")
-                return False
+                return elem
+            try:
+                _, _ = elem["path"], elem["buy"]
+            except KeyError:
+                print(f"self.data[{idx}] doesn't include required keys")
+                return elem
             if type(elem["path"]) != str:
-                print(f"Found key {elem["path"]=} not str")
-                return False
+                print(f"Found key self.data[{idx}]['path']={elem['path']} not str")
+                return elem
             if type(elem["buy"]) != bool:
-                print(f"Found key {elem["buy"]=} not bool")
-                return False
+                print(f"Found key self.data[{idx}]['buy']={elem['buy']} not bool")
+                return elem
+        return None
+
+    def is_valid(self) -> bool:
+        """
+        Test wether the structure of `self.data` is formatted as a list of `nflogic.cache.ParserInput`.
+        """
+        if type(self.data) != list:
+            print("self.data is not list")
+            return False
+        invalid_elem = self._first_invalid_elem()
+        if invalid_elem:
+            return False
         return True
 
     def add(self, item: ParserInput) -> None:
@@ -111,7 +148,7 @@ class CacheHandler:
 
     def rm(self, item: ParserInput) -> None:
         if item not in self.data:
-            file_name = path.split(self.cachefile)[1]
+            file_name = os.path.split(self.cachefile)[1]
             raise KeyNotFoundError(f"Arquivo não foi registrado em {file_name}")
 
         self._heal()

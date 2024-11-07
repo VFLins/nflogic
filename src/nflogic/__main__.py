@@ -8,6 +8,7 @@ from nflogic import db, cache, parse
 
 SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_DIR = os.path.split(SCRIPT_PATH)[0]
+CACHE_DIR = os.path.join(SCRIPT_DIR, "cache")
 DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 
 
@@ -15,26 +16,13 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 ###############
 
 
-def check_cachename(cachename: str) -> bool:
-    """Verifies if a cachename exists and return the answer as a boolean value."""
-    cachefile_path = os.path.join(SCRIPT_DIR, "cache", f"{cachename}.cache")
-    file_exists = os.path.isfile(cachefile_path)
-    cache = cache.CacheHandler(cachename)
-    return file_exists and cache.is_valid()
-
-
-def get_cachenames() -> list[str]:
-    """"""
-
-
 def rebuild_errors(cachename: str):
     """"""
 
 
-
 def diagnose(display_summary: bool = True):
     """Prompts the user to select a cache file, and then recreates all errors stored in the selected file, storing information about all of them in a `pandas.DataFrame`.
-    
+
     If i isn't able to recreate the error, will give `ERROR TYPE = "<class 'NoneType'>"` and `ERROR MESSAGE = "None"`.
 
     **Args**

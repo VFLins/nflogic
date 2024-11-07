@@ -62,6 +62,7 @@ def valid_float(val: any):
 
 class BaseParser:
     """"""
+
     def __init__(self, parser_input: ParserInput):
         self.INPUTS = parser_input
         self.data = None
@@ -89,7 +90,7 @@ class BaseParser:
             self.erroed = True
             self.err = err
             return
-        
+
         try:
             self.name: str = self._get_name(buy)
         except Exception as _get_name_err:
