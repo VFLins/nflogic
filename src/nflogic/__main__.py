@@ -29,9 +29,13 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
     **Raises**
         `KeyError` if `cachename` doesn't exist, use `nflogic.cache.get_cachenames()` to check available cache names.
     """
+    if cachename not in cache.get_cachenames():
+        raise KeyError("Not valid cachename.")
+
     df_columns = ["Inputs", "ErrorType", "ErrorMessage"]
     errors_df = pd.DataFrame(columns=df_columns)
     c = cache.CacheHandler(cachename)
+
     for inputs in c.data:
         p = parse.FactParser(inputs)
         p.parse()
@@ -41,6 +45,7 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
                 columns=df_columns,
             )
             errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
+
     return errors_df
 
 
