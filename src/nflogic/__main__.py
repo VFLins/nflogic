@@ -16,70 +16,31 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 ###############
 
 
-def rebuild_errors(cachename: str):
-    """"""
-
-
-def diagnose(display_summary: bool = True):
-    """Prompts the user to select a cache file, and then recreates all errors stored in the selected file, storing information about all of them in a `pandas.DataFrame`.
-
-    If i isn't able to recreate the error, will give `ERROR TYPE = "<class 'NoneType'>"` and `ERROR MESSAGE = "None"`.
+def rebuild_errors(cachename: str) -> pd.DataFrame:
+    """
+    Creates a data frame with all the errors rebuilt from the given cache.
 
     **Args**
-        display_summary (bool): Should print a brief summary of the errors captured to stdout?
+        cachename: name of the cache to retrieve errors from.
 
-    **Returns** `pandas.DataFrame`
-        Data frame with information on all errors caputred.
+    **Returns**
+        `pandas.DataFrame` with column names "Inputs", "ErrorType" and "ErrorMessage"
+
+    **Raises**
+        `KeyError` if `cachename` doesn't exist, use `nflogic.cache.get_cachenames()` to check available cache names.
     """
-    cachefiles = os.listdir(cache.CACHE_PATH)
-    cacheoptions = [f[:-6] for f in cachefiles if f[-6:] == ".cache"]
-
-    cacheoptions_df = pd.DataFrame({"Cache name": cacheoptions})
-    print(cacheoptions_df)
-    cacheid = int(input("Insert the id number of the desired cache file: "))
-    cacheselec = cacheoptions_df.iloc[cacheid, 0]
-
-    df_columns = ["INPUTS", "ERROR TYPE", "ERROR MESSAGE", "ERROR CONTEXT"]
+    df_columns = ["Inputs", "ErrorType", "ErrorMessage"]
     errors_df = pd.DataFrame(columns=df_columns)
-    c = cache.CacheHandler(cacheselec)
+    c = cache.CacheHandler(cachename)
     for inputs in c.data:
-        parser = parse.FactParser(inputs)
-        parser.parse()
-
-        if parser.erroed:
-            err_raised = parser.err
-            err_context = "parse"
-
-        else:
-            try:
-                _ = db.RowElem(**parser.data)
-                err_raised = None
-                err_context = None
-            except Exception as err:
-                err_raised = err
-                err_context = "data validation"
-
-        new_row_errors_df = pd.DataFrame(
-            [[parser.INPUTS, str(type(err_raised)), str(err_raised), err_context]],
-            columns=df_columns,
-        )
-        errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
-
-    if display_summary:
-        errors_count_df = (
-            errors_df[["ERROR TYPE", "ERROR MESSAGE", "ERROR CONTEXT"]]
-            .value_counts()
-            .rename("COUNT")
-            .reset_index()
-        )
-
-        print(
-            "\n==== Summary of errors retrieved ====",
-            errors_count_df.to_string(index=False),
-            "========== end of summary ===========",
-            sep="\n\n",
-        )
-
+        p = parse.FactParser(inputs)
+        p.parse()
+        if p.erroed:
+            new_row_errors_df = pd.DataFrame(
+                [[p.INPUTS, str(type(p.err)), str(p.err)]],
+                columns=df_columns,
+            )
+            errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
     return errors_df
 
 
