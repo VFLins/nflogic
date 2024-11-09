@@ -1,6 +1,7 @@
 from typing import TypedDict, get_type_hints
 from datetime import datetime
 from collections import OrderedDict
+import inspect
 import xmltodict
 import os
 import re
@@ -84,10 +85,15 @@ class FloatCoercibleType(str):
 
 class RowElem:
     """
-    Generic class for validating parsed data. It's children shall:
-    1. have annotated types in it's `self.__init__()`;
-    2. store the `self.__init__()` arguments to `self`.
-    """
+    Generic class for validating parsed data. It's children must:
+    1. Have annotated variable names with the corresponding data type
+    2. Run `super().__init__(**kwargs)` where kwargs are the parameters specified in `self.__init__()`"""
+    def __init__(self, **kwargs):
+        if "self" in kwargs.keys():
+            _ = kwargs.pop("self")
+        for name, value in kwargs.items():
+            self.__setattr__(name, value)
+        self._validate_and_assign()
 
     def _valid_key(self, key):
         if type(key) == str and len(key) == 44 and key.isdigit():
@@ -108,28 +114,53 @@ class RowElem:
         except ValueError:
             return False
 
-    def _validate_all(self):
+    def _validate_and_assign(self):
         types = self.__init__.__annotations__
+        self.values = []
 
         for var in types.keys():
             value = getattr(self, var)
 
             if types[var] == KeyType:
                 if not self._valid_key(value):
-                    raise ValueError(f"Invalid value {type(self)}.{var} = {value}")
+                    raise ValueError(f"Invalid value {var}: {value}")
+                self.values.append(value)
+                continue
 
             if types[var] == DTType:
                 if not self._valid_dt(value):
                     raise ValueError(f"Invalid value in {var}: {value}")
+                self.values.append(value.strftime("%Y-%m-%d %H:%M:%S %z"))
+                continue
 
             if types[var] == ListOfNumbersType:
                 if not self._valid_list_of_numbers(value):
                     raise ValueError(f"Invalid value in {var}: {value}")
+                self.values.append(value)
+                continue
 
             if types[var] == FloatCoercibleType:
                 if not self._valid_float(value):
                     raise ValueError(f"Invalid value in {var}: {value}")
+                self.values.append(float(value))
+                continue
 
+        self.values = tuple(self.values)
+
+
+class FactRowElem(RowElem):
+        def __init__(
+            self,
+            ChaveNFe: KeyType,
+            DataHoraEmi: DTType,
+            PagamentoTipo: ListOfNumbersType,
+            PagamentoValor: ListOfNumbersType,
+            TotalProdutos: FloatCoercibleType,
+            TotalDesconto: FloatCoercibleType,
+            TotalTributos: FloatCoercibleType,
+        ):
+            argdict = inspect.currentframe().f_locals
+            super().__init__(**argdict)
 
 # PARSER
 ###############
@@ -174,37 +205,6 @@ class BaseParser:
             self.err = ParserInitError(f"Unable to fetch metadata from {self.INPUTS=}")
             return
         # --------------------------------------
-
-    class BaseRowElem(RowElem):
-        def __init__(
-            self,
-            ChaveNFe: KeyType,
-            DataHoraEmi: DTType,
-            PagamentoTipo: ListOfNumbersType,
-            PagamentoValor: ListOfNumbersType,
-            TotalProdutos: FloatCoercibleType,
-            TotalDesconto: FloatCoercibleType,
-            TotalTributos: FloatCoercibleType,
-        ):
-
-            self.ChaveNFe = ChaveNFe
-            self.DataHoraEmi = DataHoraEmi
-            self.PagamentoTipo = PagamentoTipo
-            self.PagamentoValor = PagamentoValor
-            self.TotalProdutos = TotalProdutos
-            self.TotalDesconto = TotalDesconto
-            self.TotalTributos = TotalTributos
-
-            self._validate_all()
-            self.values = (
-                self.ChaveNFe,
-                self.DataHoraEmi.strftime("%Y-%m-%d %H:%M:%S %z"),
-                self.PagamentoTipo,
-                self.PagamentoValor,
-                float(self.TotalProdutos),
-                float(self.TotalDesconto),
-                float(self.TotalTributos),
-            )
 
     def __enter__(self):
         self.__init__()
