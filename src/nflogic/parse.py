@@ -33,42 +33,11 @@ FactParserData = TypedDict(
 )
 
 
-# VALIDATORS
-###############
-
-
-def valid_int(val: any):
-    """
-    Return `True` if `val` is of type `int` or coercible, `False` otherwise.
-    """
-    try:
-        _ = int(val)
-        return True
-    except ValueError:
-        return False
-
-
-def valid_float(val: any):
-    """
-    Return `True` if `val` is of type `float` or coercible, `False` otherwise.
-    """
-    try:
-        _ = float(val)
-        return True
-    except ValueError:
-        return False
-
-
 # DATA VALIDATION
 ###############
 
 
 class KeyType(str):
-    def __init__(self) -> None:
-        super().__init__()
-
-
-class DTType(datetime):
     def __init__(self) -> None:
         super().__init__()
 
@@ -83,6 +52,44 @@ class FloatCoercibleType(str):
         super().__init__()
 
 
+def convert_to_list_of_numbers(inp: list[float]) -> ListOfNumbersType:
+    return str(inp).replace(",", ";").replace(" ", "")
+
+
+def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float]:
+    nums_list = inp.replace("[", "").replace("]", "").split(";")
+    return [float(i) for i in nums_list]
+
+
+def valid_int(val: any) -> bool:
+    """Return `True` if `val` is of type `int` or coercible, `False` otherwise."""
+    try:
+        _ = int(val)
+        return True
+    except ValueError:
+        return False
+
+
+def valid_float(val: any) -> bool:
+    """Return `True` if `val` is of type `float` or coercible, `False` otherwise."""
+    try:
+        _ = float(val)
+        return True
+    except ValueError:
+        return False
+
+
+def valid_list_of_numbers(val: str) -> bool:
+    """Return `True` if the string in `val` can be converted to a list of numbers separated by semicolon, `False` otherwise."""
+    return bool(re.match(r"^\[(?:[0-9.;])*\]$", val))
+
+
+def valid_key(val) -> bool:
+    if (type(val) == str) and (len(val) == 44) and val.isdigit():
+        return True
+    return False
+
+
 class RowElem:
     """
     Generic class for validating parsed data. It's children must:
@@ -95,25 +102,6 @@ class RowElem:
             self.__setattr__(name, value)
         self._validate_and_assign()
 
-    def _valid_key(self, key):
-        if type(key) == str and len(key) == 44 and key.isdigit():
-            return True
-        return False
-
-    def _valid_dt(self, dt):
-        return type(dt) == datetime
-
-    def _valid_list_of_numbers(self, string):
-        pattern = r"^\[(?:[0-9.;])*\]$"
-        return bool(re.match(pattern, string))
-
-    def _valid_float(self, floating_point):
-        try:
-            _ = float(floating_point)
-            return True
-        except ValueError:
-            return False
-
     def _validate_and_assign(self):
         types = self.__init__.__annotations__
         self.values = []
@@ -122,25 +110,25 @@ class RowElem:
             value = getattr(self, var)
 
             if types[var] == KeyType:
-                if not self._valid_key(value):
+                if not valid_key(value):
                     raise ValueError(f"Invalid value {var}: {value}")
                 self.values.append(value)
                 continue
 
-            if types[var] == DTType:
-                if not self._valid_dt(value):
+            if types[var] == datetime:
+                if type(value) != datetime:
                     raise ValueError(f"Invalid value in {var}: {value}")
                 self.values.append(value.strftime("%Y-%m-%d %H:%M:%S %z"))
                 continue
 
             if types[var] == ListOfNumbersType:
-                if not self._valid_list_of_numbers(value):
+                if not valid_list_of_numbers(value):
                     raise ValueError(f"Invalid value in {var}: {value}")
                 self.values.append(value)
                 continue
 
             if types[var] == FloatCoercibleType:
-                if not self._valid_float(value):
+                if not valid_float(value):
                     raise ValueError(f"Invalid value in {var}: {value}")
                 self.values.append(float(value))
                 continue
@@ -152,7 +140,7 @@ class FactRowElem(RowElem):
         def __init__(
             self,
             ChaveNFe: KeyType,
-            DataHoraEmi: DTType,
+            DataHoraEmi: datetime,
             PagamentoTipo: ListOfNumbersType,
             PagamentoValor: ListOfNumbersType,
             TotalProdutos: FloatCoercibleType,
@@ -179,7 +167,6 @@ class BaseParser:
         self.xml = None
         self.name = None
         self.version = None
-
         self.erroed = False
         self.err = None
 
@@ -206,27 +193,19 @@ class BaseParser:
             return
         # --------------------------------------
 
-    def __enter__(self):
-        self.__init__()
-        return self
-
-    def __exit__(self, err_type, err_val, traceback):
-        pass
-
     def _get_metadata(self):
         with open(self.INPUTS["path"]) as doc:
             self.xml = xmltodict.parse(doc.read())
         self.name: str = self._get_name(self.INPUTS["buy"])
         self.version = self._get_version()
-        
 
-    def _get_dict_key(self, d: dict, key):
+    def _get_dict_key(self, d: dict, key: str):
         """
         Traverse the dictionary `d` looking for the specified `key`.
 
         ***Args***
-            d (dict): The dictionary to search.
-            key (any): The key to search for.
+            d: The dictionary to search.
+            key: The key to search for.
 
         ***Raises***
             KeyError: If `key` is not found at any level of `d`.
@@ -280,10 +259,8 @@ class FactParser(BaseParser):
             pay = self.xml["NFe"]["infNFe"]["pag"]
         if type(pay["detPag"]) is list:
             return {
-                "type": ";".join([x["tPag"] if valid_int(x) else "NaN" for x in pay]),
-                "amount": ";".join(
-                    [x["vPag"] if valid_float(x) else "NaN" for x in pay]
-                ),
+                "type": convert_to_list_of_numbers(pay["tPag"]),
+                "amount": convert_to_list_of_numbers(pay["vPag"]),
             }
         else:
             return {"type": pay["detPag"]["tPag"], "amount": pay["detPag"]["vPag"]}
