@@ -265,7 +265,7 @@ class FactParser(BaseParser):
         else:
             return {"type": pay["detPag"]["tPag"], "amount": pay["detPag"]["vPag"]}
 
-    def get_key(self) -> str:
+    def get_key(self) -> KeyType:
         try:
             return self._get_dict_key(self.xml, "@Id")[3:]
         except Exception as err:
@@ -307,12 +307,12 @@ class FactParser(BaseParser):
             self.err = err
             return
 
-        self.data = {
-            "ChaveNFe": key,
-            "DataHoraEmi": dt,
-            "PagamentoTipo": pay["type"],
-            "PagamentoValor": pay["amount"],
-            "TotalProdutos": total["products"],
-            "TotalDesconto": total["discount"],
-            "TotalTributos": total["taxes"],
-        }
+        self.data = FactRowElem(
+            ChaveNFe=key,
+            DataHoraEmi=dt,
+            PagamentoTipo=pay["type"],
+            PagamentoValor=pay["amount"],
+            TotalProdutos=total["products"],
+            TotalDesconto=total["discount"],
+            TotalTributos=total["taxes"],
+        )
