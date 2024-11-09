@@ -1,7 +1,9 @@
-from typing import TypedDict
+from typing import TypedDict, get_type_hints
 from datetime import datetime
+from collections import OrderedDict
 import xmltodict
 import os
+import re
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -56,13 +58,90 @@ def valid_float(val: any):
         return False
 
 
+# DATA VALIDATION
+###############
+
+
+class KeyType(str):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class DTType(datetime):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class ListOfNumbersType(str):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class FloatCoercibleType(str):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class RowElem:
+    """
+    Generic class for validating parsed data. It's children shall:
+    1. have annotated types in it's `self.__init__()`;
+    2. store the `self.__init__()` arguments to `self`.
+    """
+
+    def _valid_key(self, key):
+        if type(key) == str and len(key) == 44 and key.isdigit():
+            return True
+        return False
+
+    def _valid_dt(self, dt):
+        return type(dt) == datetime
+
+    def _valid_list_of_numbers(self, string):
+        pattern = r"^[0-9;.]+$"
+        return bool(re.match(pattern, string))
+
+    def _valid_float(self, floating_point):
+        try:
+            _ = float(floating_point)
+            return True
+        except ValueError:
+            return False
+
+    def _validate_all(self):
+        types = self.__init__.__annotations__
+
+        for var in types.keys():
+            value = getattr(self, var)
+
+            if types[var] == KeyType:
+                if not self._valid_key(value):
+                    raise ValueError(f"Invalid value {type(self)}.{var} = {value}")
+
+            if types[var] == DTType:
+                if not self._valid_dt(value):
+                    raise ValueError(f"Invalid value in {var}: {value}")
+
+            if types[var] == ListOfNumbersType:
+                if not self._valid_list_of_numbers(value):
+                    raise ValueError(f"Invalid value in {var}: {value}")
+
+            if types[var] == FloatCoercibleType:
+                if not self._valid_float(value):
+                    raise ValueError(f"Invalid value in {var}: {value}")
+
+
 # PARSER
 ###############
 
 
-class BaseParser:
-    """"""
+class ParserInitError(Exception):
+    def __init__(self, *args):
+        super().__init__(*args)
 
+
+class BaseParser:
+    """Parser for data"""
     def __init__(self, parser_input: ParserInput):
         self.INPUTS = parser_input
         self.data = None
@@ -75,31 +154,57 @@ class BaseParser:
 
         # --------------------------------------
         # Should NOT RAISE on __init__
+        expected_classes = (dict, OrderedDict)
+        if not isinstance(parser_input, expected_classes):
+            self.erroed = True
+            self.err = ParserInitError(f"Expected input's type to be one of {expected_classes}, got {type(parser_input)}")
+            return
+
         try:
-            xmlpath = parser_input["path"]
-            buy = parser_input["buy"]
+            _, _ = parser_input["path"], parser_input["buy"]
         except KeyError:
             self.erroed = True
-            self.err = KeyError("Invalid input, expected key not found.")
+            self.err = ParserInitError(f"Expected required keys {get_type_hints(ParserInput).keys()}, but found {self.INPUTS.keys()}.")
             return
 
         try:
-            with open(xmlpath) as doc:
-                self.xml = xmltodict.parse(doc.read())
-        except Exception as err:
+            self._get_metadata()
+        except Exception:
             self.erroed = True
-            self.err = err
+            self.err = ParserInitError(f"Unable to fetch metadata from {self.INPUTS=}")
             return
-
-        try:
-            self.name: str = self._get_name(buy)
-        except Exception as _get_name_err:
-            self.erroed = True
-            self.err = _get_name_err
-            return
-
-        self.version = self._get_version()
         # --------------------------------------
+
+    class BaseRowElem(RowElem):
+        def __init__(
+            self,
+            ChaveNFe: KeyType,
+            DataHoraEmi: DTType,
+            PagamentoTipo: ListOfNumbersType,
+            PagamentoValor: ListOfNumbersType,
+            TotalProdutos: FloatCoercibleType,
+            TotalDesconto: FloatCoercibleType,
+            TotalTributos: FloatCoercibleType,
+        ):
+
+            self.ChaveNFe = ChaveNFe
+            self.DataHoraEmi = DataHoraEmi
+            self.PagamentoTipo = PagamentoTipo
+            self.PagamentoValor = PagamentoValor
+            self.TotalProdutos = TotalProdutos
+            self.TotalDesconto = TotalDesconto
+            self.TotalTributos = TotalTributos
+
+            self._validate_all()
+            self.values = (
+                self.ChaveNFe,
+                self.DataHoraEmi.strftime("%Y-%m-%d %H:%M:%S %z"),
+                self.PagamentoTipo,
+                self.PagamentoValor,
+                float(self.TotalProdutos),
+                float(self.TotalDesconto),
+                float(self.TotalTributos),
+            )
 
     def __enter__(self):
         self.__init__()
@@ -107,6 +212,13 @@ class BaseParser:
 
     def __exit__(self, err_type, err_val, traceback):
         pass
+
+    def _get_metadata(self):
+        with open(self.INPUTS["path"]) as doc:
+            self.xml = xmltodict.parse(doc.read())
+        self.name: str = self._get_name(self.INPUTS["buy"])
+        self.version = self._get_version()
+        
 
     def _get_dict_key(self, d: dict, key):
         """
