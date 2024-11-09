@@ -104,7 +104,7 @@ class RowElem:
         return type(dt) == datetime
 
     def _valid_list_of_numbers(self, string):
-        pattern = r"^[0-9;.]+$"
+        pattern = r"^\[(?:[0-9.;])*\]$"
         return bool(re.match(pattern, string))
 
     def _valid_float(self, floating_point):
