@@ -1,7 +1,6 @@
 from typing import TypedDict, get_type_hints
 from datetime import datetime
 from collections import OrderedDict
-import inspect
 import xmltodict
 import os
 import re
@@ -33,10 +32,6 @@ FactParserData = TypedDict(
 )
 
 
-# DATA VALIDATION
-###############
-
-
 class KeyType(str):
     def __init__(self) -> None:
         super().__init__()
@@ -50,6 +45,27 @@ class ListOfNumbersType(str):
 class FloatCoercibleType(str):
     def __init__(self) -> None:
         super().__init__()
+
+
+class ParserInitError(Exception):
+    """Error class that signals an error encountered in"""
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class ParserParseError(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class ParserValidationError(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+# DATA VALIDATION
+###############
 
 
 def convert_to_list_of_numbers(inp: list[float]) -> ListOfNumbersType:
@@ -94,10 +110,10 @@ class RowElem:
     """
     Generic class for validating parsed data. It's children must:
     1. Have annotated variable names with the corresponding data type
-    2. Run `super().__init__(**kwargs)` where kwargs are the parameters specified in `self.__init__()`"""
+    2. Run `super().__init__(**kwargs)` where kwargs are the parameters specified in `self.__init__()`
+    """
+
     def __init__(self, **kwargs):
-        if "self" in kwargs.keys():
-            _ = kwargs.pop("self")
         for name, value in kwargs.items():
             self.__setattr__(name, value)
         self._validate_and_assign()
@@ -137,67 +153,81 @@ class RowElem:
 
 
 class FactRowElem(RowElem):
-        def __init__(
-            self,
-            ChaveNFe: KeyType,
-            DataHoraEmi: datetime,
-            PagamentoTipo: ListOfNumbersType,
-            PagamentoValor: ListOfNumbersType,
-            TotalProdutos: FloatCoercibleType,
-            TotalDesconto: FloatCoercibleType,
-            TotalTributos: FloatCoercibleType,
-        ):
-            argdict = inspect.currentframe().f_locals
-            super().__init__(**argdict)
+    def __init__(
+        self,
+        ChaveNFe: KeyType,
+        DataHoraEmi: datetime,
+        PagamentoTipo: ListOfNumbersType,
+        PagamentoValor: ListOfNumbersType,
+        TotalProdutos: FloatCoercibleType,
+        TotalDesconto: FloatCoercibleType,
+        TotalTributos: FloatCoercibleType,
+    ):
+        super().__init__(
+            **{
+                "ChaveNFe": ChaveNFe,
+                "DataHoraEmi": DataHoraEmi,
+                "PagamentoTipo": PagamentoTipo,
+                "PagamentoValor": PagamentoValor,
+                "TotalProdutos": TotalProdutos,
+                "TotalDesconto": TotalDesconto,
+                "TotalTributos": TotalTributos,
+            }
+        )
+
 
 # PARSER
 ###############
 
 
-class ParserInitError(Exception):
-    def __init__(self, *args):
-        super().__init__(*args)
-
-
 class BaseParser:
-    """Parser for data"""
+    """Generic parsing functionality for any parser."""
+
     def __init__(self, parser_input: ParserInput):
         self.INPUTS = parser_input
         self.data = None
-        self.xml = None
-        self.name = None
-        self.version = None
-        self.erroed = False
-        self.err = None
+        self.err = []
 
-        # --------------------------------------
-        # Should NOT RAISE on __init__
         expected_classes = (dict, OrderedDict)
         if not isinstance(parser_input, expected_classes):
-            self.erroed = True
-            self.err = ParserInitError(f"Expected input's type to be one of {expected_classes}, got {type(parser_input)}")
+            self.err.append(
+                ParserInitError(
+                    f"Expected input's type to be one of {expected_classes}, got {type(parser_input)}"
+                )
+            )
             return
 
         try:
             _, _ = parser_input["path"], parser_input["buy"]
         except KeyError:
-            self.erroed = True
-            self.err = ParserInitError(f"Expected required keys {get_type_hints(ParserInput).keys()}, but found {self.INPUTS.keys()}.")
+            self.err.append(
+                ParserInitError(
+                    f"Expected required keys {get_type_hints(ParserInput).keys()}, but found {self.INPUTS.keys()}."
+                )
+            )
             return
 
         try:
             self._get_metadata()
         except Exception:
-            self.erroed = True
-            self.err = ParserInitError(f"Unable to fetch metadata from {self.INPUTS=}")
+            self.err.append(
+                ParserInitError(f"Unable to fetch metadata from {self.INPUTS=}")
+            )
             return
-        # --------------------------------------
+
+    def erroed(self) -> bool:
+        return bool(len(self.err))
 
     def _get_metadata(self):
-        with open(self.INPUTS["path"]) as doc:
-            self.xml = xmltodict.parse(doc.read())
-        self.name: str = self._get_name(self.INPUTS["buy"])
+        """Update the values of `self.xml`, `self.name` and `self.version`."""
+        try:
+            with open(self.INPUTS["path"]) as doc:
+                self.xml = xmltodict.parse(doc.read())
+        except Exception as err:
+            self.err.append(err)
+        self.name = self._get_name(self.INPUTS["buy"])
         self.version = self._get_version()
+
 
     def _get_dict_key(self, d: dict, key: str):
         """
@@ -222,27 +252,28 @@ class BaseParser:
                         return self._get_dict_key(d[k], key=key)
                 except KeyError:
                     continue
-        raise KeyError("Key wasn't found in the provided dictionary.")
+        err = KeyError("Key wasn't found in the provided dictionary.")
+        self.err.append(err)
+        raise err
 
-    def _get_name(self, buy: bool) -> str:
+    def _get_name(self, buy: bool) -> str | None:
+        """Returns the name of"""
         try:
             if buy:
                 return f"COMPRA {self._get_dict_key(self.xml, "dest")["xNome"]}"
             else:
                 return f"VENDA {self._get_dict_key(self.xml, "emit")["xNome"]}"
         except Exception as err:
-            self.erroed = True
-            self.err = err
-            return "ERROR_FETCHING_NAME"
+            self.err.append(err)
+            return None
 
     def _get_version(self) -> str | None:
         """return a `str` with the version number of the document"""
         try:
             return self._get_dict_key(self.xml, "nfeProc")["@versao"]
         except Exception as err:
-            self.erroed = True
-            self.err = err
-            return None
+            self.err.append(err)
+            raise err
 
 
 class FactParser(BaseParser):
@@ -251,12 +282,13 @@ class FactParser(BaseParser):
     de dicionário.
     """
 
-    def get_pay(self) -> PayInfo:
-        """return the payment section of the `.xml` in ``"""
+    def _get_pay(self) -> PayInfo | None:
+        """return the payment section of `self.xml` or `None` if failed."""
         try:
             pay = self._get_dict_key(self.xml, "pag")
         except KeyError:
             pay = self.xml["NFe"]["infNFe"]["pag"]
+
         if type(pay["detPag"]) is list:
             return {
                 "type": convert_to_list_of_numbers(pay["tPag"]),
@@ -265,46 +297,38 @@ class FactParser(BaseParser):
         else:
             return {"type": pay["detPag"]["tPag"], "amount": pay["detPag"]["vPag"]}
 
-    def get_key(self) -> KeyType:
+    def _get_key(self) -> KeyType | None:
         try:
             return self._get_dict_key(self.xml, "@Id")[3:]
-        except Exception as err:
-            self.erroed = True
-            self.err = err
+        except Exception:
+            self.err.append(ParserParseError("Unable to parse key `FactParser._get_key()`")) # use inspect to fill the method name
+            return None
 
-    def get_dt(self) -> datetime:
+    def _get_dt(self) -> datetime:
         dt = self._get_dict_key(self.xml, "dhEmi")
         return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
 
-    def get_total(self) -> TotalInfo:
+    def _get_total(self) -> TotalInfo:
+        products, discount, taxes = "0", "0", "0"
         try:
-            total = self.xml["nfeProc"]["NFe"]["infNFe"]["total"]["ICMSTot"]
-        except KeyError:
-            total = self.xml["NFe"]["infNFe"]["total"]["ICMSTot"]
+            total = self._get_dict_key(self.xml, "ICMSTot")
+        except Exception as err:
 
-        if valid_float(total["vNF"]):
             products = total["vNF"]
-
-        if valid_float(total["vTotTrib"]):
             taxes = total["vTotTrib"]
-
-        # expected to not appear sometimes, will not raise
-        discount = "0"
-        if "vDesc" in total.keys():
-            if valid_float(total["vDesc"]):
+            if "vDesc" in total.keys():
                 discount = total["vDesc"]
-
-        return {"products": products, "discount": discount, "taxes": taxes}
+            return {"products": products, "discount": discount, "taxes": taxes}
+        except Exception as err:
+            self.err.append(err)
 
     def parse(self):
-        try:
-            key = self.get_key()
-            dt = self.get_dt()
-            pay = self.get_pay()
-            total = self.get_total()
-        except Exception as err:
-            self.erroed = True
-            self.err = err
+        key = self._get_key()
+        dt = self._get_dt()
+        pay = self._get_pay()
+        total = self._get_total()
+        if None in [key, dt, pay, total]:
+            self.err.append(ParserParseError("Unable to fetch all data"))
             return
 
         self.data = FactRowElem(

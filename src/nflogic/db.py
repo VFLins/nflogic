@@ -102,6 +102,7 @@ def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
     if close:
         con.close()
 
+
 def insert_row(
     parser: FactParser,
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
@@ -125,7 +126,6 @@ def insert_row(
     if not parser.data:
         raise ValueError(f"Parser '{parser.key}' doesn't have any data to insert.")
 
-    row = RowElem(**parser.data)
     tablename = gen_tablename(parser.name)
     create_table(con, tablename=tablename)
 
