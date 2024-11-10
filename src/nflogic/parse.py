@@ -1,6 +1,7 @@
 from typing import TypedDict, get_type_hints
 from datetime import datetime
 from collections import OrderedDict
+import inspect
 import xmltodict
 import os
 import re
@@ -8,6 +9,7 @@ import re
 
 SCRIPT_PATH = os.path.realpath(__file__)
 BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
+__funcname__ = lambda: inspect.stack()[1][3]
 
 
 # TYPES
@@ -228,7 +230,6 @@ class BaseParser:
         self.name = self._get_name(self.INPUTS["buy"])
         self.version = self._get_version()
 
-
     def _get_dict_key(self, d: dict, key: str):
         """
         Traverse the dictionary `d` looking for the specified `key`.
@@ -286,29 +287,38 @@ class FactParser(BaseParser):
         """return the payment section of `self.xml` or `None` if failed."""
         try:
             pay = self._get_dict_key(self.xml, "pag")
-        except KeyError:
-            pay = self.xml["NFe"]["infNFe"]["pag"]
-
-        if type(pay["detPag"]) is list:
-            return {
-                "type": convert_to_list_of_numbers(pay["tPag"]),
-                "amount": convert_to_list_of_numbers(pay["vPag"]),
-            }
-        else:
-            return {"type": pay["detPag"]["tPag"], "amount": pay["detPag"]["vPag"]}
+            if type(pay["detPag"]) is list:
+                return {
+                    "type": convert_to_list_of_numbers(pay["tPag"]),
+                    "amount": convert_to_list_of_numbers(pay["vPag"]),
+                }
+            else:
+                return {
+                    "type": convert_to_list_of_numbers(pay["detPag"]["tPag"]),
+                    "amount": convert_to_list_of_numbers(pay["detPag"]["vPag"]),
+                }
+        except Exception as err:
+            self.err.append(f"Parsing failed at {__funcname__}: {str(err)}")
+            return None
 
     def _get_key(self) -> KeyType | None:
         try:
             return self._get_dict_key(self.xml, "@Id")[3:]
         except Exception:
-            self.err.append(ParserParseError("Unable to parse key `FactParser._get_key()`")) # use inspect to fill the method name
+            self.err.append(ParserParseError(f"Parsing failed at {__funcname__}"))
             return None
 
-    def _get_dt(self) -> datetime:
-        dt = self._get_dict_key(self.xml, "dhEmi")
-        return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
+    def _get_dt(self) -> datetime | None:
+        try:
+            dt = self._get_dict_key(self.xml, "dhEmi")
+            return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
+        except Exception as err:
+            self.err.append(
+                ParserParseError(f"Parsing failed at {__funcname__}: {str(err)}")
+            )
+            return None
 
-    def _get_total(self) -> TotalInfo:
+    def _get_total(self) -> TotalInfo | None:
         products, discount, taxes = "0", "0", "0"
         try:
             total = self._get_dict_key(self.xml, "ICMSTot")
@@ -327,16 +337,23 @@ class FactParser(BaseParser):
         dt = self._get_dt()
         pay = self._get_pay()
         total = self._get_total()
-        if None in [key, dt, pay, total]:
-            self.err.append(ParserParseError("Unable to fetch all data"))
+        if None in (key, dt, pay, total):
+            self.err.append(
+                ParserParseError("Unable to fetch all data, validation will be skipped")
+            )
             return
 
-        self.data = FactRowElem(
-            ChaveNFe=key,
-            DataHoraEmi=dt,
-            PagamentoTipo=pay["type"],
-            PagamentoValor=pay["amount"],
-            TotalProdutos=total["products"],
-            TotalDesconto=total["discount"],
-            TotalTributos=total["taxes"],
-        )
+        try:
+            self.data = FactRowElem(
+                ChaveNFe=key,
+                DataHoraEmi=dt,
+                PagamentoTipo=pay["type"],
+                PagamentoValor=pay["amount"],
+                TotalProdutos=total["products"],
+                TotalDesconto=total["discount"],
+                TotalTributos=total["taxes"],
+            )
+        except Exception as err:
+            self.err.append(
+                ParserValidationError(f"Unable to validate data {str(err)}")
+            )
