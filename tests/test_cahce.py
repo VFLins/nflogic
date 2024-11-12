@@ -1,19 +1,25 @@
 import pytest
 from pathlib import Path
+from nflogic.parse import ParserInput
 from nflogic.cache import CacheHandler, KeyAlreadyProcessedError, KeyNotFoundError
 
 
+MOCK_CACHE_VALUES = [
+    {"path": "foo", "buy": True},
+    {"path": "bar", "buy": False},
+    {"path": "baz", "buy":True},
+]
+
 def test_add_rm_value():
-    values = ["foo", "bar", "baz"]
     ch = CacheHandler("test_add_rm_value")
 
-    for i, v in enumerate(values):
+    for i, v in enumerate(MOCK_CACHE_VALUES):
         ch.add(v)
-        assert ch.data == values[: i + 1]
+        assert ch.data == MOCK_CACHE_VALUES[: i + 1]
 
-    for i, v in enumerate(values):
+    for i, v in enumerate(MOCK_CACHE_VALUES):
         ch.rm(v)
-        assert ch.data == values[i + 1 :]
+        assert ch.data == MOCK_CACHE_VALUES[i + 1 :]
 
     Path(ch.cachefile).unlink()
 
@@ -22,7 +28,7 @@ def test_rm_error():
     try:
         ch = CacheHandler("test_rm_error")
         with pytest.raises(KeyNotFoundError):
-            ch.rm("something")
+            ch.rm(MOCK_CACHE_VALUES[0])
 
     finally:
         Path(ch.cachefile).unlink()
@@ -31,10 +37,9 @@ def test_rm_error():
 def test_add_error():
     try:
         ch = CacheHandler("test_add_error")
-        ch.add("foo")
+        ch.add(MOCK_CACHE_VALUES[0])
         with pytest.raises(KeyAlreadyProcessedError):
-            ch.add("foo")
-
+            ch.add(MOCK_CACHE_VALUES[0])
     finally:
         Path(ch.cachefile).unlink()
 
@@ -42,11 +47,11 @@ def test_add_error():
 def test_data_persistance():
     try:
         ch = CacheHandler("test_data_persistance")
-        ch.add("foo")
+        ch.add(MOCK_CACHE_VALUES[0])
         del ch
 
         new_ch = CacheHandler("test_data_persistance")
-        assert new_ch.data == ["foo"]
+        assert new_ch.data == [MOCK_CACHE_VALUES[0]]
 
     finally:
         Path(new_ch.cachefile).unlink()
@@ -54,17 +59,14 @@ def test_data_persistance():
 
 def test_heal_file():
     ch = CacheHandler("test_heal_file")
-    for item in ["foo", "bar", "baz"]:
+    for item in MOCK_CACHE_VALUES:
         ch.add(item)
-
     try:
         Path(ch.cachefile).unlink()
-        ch.rm("bar")
-        assert ch._load() == ["foo", "baz"]
-
+        ch.rm(MOCK_CACHE_VALUES[2])
+        assert ch._load() == MOCK_CACHE_VALUES[:2]
         ch.data = []
-        ch.add("bar")
-        assert ch.data == ["foo", "baz", "bar"]
-
+        ch.add(MOCK_CACHE_VALUES[2])
+        assert ch.data == MOCK_CACHE_VALUES
     finally:
         Path(ch.cachefile).unlink()
