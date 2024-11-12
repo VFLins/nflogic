@@ -244,18 +244,15 @@ class BaseParser:
         ***Returns*** (any)
             The value associated to the first occurrence of `key` in `d`.
         """
-        for k in d.keys():
-            if k == key:
-                return d[k]
-            else:
-                try:
-                    if type(d[k]) == dict:
-                        return self._get_dict_key(d[k], key=key)
-                except KeyError:
-                    continue
-        err = KeyError("Key wasn't found in the provided dictionary.")
-        self.err.append(err)
-        raise err
+        if key in d.keys():
+            return d[key]
+        for val in d.values():
+            if isinstance(val, dict):
+                dk = self._get_dict_key(val, key=key)
+                if dk:
+                    return dk
+        self.err.append(KeyError(f"Key '{key}' wasn't found in the provided dictionary."))
+        return None
 
     def _get_name(self, buy: bool) -> str | None:
         """Returns the name of"""
@@ -320,17 +317,15 @@ class FactParser(BaseParser):
 
     def _get_total(self) -> TotalInfo | None:
         products, discount, taxes = "0", "0", "0"
-        try:
-            total = self._get_dict_key(self.xml, "ICMSTot")
-        except Exception as err:
-
-            products = total["vNF"]
-            taxes = total["vTotTrib"]
+        total = self._get_dict_key(self.xml, "ICMSTot")
+        if isinstance(total, dict):
+            if "vNF" in total.keys():
+                products = total["vNF"]
+            if "vTotTrib" in total.keys():
+                taxes = total["vTotTrib"]
             if "vDesc" in total.keys():
                 discount = total["vDesc"]
-            return {"products": products, "discount": discount, "taxes": taxes}
-        except Exception as err:
-            self.err.append(err)
+        return {"products": products, "discount": discount, "taxes": taxes}
 
     def parse(self):
         key = self._get_key()
