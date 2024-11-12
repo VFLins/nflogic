@@ -222,13 +222,18 @@ class BaseParser:
 
     def _get_metadata(self):
         """Update the values of `self.xml`, `self.name` and `self.version`."""
+        self.xml, self.name, self.version = {}, "NONAME", "NOVERSION"
         try:
             with open(self.INPUTS["path"]) as doc:
                 self.xml = xmltodict.parse(doc.read())
         except Exception as err:
             self.err.append(err)
-        self.name = self._get_name(self.INPUTS["buy"])
-        self.version = self._get_version()
+        name = self._get_name(self.INPUTS["buy"])
+        version = self._get_version()
+        if name:
+            self.name = name
+        if version:
+            self.version = version
 
     def _get_dict_key(self, d: dict, key: str):
         """
