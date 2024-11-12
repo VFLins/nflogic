@@ -37,18 +37,22 @@ def test_valid_float(val, expected):
 
 
 def test_get_data():
-    dp = FactParser(path=TEST_XML_V4)
+    parser_inp = {
+        "path": TEST_XML_V4,
+        "buy": True,
+    }
+    dp = FactParser(parser_inp)
     dp.parse()
 
-    if dp.erroed:
-        raise dp.err
+    if dp.erroed():
+        raise dp.err[-1]
 
-    assert dp.data["ChaveNFe"] == "26240811122233344455550010045645641789789784"
-    assert dp.data["DataHoraEmi"] == datetime(
+    assert dp.data.ChaveNFe == "26240811122233344455550010045645641789789784"
+    assert dp.data.DataHoraEmi == datetime(
         2024, 8, 31, 16, 17, 16, tzinfo=tzBrazilEast()
     )
-    assert dp.data["PagamentoTipo"] == "14"
-    assert dp.data["PagamentoValor"] == "996.85"
-    assert dp.data["TotalProdutos"] == "996.85"
-    assert dp.data["TotalDesconto"] == "0.00"
-    assert dp.data["TotalTributos"] == "348.77"
+    assert dp.data.PagamentoTipo == "14"
+    assert dp.data.PagamentoValor == "996.85"
+    assert dp.data.TotalProdutos == "996.85"
+    assert dp.data.TotalDesconto == "0.00"
+    assert dp.data.TotalTributos == "348.77"
