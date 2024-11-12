@@ -39,10 +39,11 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
     for inputs in c.data:
         p = parse.FactParser(inputs)
         p.parse()
-        if p.erroed:
+        if p.erroed():
+            err_types = [type(err) for err in p.err]
+            err_msgs = [str(err) for err in p.err]
             new_row_errors_df = pd.DataFrame(
-                [[p.INPUTS, str(type(p.err)), str(p.err)]],
-                columns=df_columns,
+                [[p.INPUTS, err_types, err_msgs]], columns=df_columns
             )
             errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
 
