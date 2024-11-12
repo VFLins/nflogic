@@ -26,8 +26,8 @@ class tzBrazilEast(tzinfo):
 CORRECT_ROWDATA = {
     "ChaveNFe": "12312312312312312312312312312312312312312312",
     "DataHoraEmi": datetime(2020, 1, 1, 12, 12, 21, tzinfo=tzBrazilEast()),
-    "PagamentoTipo": "1;4",
-    "PagamentoValor": "100.0;10.2",
+    "PagamentoTipo": "[1;4]",
+    "PagamentoValor": "[100.0;10.2]",
     "TotalProdutos": "110.2",
     "TotalDesconto": "0",
     "TotalTributos": "22.2",
