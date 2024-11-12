@@ -3,10 +3,10 @@ import sqlite3
 import copy
 from datetime import datetime, timedelta, tzinfo
 
+from nflogic.parse import FactRowElem
 from nflogic.db import (
     gen_tablename,
     create_table,
-    RowElem,
     insert_row,
 )
 
@@ -80,8 +80,8 @@ def test_validation(upd_key: str, val: any, valid: bool):
     if not valid:
         with pytest.raises(ValueError):
             # calls "self._validate_all()" on self.__init__()
-            _ = RowElem(**rowdata)
+            _ = FactRowElem(**rowdata)
     else:
-        row = RowElem(**rowdata)
+        row = FactRowElem(**rowdata)
         for elem in rowdata.keys():
             assert rowdata[elem] == row.__dict__[elem]

@@ -1,8 +1,8 @@
 import os
 import sqlite3
 
-from nflogic.parse import FactParser
-from nflogic.db import gen_tablename, RowElem, insert_row
+from nflogic.parse import FactParser, FactRowElem
+from nflogic.db import gen_tablename, insert_row
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -21,7 +21,7 @@ def test_insert_row():
         p.parse()
         if p.erroed:
             raise p.err
-        row = RowElem(**p.data)
+        row = FactRowElem(**p.data)
         insert_row(parser=p, con=con, close=False)
         cur = con.cursor()
         cur.execute(f"SELECT * FROM {gen_tablename(p.name)}")
