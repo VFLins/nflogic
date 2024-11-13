@@ -249,15 +249,20 @@ class BaseParser:
         ***Returns*** (any)
             The value associated to the first occurrence of `key` in `d`.
         """
-        if key in d.keys():
-            return d[key]
-        for val in d.values():
-            if isinstance(val, dict):
-                dk = self._get_dict_key(val, key=key)
-                if dk:
-                    return dk
-        self.err.append(KeyError(f"Key '{key}' wasn't found in the provided dictionary."))
-        return None
+        def get_dict_key(d, key):
+            if key in d.keys():
+                return d[key]
+            for val in d.values():
+                if isinstance(val, dict):
+                    dk = self._get_dict_key(val, key=key)
+                    if dk:
+                        return dk
+            return None
+
+        out = get_dict_key(d, key)
+        if not out:
+            self.err.append(KeyError(f"Key '{key}' wasn't found in the provided dictionary."))
+        return out
 
     def _get_name(self, buy: bool) -> str | None:
         """Returns the name of"""
