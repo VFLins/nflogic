@@ -81,7 +81,7 @@ def run(path: str, buy: bool, retry_failed: bool = False):
             # TODO: Info pulando arquivo que já deu erro
             continue
 
-        if parser.get_key() in db.processed_keys(parser.name):
+        if parser._get_nfekey() in db.processed_keys(parser.name):
             # TODO: Info pulando arquivo já processado
             continue
 

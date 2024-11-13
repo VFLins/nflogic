@@ -222,7 +222,7 @@ class BaseParser:
 
     def _get_metadata(self):
         """Update the values of `self.xml`, `self.name` and `self.version`."""
-        self.xml, self.name, self.version = {}, "NONAME", "NOVERSION"
+        self.xml, self.name, self.version = {}, "COULD_NOT_GET_NAME", "COULD_NOT_GET_VERSION"
         try:
             with open(self.INPUTS["path"]) as doc:
                 self.xml = xmltodict.parse(doc.read())
