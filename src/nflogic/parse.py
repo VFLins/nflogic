@@ -326,7 +326,7 @@ class FactParser(BaseParser):
 
     def _get_total(self) -> TotalInfo | None:
         products, discount, taxes = "0", "0", "0"
-        total = self._get_dict_key(self.xml, "ICMSTot")
+        total = self._get_key("ICMSTot")
         if isinstance(total, dict):
             if "vNF" in total.keys():
                 products = total["vNF"]
