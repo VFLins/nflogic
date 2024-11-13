@@ -15,7 +15,6 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 # FEATURES
 ###############
 
-
 def rebuild_errors(cachename: str) -> pd.DataFrame:
     """
     Creates a data frame with all the errors rebuilt from the given cache.
@@ -65,15 +64,11 @@ def run(path: str, buy: bool, retry_failed: bool = False):
     ]
 
     # TODO: fix exception when `retry_failed=True`
-
     for file in nfes:
-        try:
-            parser = parse.FactParser({"path": file, "buy": buy})
-        except:
-            continue
+        parser = parse.FactParser({"path": file, "buy": buy})
         fails_cache = cache.CacheHandler(parser.name)
         parser.parse()
-        if parser.erroed:
+        if parser.erroed():
             try:
                 fails_cache.add(parser.INPUTS)
             except cache.KeyAlreadyProcessedError:

@@ -235,13 +235,12 @@ class BaseParser:
         if version:
             self.version = version
 
-    def _get_dict_key(self, d: dict, key: str):
+    def _get_key(self, key: str):
         """
         Traverse the dictionary `d` looking for the specified `key`.
 
         ***Args***
-            d: The dictionary to search.
-            key: The key to search for.
+            key: The key in `self.xml` to search for.
 
         ***Raises***
             KeyError: If `key` is not found at any level of `d`.
@@ -249,17 +248,17 @@ class BaseParser:
         ***Returns*** (any)
             The value associated to the first occurrence of `key` in `d`.
         """
-        def get_dict_key(d, key):
+        def get_dict_key(key, d=self.xml):
             if key in d.keys():
                 return d[key]
             for val in d.values():
                 if isinstance(val, dict):
-                    dk = self._get_dict_key(val, key=key)
+                    dk = get_dict_key(val, key=key)
                     if dk:
                         return dk
             return None
 
-        out = get_dict_key(d, key)
+        out = get_dict_key(key)
         if not out:
             self.err.append(KeyError(f"Key '{key}' wasn't found in the provided dictionary."))
         return out
@@ -268,9 +267,9 @@ class BaseParser:
         """Returns the name of"""
         try:
             if buy:
-                return f"COMPRA {self._get_dict_key(self.xml, "dest")["xNome"]}"
+                return f"COMPRA {self._get_key("dest")["xNome"]}"
             else:
-                return f"VENDA {self._get_dict_key(self.xml, "emit")["xNome"]}"
+                return f"VENDA {self._get_key("emit")["xNome"]}"
         except Exception as err:
             self.err.append(err)
             return None
@@ -278,7 +277,7 @@ class BaseParser:
     def _get_version(self) -> str | None:
         """return a `str` with the version number of the document"""
         try:
-            return self._get_dict_key(self.xml, "nfeProc")["@versao"]
+            return self._get_key("nfeProc")["@versao"]
         except Exception as err:
             self.err.append(err)
             raise err
@@ -293,7 +292,7 @@ class FactParser(BaseParser):
     def _get_pay(self) -> PayInfo | None:
         """return the payment section of `self.xml` or `None` if failed."""
         try:
-            pay = self._get_dict_key(self.xml, "pag")
+            pay = self._get_key("pag")
             if type(pay["detPag"]) is list:
                 return {
                     "type": convert_to_list_of_numbers(pay["tPag"]),
@@ -308,16 +307,16 @@ class FactParser(BaseParser):
             self.err.append(f"Parsing failed at {__funcname__}: {str(err)}")
             return None
 
-    def _get_key(self) -> KeyType | None:
+    def _get_nfekey(self) -> KeyType | None:
         try:
-            return self._get_dict_key(self.xml, "@Id")[3:]
+            return self._get_key("@Id")[3:]
         except Exception:
             self.err.append(ParserParseError(f"Parsing failed at {__funcname__}"))
             return None
 
     def _get_dt(self) -> datetime | None:
         try:
-            dt = self._get_dict_key(self.xml, "dhEmi")
+            dt = self._get_key("dhEmi")
             return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
         except Exception as err:
             self.err.append(
@@ -338,7 +337,7 @@ class FactParser(BaseParser):
         return {"products": products, "discount": discount, "taxes": taxes}
 
     def parse(self):
-        key = self._get_key()
+        key = self._get_nfekey()
         dt = self._get_dt()
         pay = self._get_pay()
         total = self._get_total()
