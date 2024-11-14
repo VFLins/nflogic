@@ -27,7 +27,7 @@ def test_insert_row():
     with sqlite3.connect(":memory:") as con:
         p = FactParser(parser_inp)
         p.parse()
-        if p.erroed:
+        if p.erroed():
             raise p.err[-1]
         row = p.data
         insert_row(parser=p, con=con, close=False)
