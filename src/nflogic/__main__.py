@@ -65,6 +65,7 @@ def run(path: str, buy: bool, retry_failed: bool = False):
 
     # TODO: fix exception when `retry_failed=True`
     for file in nfes:
+        # TODO: add progress indication, this might take a while
         parser = parse.FactParser({"path": file, "buy": buy})
         fails_cache = cache.CacheHandler(parser.name)
         parser.parse()
