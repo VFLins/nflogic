@@ -70,8 +70,9 @@ class ParserValidationError(Exception):
 ###############
 
 
-def convert_to_list_of_numbers(inp: list[float]) -> ListOfNumbersType:
-    return str(inp).replace(",", ";").replace(" ", "")
+def convert_to_list_of_numbers(inp: list[str]) -> ListOfNumbersType:
+    list_of_num = [float(i) for i in inp]
+    return str(list_of_num).replace(",", ";").replace(" ", "")
 
 
 def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float]:
@@ -295,9 +296,11 @@ class FactParser(BaseParser):
         try:
             pay = self._get_key("pag")
             if type(pay["detPag"]) is list:
+                pay_types = [e["tPag"] for e in pay["detPag"]]
+                pay_vals = [e["vPag"] for e in pay["detPag"]]
                 return {
-                    "type": convert_to_list_of_numbers(pay["tPag"]),
-                    "amount": convert_to_list_of_numbers(pay["vPag"]),
+                    "type": convert_to_list_of_numbers(pay_types),
+                    "amount": convert_to_list_of_numbers(pay_vals),
                 }
             else:
                 return {
