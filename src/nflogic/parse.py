@@ -255,11 +255,10 @@ class BaseParser:
                 return d[key]
             for val in d.values():
                 if isinstance(val, dict):
-                    dk = get_dict_key(val, key=key)
+                    dk = get_dict_key(key, d=val)
                     if dk:
                         return dk
             return None
-
         out = get_dict_key(key)
         if not out:
             self.err.append(KeyError(f"Key '{key}' wasn't found in the provided dictionary."))
