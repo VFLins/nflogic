@@ -99,6 +99,8 @@ def valid_float(val: any) -> bool:
 
 def valid_list_of_numbers(val: str) -> bool:
     """Return `True` if the string in `val` can be converted to a list of numbers separated by semicolon, `False` otherwise."""
+    if valid_float(val):
+        return valid_float(val)
     return bool(re.match(r"^\[(?:[0-9.;])*\]$", val))
 
 
