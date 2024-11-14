@@ -1,6 +1,7 @@
 from typing import TypedDict, get_type_hints
 from datetime import datetime
 from collections import OrderedDict
+from pathlib import Path
 import inspect
 import xmltodict
 import os
@@ -9,7 +10,7 @@ import re
 
 SCRIPT_PATH = os.path.realpath(__file__)
 BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
-__funcname__ = lambda: inspect.stack()[1][3]
+__funcname__ = lambda: inspect.stack()[1][3] # TODO: replace to a persistent variation
 
 
 # TYPES
@@ -203,7 +204,10 @@ class BaseParser:
             return
 
         try:
-            _, _ = parser_input["path"], parser_input["buy"]
+            # use Path obj to avoid introduction of extra backslashes,
+            # don't know why but it happens on windows
+            self.INPUTS["path"] = Path(parser_input["path"])
+            self.INPUTS["buy"] = bool(parser_input["buy"])
         except KeyError:
             self.err.append(
                 ParserInitError(
@@ -227,7 +231,7 @@ class BaseParser:
         """Update the values of `self.xml`, `self.name` and `self.version`."""
         self.xml, self.name, self.version = {}, "COULD_NOT_GET_NAME", "COULD_NOT_GET_VERSION"
         try:
-            with open(self.INPUTS["path"]) as doc:
+            with open(str(self.INPUTS["path"])) as doc:
                 self.xml = xmltodict.parse(doc.read())
         except Exception as err:
             self.err.append(err)
