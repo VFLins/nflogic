@@ -100,7 +100,7 @@ class CacheHandler:
     def _check_item(self, item: ParserInput):
         for param, typ in ParserInput.__annotations__.items():
             if type(item[param]) != typ:
-                raise TypeError()
+                raise TypeError(f"{item} is not of `ParserInput` type.")
 
     def _first_invalid_elem(self) -> ParserInput | None:
         """Returns the first item in `self.data` that is not a `nflogic.cache.ParserInput`."""
@@ -134,6 +134,7 @@ class CacheHandler:
         return True
 
     def add(self, item: ParserInput) -> None:
+        """Adds `ParserInput` element to cache, raises `KeyAlreadyProcessedError` if already on cache."""
         self._check_item(item=item)
 
         if item in self._load():
@@ -147,6 +148,7 @@ class CacheHandler:
         self.data = self._load()
 
     def rm(self, item: ParserInput) -> None:
+        """Removes `ParserInput` element from cache, raises `KeyNotFoundError` if not found."""
         if item not in self.data:
             file_name = os.path.split(self.cachefile)[1]
             raise KeyNotFoundError(f"Arquivo não foi registrado em {file_name}")
