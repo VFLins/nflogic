@@ -71,7 +71,7 @@ class ParserValidationError(Exception):
 ###############
 
 
-def convert_to_list_of_numbers(inp: list[str]|str) -> ListOfNumbersType:
+def convert_to_list_of_numbers(inp: list[str] | str) -> ListOfNumbersType:
     if type(inp) is list:
         inp = [float(i) for i in inp]
     return str(inp).replace(",", ";").replace(" ", "")
@@ -228,7 +228,11 @@ class BaseParser:
 
     def _get_metadata(self):
         """Update the values of `self.xml`, `self.name` and `self.version`."""
-        self.xml, self.name, self.version = {}, "COULD_NOT_GET_NAME", "COULD_NOT_GET_VERSION"
+        self.xml, self.name, self.version = (
+            {},
+            "COULD_NOT_GET_NAME",
+            "COULD_NOT_GET_VERSION",
+        )
         try:
             # use Path obj to avoid introduction of extra backslashes,
             # don't know why, but it happens on windows
@@ -256,6 +260,7 @@ class BaseParser:
         ***Returns*** (any)
             The value associated to the first occurrence of `key` in `d`.
         """
+
         def get_dict_key(key, d=self.xml):
             if key in d.keys():
                 return d[key]
@@ -265,9 +270,12 @@ class BaseParser:
                     if dk:
                         return dk
             return None
+
         out = get_dict_key(key)
         if not out:
-            self.err.append(KeyError(f"Key '{key}' wasn't found in the provided dictionary."))
+            self.err.append(
+                KeyError(f"Key '{key}' wasn't found in the provided dictionary.")
+            )
         return out
 
     def _get_name(self, buy: bool) -> str | None:

@@ -15,6 +15,7 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 # FEATURES
 ###############
 
+
 def rebuild_errors(cachename: str) -> pd.DataFrame:
     """
     Creates a data frame with all the errors rebuilt from the given cache.
@@ -73,7 +74,7 @@ def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
 
         parser = parse.FactParser({"path": file, "buy": buy})
         fails_cache = cache.CacheHandler(parser.name)
-        
+
         if not retry_failed and (parser.INPUTS in fails_cache.data):
             n_add_to_cache = n_add_to_cache + 1
             continue
@@ -89,20 +90,15 @@ def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
                 fails_cache.add(parser.INPUTS)
             continue
 
-        try:
-            db.insert_row(parser=parser, close=False)
-            if retry_failed and (parser.INPUTS in fails_cache.data):
-                fails_cache.rm(parser.INPUTS)
-                n_rm_from_cache = n_rm_from_cache + 1
-        except Exception as err:
-            print(str(err))
-            # TODO: add exception management
-            fails_cache.add(parser.INPUTS)
-    
+        db.insert_row(parser=parser, close=False)
+        if retry_failed and (parser.INPUTS in fails_cache.data):
+            fails_cache.rm(parser.INPUTS)
+            n_rm_from_cache = n_rm_from_cache + 1
+
     msgs = [
         f"{n_files} xml files in {path}",
         f"{n_add_to_cache} failed",
-        f"{n_already_processed} were already in the database"
+        f"{n_already_processed} were already in the database",
     ]
     if retry_failed:
         msgs.append(f"{n_rm_from_cache} failed before, but are now in the database")

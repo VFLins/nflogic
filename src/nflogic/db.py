@@ -124,7 +124,9 @@ def insert_row(
         `sqlite3.OperationalError` if table doesn't exist.
     """
     if not parser.data:
-        raise ValueError(f"Parser with inputs '{parser.INPUTS}' doesn't have any data to insert.")
+        raise ValueError(
+            f"Parser with inputs '{parser.INPUTS}' doesn't have any data to insert."
+        )
 
     tablename = gen_tablename(parser.name)
     create_table(con, tablename=tablename)
