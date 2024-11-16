@@ -71,9 +71,10 @@ class ParserValidationError(Exception):
 ###############
 
 
-def convert_to_list_of_numbers(inp: list[str]) -> ListOfNumbersType:
-    list_of_num = [float(i) for i in inp]
-    return str(list_of_num).replace(",", ";").replace(" ", "")
+def convert_to_list_of_numbers(inp: list[str]|str) -> ListOfNumbersType:
+    if type(inp) is list:
+        inp = [float(i) for i in inp]
+    return str(inp).replace(",", ";").replace(" ", "")
 
 
 def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float]:
