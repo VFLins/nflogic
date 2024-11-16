@@ -10,7 +10,7 @@ import re
 
 SCRIPT_PATH = os.path.realpath(__file__)
 BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
-__funcname__ = lambda: inspect.stack()[1][3] # TODO: replace to a persistent variation
+__funcname__ = lambda: inspect.stack()[1][3]
 
 
 # TYPES
@@ -312,14 +312,14 @@ class FactParser(BaseParser):
                     "amount": convert_to_list_of_numbers(pay["detPag"]["vPag"]),
                 }
         except Exception as err:
-            self.err.append(f"Parsing failed at {__funcname__}: {str(err)}")
+            self.err.append(f"Parsing failed at {__funcname__()}: {str(err)}")
             return None
 
     def _get_nfekey(self) -> KeyType | None:
         try:
             return self._get_key("@Id")[3:]
         except Exception:
-            self.err.append(ParserParseError(f"Parsing failed at {__funcname__}"))
+            self.err.append(ParserParseError(f"Parsing failed at {__funcname__()}"))
             return None
 
     def _get_dt(self) -> datetime | None:
@@ -328,7 +328,7 @@ class FactParser(BaseParser):
             return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
         except Exception as err:
             self.err.append(
-                ParserParseError(f"Parsing failed at {__funcname__}: {str(err)}")
+                ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
             )
             return None
 
