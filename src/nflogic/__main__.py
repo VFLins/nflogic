@@ -49,13 +49,16 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
     return errors_df
 
 
-def run(path: str, buy: bool, retry_failed: bool = False):
-    # 1. [DONE] get list of processable files
-    # 2. [DONE] get list of already processed (success and fail)
-    # 3. [DONE] parse
-    # 4. [DONE] insert data
-    # 5. [DONE] save list of already processed (success and fail)
+def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
+    """
+    Tries to parse all xml files present in `path`.
 
+    **Args**
+        path: path to the directory that contains the xml files.
+        buy: should all files be processed as buying notes? `False` if they sales notes.
+        retry_failed: if a file has failed before, should we process it again? `False` if should skip all fails.
+    """
+    n_failed, n_add_to_cache, n_rm_from_cache, n_already_processed = 0, 0, 0, 0
     # TODO: Open a database connection at the beginning and close at the end of each run
     nfes = [
         os.path.join(path, filename)
@@ -63,38 +66,47 @@ def run(path: str, buy: bool, retry_failed: bool = False):
         if ".xml" in filename.lower()
     ]
 
-    # TODO: fix exception when `retry_failed=True`
+    n_files, n_iter = len(nfes), 1
     for file in nfes:
-        # TODO: add progress indication, this might take a while
+        print(f"This might take a while... {(n_iter/n_files)*100:.2f}%", end="\r")
+        n_iter = n_iter + 1
+
         parser = parse.FactParser({"path": file, "buy": buy})
         fails_cache = cache.CacheHandler(parser.name)
-        parser.parse()
-        if parser.erroed():
-            try:
-                fails_cache.add(parser.INPUTS)
-            except cache.KeyAlreadyProcessedError:
-                # TODO: Info pulando arquivo que já deu erro
-                pass
-            finally:
-                continue
-
-        if not retry_failed and parser.INPUTS in fails_cache.data:
-            # TODO: Info pulando arquivo que já deu erro
+        
+        if not retry_failed and (parser.INPUTS in fails_cache.data):
+            n_add_to_cache = n_add_to_cache + 1
             continue
 
         if parser._get_nfekey() in db.processed_keys(parser.name):
-            # TODO: Info pulando arquivo já processado
+            n_already_processed = n_already_processed + 1
+            continue
+
+        parser.parse()
+        if parser.erroed():
+            n_failed = n_failed + 1
+            if parser.INPUTS not in fails_cache.data:
+                fails_cache.add(parser.INPUTS)
             continue
 
         try:
             db.insert_row(parser=parser, close=False)
-            if retry_failed:
+            if retry_failed and (parser.INPUTS in fails_cache.data):
                 fails_cache.rm(parser.INPUTS)
-
+                n_rm_from_cache = n_rm_from_cache + 1
         except Exception as err:
             print(str(err))
             # TODO: add exception management
             fails_cache.add(parser.INPUTS)
+    
+    msgs = [
+        f"{n_files} xml files in {path}",
+        f"{n_add_to_cache} failed",
+        f"{n_already_processed} were already in the database"
+    ]
+    if retry_failed:
+        msgs.append(f"{n_rm_from_cache} failed before, but are now in the database")
+    print(*msgs, sep="\n")
 
 
 if __name__ == "__main__":
