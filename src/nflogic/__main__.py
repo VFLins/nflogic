@@ -54,8 +54,35 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
         if p.erroed():
             new_row_errors_df = new_row_err(p.err, p.INPUTS)
             errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
-
     return errors_df
+
+
+def summary_err_types(errdf: pd.DataFrame):
+    """
+    Returns a summary of error types for a dataframe returned by `rebuild_errors()`.
+
+    **Args**
+        errdf: Pandas dataframe where:
+            - `errdf.columns == ["Inputs", "ErrorType", "ErrorMessage"]`
+            - `errdf.dtypes == [dict, list, list]`
+
+    **Returns**
+        `pandas.DataFrame`
+    """
+    errdf["InitFail"] = tuple(
+        map(lambda x: parse.ParserInitError in x, errdf["ErrorType"])
+    )
+    errdf["ParseFail"] = tuple(
+        map(lambda x: parse.ParserParseError in x, errdf["ErrorType"])
+    )
+    errdf["ValidationFail"] = tuple(
+        map(lambda x: parse.ParserValidationError in x, errdf["ErrorType"])
+    )
+    summary = errdf.groupby(["InitFail", "ParseFail", "ValidationFail"])[
+        ["InitFail"]
+    ].count()
+    summary.columns = ["Count"]
+    return summary
 
 
 def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
