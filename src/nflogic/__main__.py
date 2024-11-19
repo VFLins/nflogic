@@ -36,15 +36,23 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
     errors_df = pd.DataFrame(columns=df_columns)
     c = cache.CacheHandler(cachename)
 
+    def new_row_err(parser_err, parser_inputs):
+        err_types = [type(err) for err in parser_err]
+        err_msgs = [str(err) for err in parser_err]
+        row_data = [parser_inputs, err_types, err_msgs]
+        return pd.DataFrame([row_data], columns=df_columns)
+
     for inputs in c.data:
+        # capture init error
         p = parse.FactParser(inputs)
+        if p.erroed():
+            new_row_errors_df = new_row_err(p.err, p.INPUTS)
+            errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
+            continue
+        # capture parse/validation error
         p.parse()
         if p.erroed():
-            err_types = [type(err) for err in p.err]
-            err_msgs = [str(err) for err in p.err]
-            new_row_errors_df = pd.DataFrame(
-                [[p.INPUTS, err_types, err_msgs]], columns=df_columns
-            )
+            new_row_errors_df = new_row_err(p.err, p.INPUTS)
             errors_df = pd.concat([errors_df, new_row_errors_df], ignore_index=True)
 
     return errors_df
