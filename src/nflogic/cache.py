@@ -29,9 +29,10 @@ log.propagate = False
 def valid_cachename(cachename: str) -> bool:
     """Verifies if a cachename exists *and* is valid. Return the answer as a boolean value."""
     cachefile_path = os.path.join(CACHE_PATH, f"{cachename}.cache")
-    file_exists = os.path.isfile(cachefile_path)
+    if not os.path.isfile(cachefile_path):
+        return False
     c = CacheHandler(cachename)
-    return file_exists and c.is_valid()
+    return c.is_valid()
 
 
 def get_cachenames() -> list[str]:
