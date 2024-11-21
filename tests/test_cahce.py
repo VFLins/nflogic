@@ -1,6 +1,9 @@
 import pytest
+import os
 from pathlib import Path
+from tempfile import TemporaryFile
 from nflogic.cache import (
+    CACHE_PATH,
     valid_cachename,
     get_cachenames,
     CacheHandler,
@@ -12,7 +15,7 @@ from nflogic.cache import (
 MOCK_CACHE_VALUES = [
     {"path": "foo", "buy": True},
     {"path": "bar", "buy": False},
-    {"path": "baz", "buy":True},
+    {"path": "baz", "buy": True},
 ]
 
 
@@ -32,7 +35,21 @@ def test_valid_cachename():
 
 
 def test_get_cachenames():
-    pass
+    # test if all names gotten were valid
+    new_cache = CacheHandler("Ensure at least one cache file")
+    cache_names = get_cachenames()
+    for name in cache_names:
+        assert valid_cachename(name) == True
+    # test if got all relevant names
+    with TemporaryFile("x", dir=CACHE_PATH):
+        not_cache_filenames = [
+            os.path.splitext(f)[0]
+            for f in os.listdir(CACHE_PATH)
+            if Path(CACHE_PATH, f).is_file() and (f not in cache_names)
+        ]
+        for name in not_cache_filenames:
+            assert valid_cachename(name) == False
+    Path(new_cache.cachefile).unlink()
 
 
 def test_add_rm_value():
@@ -44,6 +61,20 @@ def test_add_rm_value():
         ch.rm(v)
         assert ch.data == MOCK_CACHE_VALUES[i + 1 :]
     Path(ch.cachefile).unlink()
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        {"path": str(Path(CACHE_PATH, "filename.cache")), "buy": "False"},
+        {"path": 112233, "buy": False},
+    ],
+)
+def test_check_item_fail(item):
+    # will raise TypeError if doesn't find an item of incorrect type
+    with pytest.raises(TypeError):
+        ch = CacheHandler("test_check_item")
+        ch._check_item(item)
 
 
 def test_rm_error():
