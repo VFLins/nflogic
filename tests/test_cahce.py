@@ -20,11 +20,11 @@ MOCK_CACHE_VALUES = [
 
 
 def test_valid_cachename():
-    ch1 = CacheHandler("foo.c")
-    ch2 = CacheHandler("bar.cache")
-    ch3 = CacheHandler(".cache_baz")
-    cache_names = [c.cachename for c in [ch1, ch2, ch3]]
     try:
+        ch1 = CacheHandler("foo.c")
+        ch2 = CacheHandler("bar.cache")
+        ch3 = CacheHandler(".cache_baz")
+        cache_names = [c.cachename for c in [ch1, ch2, ch3]]
         for cn in cache_names:
             assert valid_cachename(cn) == True
         not_cachename = "itsveryunlikelythatwewillhaveacachenamethisbigandspecific"
@@ -35,32 +35,37 @@ def test_valid_cachename():
 
 
 def test_get_cachenames():
-    # test if all names gotten were valid
     new_cache = CacheHandler("Ensure at least one cache file")
-    cache_names = get_cachenames()
-    for name in cache_names:
-        assert valid_cachename(name) == True
-    # test if got all relevant names
-    with TemporaryFile("x", dir=CACHE_PATH):
-        not_cache_filenames = [
-            os.path.splitext(f)[0]
-            for f in os.listdir(CACHE_PATH)
-            if Path(CACHE_PATH, f).is_file() and (f not in cache_names)
-        ]
-        for name in not_cache_filenames:
-            assert valid_cachename(name) == False
-    Path(new_cache.cachefile).unlink()
+    try:
+        # test if all names gotten were valid
+        cache_names = get_cachenames()
+        for name in cache_names:
+            assert valid_cachename(name) == True
+        # test if got all relevant names
+        with TemporaryFile("x", dir=CACHE_PATH):
+            filenames = [
+                os.path.splitext(f)[0]
+                for f in os.listdir(CACHE_PATH)
+                if Path(CACHE_PATH, f).is_file()
+            ]
+            for name in filenames:
+                if name not in cache_names:
+                    assert valid_cachename(name) == False
+    finally:
+        Path(new_cache.cachefile).unlink()
 
 
 def test_add_rm_value():
-    ch = CacheHandler("test_add_rm_value")
-    for i, v in enumerate(MOCK_CACHE_VALUES):
-        ch.add(v)
-        assert ch.data == MOCK_CACHE_VALUES[: i + 1]
-    for i, v in enumerate(MOCK_CACHE_VALUES):
-        ch.rm(v)
-        assert ch.data == MOCK_CACHE_VALUES[i + 1 :]
-    Path(ch.cachefile).unlink()
+    try:
+        ch = CacheHandler("test_add_rm_value")
+        for i, v in enumerate(MOCK_CACHE_VALUES):
+            ch.add(v)
+            assert ch.data == MOCK_CACHE_VALUES[: i + 1]
+        for i, v in enumerate(MOCK_CACHE_VALUES):
+            ch.rm(v)
+            assert ch.data == MOCK_CACHE_VALUES[i + 1 :]
+    finally:
+        Path(ch.cachefile).unlink()
 
 
 @pytest.mark.parametrize(
@@ -71,6 +76,7 @@ def test_add_rm_value():
     ],
 )
 def test_check_item_fail(item):
+    """Test fail cases of CacheHandler._check_item() method."""
     # will raise TypeError if doesn't find an item of incorrect type
     with pytest.raises(TypeError):
         ch = CacheHandler("test_check_item")
@@ -78,6 +84,7 @@ def test_check_item_fail(item):
 
 
 def test_rm_error():
+    """Test CacheHandler.rm() method."""
     try:
         ch = CacheHandler("test_rm_error")
         with pytest.raises(KeyNotFoundError):
@@ -86,7 +93,29 @@ def test_rm_error():
         Path(ch.cachefile).unlink()
 
 
+def test_is_valid():
+    """test CacheHandler.is_valid() method."""
+    try:
+        ch = CacheHandler("test_is_valid")
+        # false if is not list
+        ch.data = "this is a string, not a list"
+        assert ch.is_valid() == False
+        # false if an item of the list is not ParserInput type
+        ch.data = [
+            MOCK_CACHE_VALUES[0],
+            MOCK_CACHE_VALUES[1],
+            "this string is not of ParserInput type"
+        ]
+        assert ch.is_valid() == False
+        # true case
+        ch.data = MOCK_CACHE_VALUES
+        assert ch.is_valid() == True
+    finally:
+        Path(ch.cachefile).unlink()
+
+
 def test_add_error():
+    """test CacheHandler.add() method."""
     try:
         ch = CacheHandler("test_add_error")
         ch.add(MOCK_CACHE_VALUES[0])
@@ -108,6 +137,7 @@ def test_data_persistance():
 
 
 def test_heal_file():
+    """Test CacheHandler._heal() method, rebuilding memory data from file."""
     ch = CacheHandler("test_heal_file")
     for item in MOCK_CACHE_VALUES:
         ch.add(item)
@@ -118,5 +148,29 @@ def test_heal_file():
         ch.data = []
         ch.add(MOCK_CACHE_VALUES[2])
         assert ch.data == MOCK_CACHE_VALUES
+    finally:
+        Path(ch.cachefile).unlink()
+
+
+def test_first_invalid_elem():
+    """Test CacheHandler._first_invalid_elem() method."""
+    try:
+        ch = CacheHandler("test_first_invalid_elem")
+        ch.data = MOCK_CACHE_VALUES
+        assert ch._first_invalid_elem() == None
+        # return not dict
+        ch.data.append("invalid value")
+        assert ch._first_invalid_elem() == "invalid value"
+        _ = ch.data.pop()
+        # return missing key
+        ch.data.append({"path": "some path"})
+        assert ch._first_invalid_elem() == {"path": "some path"}
+        _ = ch.data.pop()
+        # return key of wrong type
+        ch.data.append({"path": "some path", "buy": "should be boolean"})
+        assert ch._first_invalid_elem() == {"path": "some path", "buy": "should be boolean"}
+        _ = ch.data.pop()
+        ch.data.append({"path": 1234, "buy": True})
+        assert ch._first_invalid_elem() == {"path": 1234, "buy": True}
     finally:
         Path(ch.cachefile).unlink()
