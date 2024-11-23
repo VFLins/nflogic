@@ -1,15 +1,24 @@
 import pytest
 import sqlite3
+from pathlib import Path
+import os
 import copy
 from datetime import datetime, timedelta, tzinfo
 
-from nflogic.parse import FactRowElem
+from nflogic.parse import FactRowElem, FactParser
 from nflogic.db import (
     gen_tablename,
     create_table,
     insert_row,
+    processed_keys,
 )
 
+
+TEST_DIR = os.path.split(os.path.realpath(__file__))[0]
+TEST_PARSER_INPUTS = {
+    "v4_buy": {"path": str(Path(TEST_DIR, "test_xml_v4.xml")), "buy": True},
+    "v4_sell": {"path": str(Path(TEST_DIR, "test_xml_v4.xml")), "buy": False}
+}
 
 class tzBrazilEast(tzinfo):
 
@@ -54,7 +63,6 @@ def test_create_table():
         create_table(con, "Empresa com número 345", close=False)
         cursor = con.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-
         assert cursor.fetchall() == [("NOME_DA_EMPRESA",), ("EMPRESA_COM_NÚMERO_345",)]
 
 
@@ -85,3 +93,22 @@ def test_validation(upd_key: str, val: any, valid: bool):
         row = FactRowElem(**rowdata)
         for elem in rowdata.keys():
             assert rowdata[elem] == row.__dict__[elem]
+
+
+def test_processed_keys():
+    """Test processed_keys() function."""
+    with sqlite3.connect(":memory:") as con:
+        parser = FactParser(TEST_PARSER_INPUTS["v4_sell"])
+        parser.parse()
+        tablename = gen_tablename(parser.name) 
+        insert_row(parser=parser, con=con, close=False)
+        keys = processed_keys(tablename=tablename, con=con, close=False)
+        assert keys == ["26240811122233344455550010045645641789789784"]
+
+
+def test_insert_row_fail():
+    """Test fail cases of insert_row_fail()."""
+    with sqlite3.connect(":memory:") as con:
+        parser = FactParser(TEST_PARSER_INPUTS["v4_buy"])
+        with pytest.raises(ValueError):
+            insert_row(parser=parser, con=con, close=False)
