@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime, timedelta, tzinfo
 import os
 import copy
+from tempfile import TemporaryFile
 from nflogic.parse import (
     ParserInitError,
     valid_int,
@@ -71,7 +72,7 @@ def test_valid_float(val, expected):
         ("A1255", False),
         ("123;", False),
         (";123", False),
-    ]
+    ],
 )
 def test_valid_list_of_numbers(val, expected):
     """Test valid_list_of_numbers() function."""
@@ -157,7 +158,7 @@ def test_convert_from_list_of_numbers(val, expected):
 
 def test_base_parser_init_key_error():
     """Test error raised when BaseParser is initiated missing an expected key in parser_input."""
-    parser = BaseParser({"path":TEST_XML_V4})
+    parser = BaseParser({"path": TEST_XML_V4})
     assert ParserInitError in [type(e) for e in parser.err]
 
 
@@ -165,3 +166,15 @@ def test_base_parser_init_input_type_error():
     """Test error raised when BaseParser is initiated with a wrong input type."""
     parser = BaseParser([TEST_XML_V4, True])
     assert ParserInitError in [type(e) for e in parser.err]
+
+
+def test_base_parser_init_invalid_file_error():
+    """Test error raised when BaseParser is initiated with `parser_input['path']` pointing to an invalid or inexistent file."""
+    # test invalid file
+    tf = TemporaryFile(dir=SCRIPT_DIR)
+    parser = BaseParser({"path": tf.name, "buy": False})
+    assert ParserInitError in [type(e) for e in parser.err]
+    # test inexistent file
+    tf.close()
+    new_parser = BaseParser({"path": tf.name, "buy": False})
+    assert ParserInitError in [type(e) for e in new_parser.err]
