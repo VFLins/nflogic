@@ -104,7 +104,7 @@ def test_is_valid():
         ch.data = [
             MOCK_CACHE_VALUES[0],
             MOCK_CACHE_VALUES[1],
-            "this string is not of ParserInput type"
+            "this string is not of ParserInput type",
         ]
         assert ch.is_valid() == False
         # true case
@@ -168,7 +168,10 @@ def test_first_invalid_elem():
         _ = ch.data.pop()
         # return key of wrong type
         ch.data.append({"path": "some path", "buy": "should be boolean"})
-        assert ch._first_invalid_elem() == {"path": "some path", "buy": "should be boolean"}
+        assert ch._first_invalid_elem() == {
+            "path": "some path",
+            "buy": "should be boolean",
+        }
         _ = ch.data.pop()
         ch.data.append({"path": 1234, "buy": True})
         assert ch._first_invalid_elem() == {"path": 1234, "buy": True}

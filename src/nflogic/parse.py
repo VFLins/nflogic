@@ -71,14 +71,22 @@ class ParserValidationError(Exception):
 ###############
 
 
-def convert_to_list_of_numbers(inp: list[str] | str) -> ListOfNumbersType:
+def convert_to_list_of_numbers(
+    inp: list[float] | list[int] | float | int,
+) -> ListOfNumbersType:
     if type(inp) is list:
-        inp = [float(i) for i in inp]
-    return str(inp).replace(",", ";").replace(" ", "")
+        float_in_inp = any(isinstance(item, float) for item in inp)
+        if float_in_inp:
+            inp = [float(i) for i in inp]
+        else:
+            inp = [int(i) for i in inp]
+    return str(inp).replace(",", ";").replace(" ", "").replace("[", "").replace("]", "")
 
 
-def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float]:
+def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float] | list[int]:
     nums_list = inp.replace("[", "").replace("]", "").split(";")
+    if "." not in inp:
+        return [int(i) for i in nums_list]
     return [float(i) for i in nums_list]
 
 
@@ -102,9 +110,13 @@ def valid_float(val: any) -> bool:
 
 def valid_list_of_numbers(val: str) -> bool:
     """Return `True` if the string in `val` can be converted to a list of numbers separated by semicolon, `False` otherwise."""
-    if valid_float(val):
-        return valid_float(val)
-    return bool(re.match(r"^\[(?:[0-9.;])*\]$", val))
+    val = val.replace(" ", "")
+    # check if string contains only integer/decimal numbers and semicolons
+    if not re.match(r"^(\d+(\.\d+)?)(;(\d+(\.\d+)?))*$", val):
+        return False
+    if val.startswith(";") or val.endswith(";"):
+        return False
+    return True
 
 
 def valid_key(val) -> bool:
