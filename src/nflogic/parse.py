@@ -1,6 +1,7 @@
 from typing import TypedDict, get_type_hints
 from datetime import datetime
 from collections import OrderedDict
+from pathlib import Path
 import inspect
 import xmltodict
 import os
@@ -70,12 +71,22 @@ class ParserValidationError(Exception):
 ###############
 
 
-def convert_to_list_of_numbers(inp: list[float]) -> ListOfNumbersType:
-    return str(inp).replace(",", ";").replace(" ", "")
+def convert_to_list_of_numbers(
+    inp: list[float] | list[int] | float | int,
+) -> ListOfNumbersType:
+    if type(inp) is list:
+        float_in_inp = any(isinstance(item, float) for item in inp)
+        if float_in_inp:
+            inp = [float(i) for i in inp]
+        else:
+            inp = [int(i) for i in inp]
+    return str(inp).replace(",", ";").replace(" ", "").replace("[", "").replace("]", "")
 
 
-def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float]:
+def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float] | list[int]:
     nums_list = inp.replace("[", "").replace("]", "").split(";")
+    if "." not in inp:
+        return [int(i) for i in nums_list]
     return [float(i) for i in nums_list]
 
 
@@ -99,7 +110,13 @@ def valid_float(val: any) -> bool:
 
 def valid_list_of_numbers(val: str) -> bool:
     """Return `True` if the string in `val` can be converted to a list of numbers separated by semicolon, `False` otherwise."""
-    return bool(re.match(r"^\[(?:[0-9.;])*\]$", val))
+    val = val.replace(" ", "")
+    # check if string contains only integer/decimal numbers and semicolons
+    if not re.match(r"^(\d+(\.\d+)?)(;(\d+(\.\d+)?))*$", val):
+        return False
+    if val.startswith(";") or val.endswith(";"):
+        return False
+    return True
 
 
 def valid_key(val) -> bool:
@@ -200,7 +217,8 @@ class BaseParser:
             return
 
         try:
-            _, _ = parser_input["path"], parser_input["buy"]
+            _ = Path(parser_input["path"])
+            self.INPUTS["buy"] = bool(parser_input["buy"])
         except KeyError:
             self.err.append(
                 ParserInitError(
@@ -222,21 +240,31 @@ class BaseParser:
 
     def _get_metadata(self):
         """Update the values of `self.xml`, `self.name` and `self.version`."""
+        self.xml, self.name, self.version = (
+            {},
+            "COULD_NOT_GET_NAME",
+            "COULD_NOT_GET_VERSION",
+        )
         try:
-            with open(self.INPUTS["path"]) as doc:
+            # use Path obj to avoid introduction of extra backslashes,
+            # don't know why, but it happens on windows
+            with open(str(Path(self.INPUTS["path"]))) as doc:
                 self.xml = xmltodict.parse(doc.read())
         except Exception as err:
             self.err.append(err)
-        self.name = self._get_name(self.INPUTS["buy"])
-        self.version = self._get_version()
+        name = self._get_name(self.INPUTS["buy"])
+        version = self._get_version()
+        if name:
+            self.name = name
+        if version:
+            self.version = version
 
-    def _get_dict_key(self, d: dict, key: str):
+    def _get_key(self, key: str):
         """
         Traverse the dictionary `d` looking for the specified `key`.
 
         ***Args***
-            d: The dictionary to search.
-            key: The key to search for.
+            key: The key in `self.xml` to search for.
 
         ***Raises***
             KeyError: If `key` is not found at any level of `d`.
@@ -244,26 +272,31 @@ class BaseParser:
         ***Returns*** (any)
             The value associated to the first occurrence of `key` in `d`.
         """
-        for k in d.keys():
-            if k == key:
-                return d[k]
-            else:
-                try:
-                    if type(d[k]) == dict:
-                        return self._get_dict_key(d[k], key=key)
-                except KeyError:
-                    continue
-        err = KeyError("Key wasn't found in the provided dictionary.")
-        self.err.append(err)
-        raise err
+
+        def get_dict_key(key, d=self.xml):
+            if key in d.keys():
+                return d[key]
+            for val in d.values():
+                if isinstance(val, dict):
+                    dk = get_dict_key(key, d=val)
+                    if dk:
+                        return dk
+            return None
+
+        out = get_dict_key(key)
+        if not out:
+            self.err.append(
+                KeyError(f"Key '{key}' wasn't found in the provided dictionary.")
+            )
+        return out
 
     def _get_name(self, buy: bool) -> str | None:
         """Returns the name of"""
         try:
             if buy:
-                return f"COMPRA {self._get_dict_key(self.xml, "dest")["xNome"]}"
+                return f"COMPRA {self._get_key("dest")["xNome"]}"
             else:
-                return f"VENDA {self._get_dict_key(self.xml, "emit")["xNome"]}"
+                return f"VENDA {self._get_key("emit")["xNome"]}"
         except Exception as err:
             self.err.append(err)
             return None
@@ -271,7 +304,7 @@ class BaseParser:
     def _get_version(self) -> str | None:
         """return a `str` with the version number of the document"""
         try:
-            return self._get_dict_key(self.xml, "nfeProc")["@versao"]
+            return self._get_key("nfeProc")["@versao"]
         except Exception as err:
             self.err.append(err)
             raise err
@@ -286,11 +319,13 @@ class FactParser(BaseParser):
     def _get_pay(self) -> PayInfo | None:
         """return the payment section of `self.xml` or `None` if failed."""
         try:
-            pay = self._get_dict_key(self.xml, "pag")
+            pay = self._get_key("pag")
             if type(pay["detPag"]) is list:
+                pay_types = [e["tPag"] for e in pay["detPag"]]
+                pay_vals = [e["vPag"] for e in pay["detPag"]]
                 return {
-                    "type": convert_to_list_of_numbers(pay["tPag"]),
-                    "amount": convert_to_list_of_numbers(pay["vPag"]),
+                    "type": convert_to_list_of_numbers(pay_types),
+                    "amount": convert_to_list_of_numbers(pay_vals),
                 }
             else:
                 return {
@@ -298,42 +333,40 @@ class FactParser(BaseParser):
                     "amount": convert_to_list_of_numbers(pay["detPag"]["vPag"]),
                 }
         except Exception as err:
-            self.err.append(f"Parsing failed at {__funcname__}: {str(err)}")
+            self.err.append(f"Parsing failed at {__funcname__()}: {str(err)}")
             return None
 
-    def _get_key(self) -> KeyType | None:
+    def _get_nfekey(self) -> KeyType | None:
         try:
-            return self._get_dict_key(self.xml, "@Id")[3:]
+            return self._get_key("@Id")[3:]
         except Exception:
-            self.err.append(ParserParseError(f"Parsing failed at {__funcname__}"))
+            self.err.append(ParserParseError(f"Parsing failed at {__funcname__()}"))
             return None
 
     def _get_dt(self) -> datetime | None:
         try:
-            dt = self._get_dict_key(self.xml, "dhEmi")
+            dt = self._get_key("dhEmi")
             return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
         except Exception as err:
             self.err.append(
-                ParserParseError(f"Parsing failed at {__funcname__}: {str(err)}")
+                ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
             )
             return None
 
     def _get_total(self) -> TotalInfo | None:
         products, discount, taxes = "0", "0", "0"
-        try:
-            total = self._get_dict_key(self.xml, "ICMSTot")
-        except Exception as err:
-
-            products = total["vNF"]
-            taxes = total["vTotTrib"]
+        total = self._get_key("ICMSTot")
+        if isinstance(total, dict):
+            if "vNF" in total.keys():
+                products = total["vNF"]
+            if "vTotTrib" in total.keys():
+                taxes = total["vTotTrib"]
             if "vDesc" in total.keys():
                 discount = total["vDesc"]
-            return {"products": products, "discount": discount, "taxes": taxes}
-        except Exception as err:
-            self.err.append(err)
+        return {"products": products, "discount": discount, "taxes": taxes}
 
     def parse(self):
-        key = self._get_key()
+        key = self._get_nfekey()
         dt = self._get_dt()
         pay = self._get_pay()
         total = self._get_total()
