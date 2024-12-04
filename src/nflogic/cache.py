@@ -47,17 +47,38 @@ def get_cachenames() -> list[str]:
 
     return cachenames
 
+def get_not_processed_inputs(filepaths: list[str], buy: bool) -> list[ParserInput]:
+    """
+    Build a list of `ParserInput` that wasn't successfully processed yet.
+    
+    **Args**
+        filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
+        buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
+
+    **Returns**
+        A list of `ParserInput` with combinations of *filepaths* and *buy* that are not present in `__success__.cache` file
+    """
+    success_cache = CacheHandler("__success__")
+    parser_inputs = []
+    for file in filepaths:
+        parser_inputs.append({"path": file, "buy": buy})
+    return [inp for inp in parser_inputs if inp not in success_cache.data]
+
+
+def save_successfull_fileparse(parser_input: ParserInput):
+    """Adds a `ParserInput` to `__success__.cache` file. Raises `KeyAlreadyProcessedError` if already present."""
+    success_cache = CacheHandler("__success__")
+    success_cache.add(parser_input)
+
 
 class KeyAlreadyProcessedError(Exception):
-    """Indica que um arquivo já foi processado antes."""
-
+    """Indicates that a file was processed before."""
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
 
 class KeyNotFoundError(Exception):
-    """Indica que uma chave procurada não foi encontrada."""
-
+    """Indicates that a searched key could not be found."""
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 

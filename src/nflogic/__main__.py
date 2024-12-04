@@ -49,7 +49,7 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
     return errors_df
 
 
-def run(path: str, buy: bool, retry_failed: bool = False):
+def scan_on_dir(path: str, buy: bool, retry_failed: bool = False):
     # 1. [DONE] get list of processable files
     # 2. [DONE] get list of already processed (success and fail)
     # 3. [DONE] parse
@@ -62,17 +62,14 @@ def run(path: str, buy: bool, retry_failed: bool = False):
         for filename in os.listdir(path)
         if ".xml" in filename.lower()
     ]
-
+    new_inputs = cache.get_not_processed_inputs(filepaths=nfes, buy=buy)
     # TODO: fix exception when `retry_failed=True`
 
-    for file in nfes:
-        try:
-            parser = parse.FactParser({"path": file, "buy": buy})
-        except:
-            continue
+    for inp in new_inputs:
+        parser = parse.FactParser(inp)
         fails_cache = cache.CacheHandler(parser.name)
         parser.parse()
-        if parser.erroed:
+        if parser.erroed():
             try:
                 fails_cache.add(parser.INPUTS)
             except cache.KeyAlreadyProcessedError:
@@ -84,16 +81,17 @@ def run(path: str, buy: bool, retry_failed: bool = False):
         if not retry_failed and parser.INPUTS in fails_cache.data:
             # TODO: Info pulando arquivo que já deu erro
             continue
-
         if parser.get_key() in db.processed_keys(parser.name):
             # TODO: Info pulando arquivo já processado
             continue
 
         try:
             db.insert_row(parser=parser, close=False)
+            cache.save_successfull_fileparse(parser.INPUTS)
             if retry_failed:
                 fails_cache.rm(parser.INPUTS)
-
+        except cache.KeyNotFoundError or cache.KeyAlreadyProcessedError:
+            continue
         except Exception as err:
             print(str(err))
             # TODO: add exception management
