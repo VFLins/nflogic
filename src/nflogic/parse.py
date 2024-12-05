@@ -75,7 +75,7 @@ def convert_to_list_of_numbers(
     inp: list[float] | list[int] | float | int,
 ) -> ListOfNumbersType:
     if type(inp) is list:
-        float_in_inp = any(isinstance(item, float) for item in inp)
+        float_in_inp = any(isinstance(item, (float, str)) for item in inp)
         if float_in_inp:
             inp = [float(i) for i in inp]
         else:
@@ -321,8 +321,8 @@ class FactParser(BaseParser):
         try:
             pay = self._get_key("pag")
             if type(pay["detPag"]) is list:
-                pay_types = [e["tPag"] for e in pay["detPag"]]
-                pay_vals = [e["vPag"] for e in pay["detPag"]]
+                pay_types = [float(e["tPag"]) for e in pay["detPag"]]
+                pay_vals = [float(e["vPag"]) for e in pay["detPag"]]
                 return {
                     "type": convert_to_list_of_numbers(pay_types),
                     "amount": convert_to_list_of_numbers(pay_vals),

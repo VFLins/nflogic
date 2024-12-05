@@ -92,7 +92,7 @@ def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
     **Args**
         path: path to the directory that contains the xml files.
         buy: should all files be processed as buying notes? `False` if they sales notes.
-        retry_failed: if a file has failed before, should we process it again? `False` if should skip all fails.
+        retry_failed: if a file has failed before, should we try to parse it again? `False` if should skip all fails.
     """
     n_failed, n_add_to_cache, n_rm_from_cache, n_already_processed = 0, 0, 0, 0
     # TODO: Open a database connection at the beginning and close at the end of each run
@@ -116,6 +116,8 @@ def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
             continue
 
         if parser._get_nfekey() in db.processed_keys(parser.name):
+            # TODO: create a function to test this conditional inside the database
+            # instead of retrieving rows from database and checking in python
             n_already_processed = n_already_processed + 1
             continue
 
@@ -133,9 +135,8 @@ def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
             n_rm_from_cache = n_rm_from_cache + 1
 
     msgs = [
-        f"{n_files} xml files in {path}",
+        f"{n_files} new xml files in {path}",
         f"{n_add_to_cache} failed",
-        f"{n_already_processed} were already in the database",
     ]
     if retry_failed:
         msgs.append(f"{n_rm_from_cache} failed before, but are now in the database")
