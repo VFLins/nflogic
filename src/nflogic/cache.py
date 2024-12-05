@@ -64,10 +64,11 @@ def get_not_processed_inputs(
         A list of `ParserInput` with combinations of *filepaths* and *buy* that are not present in `__success__.cache` file
     """
     success_cache = CacheHandler(f"__{parser_type}_table_success__")
-    parser_inputs = []
-    for file in filepaths:
-        parser_inputs.append({"path": file, "buy": buy})
-    return [inp for inp in parser_inputs if inp not in success_cache.data]
+    return [
+        {"path": file, "buy": buy} 
+        for file in filepaths 
+        if {"path": file, "buy": buy} not in success_cache.data
+    ]
 
 
 def save_successfull_fileparse(parser_input: ParserInput, parser_type: Literal["fact", "transac"] = "fact"):

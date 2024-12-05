@@ -85,7 +85,7 @@ def summary_err_types(errdf: pd.DataFrame):
     return summary
 
 
-def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
+def parse_on_dir(path: str, buy: bool):
     """
     Tries to parse all xml files present in `path`.
 
@@ -111,35 +111,31 @@ def parse_on_dir(path: str, buy: bool, retry_failed: bool = False):
         parser = parse.FactParser(parser_input)
         fails_cache = cache.CacheHandler(parser.name)
 
-        if not retry_failed and (parser.INPUTS in fails_cache.data):
-            n_add_to_cache = n_add_to_cache + 1
-            continue
-
         if parser._get_nfekey() in db.processed_keys(parser.name):
             # TODO: create a function to test this conditional inside the database
             # instead of retrieving rows from database and checking in python
+            cache.save_successfull_fileparse(parser_input=parser_input)
             n_already_processed = n_already_processed + 1
             continue
 
         parser.parse()
         if parser.erroed():
             n_failed = n_failed + 1
-            if parser.INPUTS not in fails_cache.data:
-                fails_cache.add(parser.INPUTS)
+            if parser_input not in fails_cache.data:
+                fails_cache.add(parser_input)
             continue
 
         db.insert_row(parser=parser, close=False)
-        cache.save_successfull_fileparse(parser_input=parser.INPUTS)
-        if retry_failed and (parser.INPUTS in fails_cache.data):
-            fails_cache.rm(parser.INPUTS)
+        cache.save_successfull_fileparse(parser_input=parser_input)
+        if parser_input in fails_cache.data:
+            fails_cache.rm(parser_input)
             n_rm_from_cache = n_rm_from_cache + 1
 
     msgs = [
         f"{n_files} new xml files in {path}",
         f"{n_add_to_cache} failed",
+        f"{n_rm_from_cache} failed before, but are now in the database"
     ]
-    if retry_failed:
-        msgs.append(f"{n_rm_from_cache} failed before, but are now in the database")
     print(*msgs, sep="\n")
 
 
