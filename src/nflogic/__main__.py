@@ -103,9 +103,9 @@ def parse_on_dir(path: str, buy: bool):
     ]
     new_parser_inputs = cache.get_not_processed_inputs(filepaths=nfes, buy=buy)
 
-    n_files, n_iter = len(new_parser_inputs), 1
+    n_iter = 1
     for parser_input in new_parser_inputs:
-        print(f"This might take a while... {(n_iter/n_files)*100:.2f}%", end="\r")
+        print(f"This might take a while... {n_iter} files processed.", end="\r")
         n_iter = n_iter + 1
 
         parser = parse.FactParser(parser_input)
