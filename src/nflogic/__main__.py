@@ -94,7 +94,6 @@ def parse_on_dir(path: str, buy: bool):
         buy: should all files be processed as buying notes? `False` if they sales notes.
         retry_failed: if a file has failed before, should we try to parse it again? `False` if should skip all fails.
     """
-    n_failed, n_add_to_cache, n_rm_from_cache, n_already_processed = 0, 0, 0, 0
     # TODO: Open a database connection at the beginning and close at the end of each run
     nfes = [
         os.path.join(path, filename)
@@ -103,20 +102,13 @@ def parse_on_dir(path: str, buy: bool):
     ]
     new_parser_inputs = cache.get_not_processed_inputs(filepaths=nfes, buy=buy)
 
-    n_iter = 1
+    n_iter, n_failed, n_rm_from_cache = 1, 0, 0
     for parser_input in new_parser_inputs:
         print(f"This might take a while... {n_iter} files processed.", end="\r")
         n_iter = n_iter + 1
 
         parser = parse.FactParser(parser_input)
         fails_cache = cache.CacheHandler(parser.name)
-
-        if parser._get_nfekey() in db.processed_keys(parser.name):
-            # TODO: create a function to test this conditional inside the database
-            # instead of retrieving rows from database and checking in python
-            cache.save_successfull_fileparse(parser_input=parser_input)
-            n_already_processed = n_already_processed + 1
-            continue
 
         parser.parse()
         if parser.erroed():
@@ -125,17 +117,25 @@ def parse_on_dir(path: str, buy: bool):
                 fails_cache.add(parser_input)
             continue
 
+        if parser.data.ChaveNFe in db.processed_keys(parser.name):
+            # TODO: create a function to test this conditional inside the database
+            # instead of retrieving rows from database and checking in python
+            cache.save_successfull_fileparse(parser_input=parser_input)
+            n_already_processed = n_already_processed + 1
+            continue
+
         db.insert_row(parser=parser, close=False)
         cache.save_successfull_fileparse(parser_input=parser_input)
         if parser_input in fails_cache.data:
             fails_cache.rm(parser_input)
             n_rm_from_cache = n_rm_from_cache + 1
 
-    msgs = [
+    msgs = (
         f"{n_iter} new xml files in {path}",
-        f"{n_add_to_cache} failed",
+        f"{n_failed} failed",
         f"{n_rm_from_cache} failed before, but are now in the database",
-    ]
+        f"{n_already_processed} already in the database"
+    )
     print(*msgs, sep="\n")
 
 
