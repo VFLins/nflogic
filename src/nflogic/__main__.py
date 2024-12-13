@@ -132,11 +132,34 @@ def parse_on_dir(path: str, buy: bool):
             n_rm_from_cache = n_rm_from_cache + 1
 
     msgs = [
-        f"{n_files} new xml files in {path}",
+        f"{n_iter} new xml files in {path}",
         f"{n_add_to_cache} failed",
-        f"{n_rm_from_cache} failed before, but are now in the database"
+        f"{n_rm_from_cache} failed before, but are now in the database",
     ]
     print(*msgs, sep="\n")
+
+
+def parse_on_cache(cachename: str):
+    fails_cache = cache.CacheHandler(cachename)
+    n_fails, n_already_processed = 0, 0
+    for parser_input in fails_cache.data:
+        parser = parse.FactParser(parser_input)
+        parser.parse()
+
+        if parser.erroed():
+            n_fails = n_fails + 1
+            continue
+
+        if parser._get_nfekey() in db.processed_keys(parser.name):
+            # TODO: create a function to test this conditional inside the database
+            # instead of retrieving rows from database and checking in python
+            cache.save_successfull_fileparse(parser_input=parser_input)
+            fails_cache.rm(parser_input)
+            n_already_processed = n_already_processed + 1
+            continue
+
+        db.insert_row(parser=parser, close=False)
+        cache.save_successfull_fileparse(parser_input=parser_input)
 
 
 if __name__ == "__main__":

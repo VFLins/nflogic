@@ -51,27 +51,33 @@ def get_cachenames() -> list[str]:
 
 
 def get_not_processed_inputs(
-    filepaths: list[str], buy: bool, parser_type: Literal["fact", "transac"] = "fact"
+    filepaths: list[str],
+    buy: bool,
+    parser_type: Literal["fact", "transac", "both"] = "fact",
 ) -> list[ParserInput]:
     """
     Build a list of `ParserInput` that wasn't successfully processed yet.
 
-    **Args**
+    Args
         filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
         buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
+        parser_type: related to the parser and database table, that might be "fact"
+          for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
 
-    **Returns**
-        A list of `ParserInput` with combinations of *filepaths* and *buy* that are not present in `__success__.cache` file
+    Returns
+        A list of `ParserInput` with combinations of *filepaths* and *buy* that are not present in the `parser_type` success cache file
     """
     success_cache = CacheHandler(f"__{parser_type}_table_success__")
     return (
-        {"path": file, "buy": buy} 
-        for file in filepaths 
+        {"path": file, "buy": buy}
+        for file in filepaths
         if {"path": file, "buy": buy} not in success_cache.data
     )
 
 
-def save_successfull_fileparse(parser_input: ParserInput, parser_type: Literal["fact", "transac"] = "fact"):
+def save_successfull_fileparse(
+    parser_input: ParserInput, parser_type: Literal["fact", "transac"] = "fact"
+):
     """Adds a `ParserInput` to `__success__.cache` file. Raises `KeyAlreadyProcessedError` if already present."""
     success_cache = CacheHandler(f"__{parser_type}_table_success__")
     success_cache.add(parser_input)
