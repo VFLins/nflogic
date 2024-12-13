@@ -231,7 +231,7 @@ class BaseParser:
             self._get_metadata()
         except Exception:
             self.err.append(
-                ParserInitError(f"Unable to fetch metadata from {self.INPUTS=}")
+                ParserInitError(rf"Unable to fetch metadata from {self.INPUTS=}")
             )
             return
 
