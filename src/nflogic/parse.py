@@ -138,6 +138,18 @@ class RowElem:
         self._validate_and_assign()
 
     def _validate_and_assign(self):
+        """
+        Validate each piece of data by the it's annotated type and returns a
+        tuple. Relies on a `self.__init__()`
+        with type annotated parameters.
+
+        Returns
+            A tuple of the data provided in `self.__init__()`
+        
+        Raises
+            ValueError if any piece of data do not conform to it's annotated
+            type requirements
+        """
         types = self.__init__.__annotations__
         self.values = []
 
@@ -263,13 +275,13 @@ class BaseParser:
         """
         Traverse the dictionary `d` looking for the specified `key`.
 
-        ***Args***
+        Args
             key: The key in `self.xml` to search for.
 
-        ***Raises***
+        Raises
             KeyError: If `key` is not found at any level of `d`.
 
-        ***Returns*** (any)
+        Returns
             The value associated to the first occurrence of `key` in `d`.
         """
 
@@ -291,12 +303,11 @@ class BaseParser:
         return out
 
     def _get_name(self, buy: bool) -> str | None:
-        """Returns the name of"""
+        """Return 'COMPRA {BUYER_NAME}' if `buy==True`, 'VENDA {SELLER_NAME}' otherwise."""
         try:
             if buy:
                 return f"COMPRA {self._get_key("dest")["xNome"]}"
-            else:
-                return f"VENDA {self._get_key("emit")["xNome"]}"
+            return f"VENDA {self._get_key("emit")["xNome"]}"
         except Exception as err:
             self.err.append(err)
             return None
