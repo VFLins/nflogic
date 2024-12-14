@@ -135,7 +135,7 @@ class RowElem:
     def __init__(self, **kwargs):
         for name, value in kwargs.items():
             self.__setattr__(name, value)
-        self._validate_and_assign()
+        self.values = self._validate_and_assign()
 
     def _validate_and_assign(self):
         """
@@ -151,39 +151,40 @@ class RowElem:
             type requirements
         """
         types = self.__init__.__annotations__
-        self.values = []
+        values = []
 
         for var in types.keys():
-            value = getattr(self, var)
+            val = getattr(self, var)
 
             if types[var] == KeyType:
-                if not valid_key(value):
-                    raise ValueError(f"Invalid value {var}: {value}")
-                self.values.append(value)
+                if not valid_key(val):
+                    raise ValueError(f"Invalid value {var}: {val}")
+                values.append(val)
                 continue
 
             if types[var] == datetime:
-                if type(value) != datetime:
-                    raise ValueError(f"Invalid value in {var}: {value}")
-                self.values.append(value.strftime("%Y-%m-%d %H:%M:%S %z"))
+                if type(val) != datetime:
+                    raise ValueError(f"Invalid value in {var}: {val}")
+                values.append(val.strftime("%Y-%m-%d %H:%M:%S %z"))
                 continue
 
             if types[var] == ListOfNumbersType:
-                if not valid_list_of_numbers(value):
-                    raise ValueError(f"Invalid value in {var}: {value}")
-                self.values.append(value)
+                if not valid_list_of_numbers(val):
+                    raise ValueError(f"Invalid value in {var}: {val}")
+                values.append(val)
                 continue
 
             if types[var] == FloatCoercibleType:
-                if not valid_float(value):
-                    raise ValueError(f"Invalid value in {var}: {value}")
-                self.values.append(float(value))
+                if not valid_float(val):
+                    raise ValueError(f"Invalid value in {var}: {val}")
+                values.append(float(val))
                 continue
 
-        self.values = tuple(self.values)
+        return tuple(values)
 
 
 class FactRowElem(RowElem):
+    """Validates and holds row data for a FactParser. See parent class for more details."""
     def __init__(
         self,
         ChaveNFe: KeyType,
