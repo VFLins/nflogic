@@ -94,7 +94,7 @@ def summary_err_types(errdf: pd.DataFrame):
     return summary
 
 
-def parse_on_dir(path: str, buy: bool):
+def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
     """
     Tries to parse all xml files present in `path`.
 
@@ -104,14 +104,13 @@ def parse_on_dir(path: str, buy: bool):
         retry_failed: if a file has failed before, should we try to parse it again? `False` if should skip all fails.
     """
     # TODO: Open a database connection at the beginning and close at the end of each run
-    nfes = [
-        os.path.join(path, filename)
-        for filename in os.listdir(path)
-        if ".xml" in filename.lower()
-    ]
-    new_parser_inputs = cache.get_not_processed_inputs(filepaths=nfes, buy=buy)
-
-    n_iter, n_failed, n_rm_from_cache = 1, 0, 0
+    nfes = xml_files_in_dir(dir_path=dir_path)
+    new_parser_inputs = cache.get_not_processed_inputs(
+        filepaths=nfes,
+        buy=buy,
+        ignore_not_parsed=ignore_init_errors
+    )
+    n_iter, n_failed, n_skipped, n_recovered = 0, 0, 0, 0
     for parser_input in new_parser_inputs:
         print(f"This might take a while... {n_iter} files processed.", end="\r")
         n_iter = n_iter + 1

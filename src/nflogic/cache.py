@@ -53,34 +53,43 @@ def get_cachenames() -> list[str]:
 def get_not_processed_inputs(
     filepaths: list[str],
     buy: bool,
+    ignore_not_parsed: bool,
     parser_type: Literal["fact", "transac", "both"] = "fact",
 ) -> list[ParserInput]:
     """
-    Build a list of `ParserInput` that wasn't successfully processed yet.
+    Generator of `ParserInput`s that weren't successfully added to the database yet.
 
     Args
         filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
         buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
+        ignore_not_parsed: wether to ignore files that could not be parsed by
+          `xmltodict` before or not
         parser_type: related to the parser and database table, that might be "fact"
           for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
-
-    Returns
-        A list of `ParserInput` with combinations of *filepaths* and *buy* that are not present in the `parser_type` success cache file
     """
+    if ignore_not_parsed:
+        fail_cache = CacheHandler("__could_not_parse_xml__")
+
     if parser_type != "both":
         success_cache = CacheHandler(f"__{parser_type}_table_success__")
+        ignore_data = success_cache.data
+        if ignore_not_parsed:
+            ignore_data = ignore_data + fail_cache.data
         return (
             {"path": file, "buy": buy}
             for file in filepaths
-            if {"path": file, "buy": buy} not in success_cache.data
+            if {"path": file, "buy": buy} not in ignore_data
         )
 
     fact_cache = CacheHandler("__fact_table_success__")
     transac_cache = CacheHandler("__transac_table_success__")
+    ignore_data = fact_cache.data + transac_cache.data
+    if ignore_not_parsed:
+        ignore_data = ignore_data + fail_cache.data
     return (
         {"path": file, "buy": buy}
         for file in filepaths
-        if {"path": file, "buy": buy} not in fact_cache.data + transac_cache.data
+        if {"path": file, "buy": buy} not in ignore_data
     )
 
 def save_successfull_fileparse(
