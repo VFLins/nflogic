@@ -16,6 +16,15 @@ DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
 ###############
 
 
+def xml_files_in_dir(dir_path: str):
+    """Return full path of every file with .xml extension in `dir_path`."""
+    return [
+        os.path.join(dir_path, filename)
+        for filename in os.listdir(dir_path)
+        if os.path.splitext(filename)[1] == ".xml"
+    ]
+
+
 def rebuild_errors(cachename: str) -> pd.DataFrame:
     """
     Creates a data frame with all the errors rebuilt from the given cache.
