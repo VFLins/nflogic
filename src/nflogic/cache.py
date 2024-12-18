@@ -92,12 +92,21 @@ def get_not_processed_inputs(
         if {"path": file, "buy": buy} not in ignore_data
     )
 
-def save_successfull_fileparse(
+
+def _save_successfull_fileparse(
     parser_input: ParserInput, parser_type: Literal["fact", "transac"] = "fact"
 ):
-    """Adds a `ParserInput` to `__success__.cache` file. Raises `KeyAlreadyProcessedError` if already present."""
+    """Adds a `ParserInput` to `__{parser_type}_table_success__.cache` file. Does nothing otherwise."""
     success_cache = CacheHandler(f"__{parser_type}_table_success__")
-    success_cache.add(parser_input)
+    if parser_input not in success_cache.data:
+        success_cache.add(parser_input)
+
+
+def _save_failed_parser_init(parser_input: ParserInput):
+    """Adds a `ParserInput` to `__could_not_parse_xml__.cache` file. Does nothing otherwise."""
+    fail_cache = CacheHandler("__could_not_parse_xml__")
+    if parser_input not in fail_cache.data:
+        fail_cache.add(parser_input)
 
 
 class KeyAlreadyProcessedError(Exception):
