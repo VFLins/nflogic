@@ -2,6 +2,7 @@ from typing import TypedDict, get_type_hints
 from datetime import datetime
 from collections import OrderedDict
 from pathlib import Path
+from lxml import etree
 import inspect
 import xmltodict
 import os
@@ -140,12 +141,11 @@ class RowElem:
     def _validate_and_assign(self):
         """
         Validate each piece of data by the it's annotated type and returns a
-        tuple. Relies on a `self.__init__()`
-        with type annotated parameters.
+        tuple. Relies on a `self.__init__()` with type annotated parameters.
 
         Returns
             A tuple of the data provided in `self.__init__()`
-        
+
         Raises
             ValueError if any piece of data do not conform to it's annotated
             type requirements
@@ -185,6 +185,7 @@ class RowElem:
 
 class FactRowElem(RowElem):
     """Validates and holds row data for a FactParser. See parent class for more details."""
+
     def __init__(
         self,
         ChaveNFe: KeyType,
@@ -261,7 +262,8 @@ class BaseParser:
         try:
             # use Path obj to avoid introduction of extra backslashes,
             # don't know why, but it happens on windows
-            with open(str(Path(self.INPUTS["path"]))) as doc:
+            xml_path = str(Path(self.INPUTS["path"]))
+            with open(xml_path) as doc:
                 self.xml = xmltodict.parse(doc.read())
         except Exception as err:
             self.err.append(err)
