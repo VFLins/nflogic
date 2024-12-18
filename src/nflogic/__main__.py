@@ -98,10 +98,12 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
     """
     Tries to parse all xml files present in `path`.
 
-    **Args**
-        path: path to the directory that contains the xml files.
-        buy: should all files be processed as buying notes? `False` if they sales notes.
-        retry_failed: if a file has failed before, should we try to parse it again? `False` if should skip all fails.
+    Args
+        dir_path: path to the directory that contains the xml files
+        buy: should all files be processed as buying notes? `False` if they are
+          sales notes
+        ignore_init_errors: wether to ignore files that could not be parsed by
+          `xmltodict` before or not
     """
     # TODO: Open a database connection at the beginning and close at the end of each run
     nfes = xml_files_in_dir(dir_path=dir_path)
@@ -112,15 +114,19 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
     )
     n_iter, n_failed, n_skipped, n_recovered = 0, 0, 0, 0
     for parser_input in new_parser_inputs:
-        print(f"This might take a while... {n_iter} files processed.", end="\r")
         n_iter = n_iter + 1
+        print(f"This might take a while... {n_iter} files processed.", end="\r")
 
         parser = parse.FactParser(parser_input)
-        fails_cache = cache.CacheHandler(parser.name)
+        if parser.erroed():
+            n_failed = n_failed + 1
+            cache._save_failed_parser_init(parser_input)
+            continue
 
         parser.parse()
         if parser.erroed():
             n_failed = n_failed + 1
+            fails_cache = cache.CacheHandler(parser.name)
             if parser_input not in fails_cache.data:
                 fails_cache.add(parser_input)
             continue
@@ -128,22 +134,25 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
         if parser.data.ChaveNFe in db.processed_keys(parser.name):
             # TODO: create a function to test this conditional inside the database
             # instead of retrieving rows from database and checking in python
-            cache.save_successfull_fileparse(parser_input=parser_input)
-            n_already_processed = n_already_processed + 1
+            cache._save_successfull_fileparse(parser_input=parser_input)
+            n_skipped = n_skipped + 1
             continue
 
         db.insert_row(parser=parser, close=False)
-        cache.save_successfull_fileparse(parser_input=parser_input)
+        cache._save_successfull_fileparse(parser_input=parser_input)
         if parser_input in fails_cache.data:
             fails_cache.rm(parser_input)
-            n_rm_from_cache = n_rm_from_cache + 1
+            n_recovered = n_recovered + 1
 
-    msgs = (
-        f"{n_iter} new xml files in {path}",
-        f"{n_failed} failed",
-        f"{n_rm_from_cache} failed before, but are now in the database",
-        f"{n_already_processed} already in the database"
-    )
+    msgs = [
+        f"{n_iter} xml files processed in {dir_path}",
+    ]
+    if n_iter > 0:
+        msgs = msgs + [
+            f"{n_failed} failed",
+            f"{n_recovered} failed before, but are now in the database",
+            f"{n_skipped} already in the database",
+        ]
     print(*msgs, sep="\n")
 
 
@@ -153,7 +162,6 @@ def parse_on_cache(cachename: str):
     for parser_input in fails_cache.data:
         parser = parse.FactParser(parser_input)
         parser.parse()
-
         if parser.erroed():
             n_fails = n_fails + 1
             continue
@@ -161,13 +169,13 @@ def parse_on_cache(cachename: str):
         if parser._get_nfekey() in db.processed_keys(parser.name):
             # TODO: create a function to test this conditional inside the database
             # instead of retrieving rows from database and checking in python
-            cache.save_successfull_fileparse(parser_input=parser_input)
+            cache._save_successfull_fileparse(parser_input=parser_input)
             fails_cache.rm(parser_input)
             n_already_processed = n_already_processed + 1
             continue
 
         db.insert_row(parser=parser, close=False)
-        cache.save_successfull_fileparse(parser_input=parser_input)
+        cache._save_successfull_fileparse(parser_input=parser_input)
 
 
 if __name__ == "__main__":
