@@ -108,9 +108,7 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
     # TODO: Open a database connection at the beginning and close at the end of each run
     nfes = xml_files_in_dir(dir_path=dir_path)
     new_parser_inputs = cache.get_not_processed_inputs(
-        filepaths=nfes,
-        buy=buy,
-        ignore_not_parsed=ignore_init_errors
+        filepaths=nfes, buy=buy, ignore_not_parsed=ignore_init_errors
     )
     n_iter, n_failed, n_skipped, n_recovered = 0, 0, 0, 0
     for parser_input in new_parser_inputs:
