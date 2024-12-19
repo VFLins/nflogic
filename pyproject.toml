@@ -21,6 +21,7 @@ classifiers = [
 version = "0.1.0"
 dependencies = [
     "xmltodict==0.13.*",
+    "pandas==2.2.0"
 ]
 
 [project.optional-dependencies]
