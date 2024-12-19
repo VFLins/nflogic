@@ -309,8 +309,8 @@ class BaseParser:
         """Return 'COMPRA {BUYER_NAME}' if `buy==True`, 'VENDA {SELLER_NAME}' otherwise."""
         try:
             if buy:
-                return f"COMPRA {self._get_key("dest")["xNome"]}"
-            return f"VENDA {self._get_key("emit")["xNome"]}"
+                return f"COMPRA {self._get_key('dest')['xNome']}"
+            return f"VENDA {self._get_key('emit')['xNome']}"
         except Exception as err:
             self.err.append(err)
             return None
