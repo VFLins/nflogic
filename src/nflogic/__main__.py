@@ -138,6 +138,7 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
 
         db.insert_row(parser=parser, close=False)
         cache._save_successfull_fileparse(parser_input=parser_input)
+        fails_cache = cache.CacheHandler(parser.name)
         if parser_input in fails_cache.data:
             fails_cache.rm(parser_input)
             n_recovered = n_recovered + 1
