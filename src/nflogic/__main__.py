@@ -172,14 +172,13 @@ def parse_on_cache(cachename: str):
                 n_failed = n_failed + 1
                 continue
 
-        if parser._get_nfekey() in db.processed_keys(parser.name):
-            # TODO: create a function to test this conditional inside the database
-            # instead of retrieving rows from database and checking in python
-            cache._save_successfull_fileparse(parser_input=parser_input)
-            fails_cache.rm(parser_input)
-            n_already_processed = n_already_processed + 1
-            continue
-
+            if parser._get_nfekey() in db.processed_keys(parser.name):
+                # TODO: create a function to test this conditional inside the database
+                # instead of retrieving rows from database and checking in python
+                cache._save_successfull_fileparse(parser_input=parser_input)
+                fails_cache.rm(parser_input)
+                n_skipped = n_skipped + 1
+                continue
         db.insert_row(parser=parser, close=False)
         cache._save_successfull_fileparse(parser_input=parser_input)
 
