@@ -111,37 +111,40 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
         filepaths=nfes, buy=buy, ignore_not_parsed=ignore_init_errors
     )
     n_iter, n_failed, n_skipped, n_recovered = 0, 0, 0, 0
-    for parser_input in new_parser_inputs:
-        n_iter = n_iter + 1
-        print(f"This might take a while... {n_iter} files processed.", end="\r")
+    try:
+        for parser_input in new_parser_inputs:
+            n_iter = n_iter + 1
+            print(f"This might take a while... {n_iter} files processed.", end="\r")
 
-        parser = parse.FactParser(parser_input)
-        if parser.erroed():
-            n_failed = n_failed + 1
-            cache._save_failed_parser_init(parser_input)
-            continue
+            parser = parse.FactParser(parser_input)
+            if parser.erroed():
+                n_failed = n_failed + 1
+                cache._save_failed_parser_init(parser_input)
+                continue
 
-        parser.parse()
-        if parser.erroed():
-            n_failed = n_failed + 1
-            fails_cache = cache.CacheHandler(parser.name)
-            if parser_input not in fails_cache.data:
-                fails_cache.add(parser_input)
-            continue
+            parser.parse()
+            if parser.erroed():
+                n_failed = n_failed + 1
+                fails_cache = cache.CacheHandler(parser.name)
+                if parser_input not in fails_cache.data:
+                    fails_cache.add(parser_input)
+                continue
 
-        if parser.data.ChaveNFe in db.processed_keys(parser.name):
-            # TODO: create a function to test this conditional inside the database
-            # instead of retrieving rows from database and checking in python
+            if parser.data.ChaveNFe in db.processed_keys(parser.name):
+                # TODO: create a function to test this conditional inside the database
+                # instead of retrieving rows from database and checking in python
+                cache._save_successfull_fileparse(parser_input=parser_input)
+                n_skipped = n_skipped + 1
+                continue
+
+            db.insert_row(parser=parser, close=False)
             cache._save_successfull_fileparse(parser_input=parser_input)
-            n_skipped = n_skipped + 1
-            continue
-
-        db.insert_row(parser=parser, close=False)
-        cache._save_successfull_fileparse(parser_input=parser_input)
-        fails_cache = cache.CacheHandler(parser.name)
-        if parser_input in fails_cache.data:
-            fails_cache.rm(parser_input)
-            n_recovered = n_recovered + 1
+            fails_cache = cache.CacheHandler(parser.name)
+            if parser_input in fails_cache.data:
+                fails_cache.rm(parser_input)
+                n_recovered = n_recovered + 1
+    except KeyboardInterrupt:
+        pass
 
     msgs = [
         f"{n_iter} xml files processed in {dir_path}",
