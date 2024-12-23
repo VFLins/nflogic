@@ -180,6 +180,7 @@ def parse_on_cache(cachename: str):
                 n_skipped = n_skipped + 1
                 continue
         db.insert_row(parser=parser, close=False)
+        n_recovered = n_recovered + 1
         cache._save_successfull_fileparse(parser_input=parser_input)
 
     except KeyboardInterrupt:
