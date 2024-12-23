@@ -5,6 +5,7 @@ from pathlib import Path
 from lxml import etree
 import inspect
 import xmltodict
+from xml.parsers.expat import ExpatError
 import os
 import re
 
@@ -259,14 +260,19 @@ class BaseParser:
             "COULD_NOT_GET_NAME",
             "COULD_NOT_GET_VERSION",
         )
-        try:
-            # use Path obj to avoid introduction of extra backslashes,
-            # don't know why, but it happens on windows
-            xml_path = str(Path(self.INPUTS["path"]))
-            with open(xml_path) as doc:
-                self.xml = xmltodict.parse(doc.read())
-        except Exception as err:
-            self.err.append(err)
+        # use Path obj to avoid introduction of extra backslashes,
+        # don't know why, but it happens on windows
+        xml_path = str(Path(self.INPUTS["path"]))
+        for encoding in ["utf-8", "iso-8859-1"]:
+            try:
+                with open(xml_path) as doc:
+                    self.xml = xmltodict.parse(doc.read(), encoding=encoding)
+                break
+            except ExpatError:
+                continue
+        # only append if every encoding failed
+        if self.xml == {}:
+            self.err.append(ExpatError("Parsing failed with every encoding attempt."))
         name = self._get_name(self.INPUTS["buy"])
         version = self._get_version()
         if name:
