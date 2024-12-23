@@ -160,13 +160,17 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
 
 def parse_on_cache(cachename: str):
     fails_cache = cache.CacheHandler(cachename)
-    n_fails, n_already_processed = 0, 0
-    for parser_input in fails_cache.data:
-        parser = parse.FactParser(parser_input)
-        parser.parse()
-        if parser.erroed():
-            n_fails = n_fails + 1
-            continue
+    n_iter, n_failed, n_skipped, n_recovered = 0, 0, 0, 0
+    try:
+        for parser_input in fails_cache.data:
+            n_iter = n_iter + 1
+            print(f"This might take a while... {n_iter} files processed.", end="\r")
+
+            parser = parse.FactParser(parser_input)
+            parser.parse()
+            if parser.erroed():
+                n_failed = n_failed + 1
+                continue
 
         if parser._get_nfekey() in db.processed_keys(parser.name):
             # TODO: create a function to test this conditional inside the database
@@ -178,6 +182,20 @@ def parse_on_cache(cachename: str):
 
         db.insert_row(parser=parser, close=False)
         cache._save_successfull_fileparse(parser_input=parser_input)
+
+    except KeyboardInterrupt:
+        pass
+
+    msgs = [
+        f"{n_iter} xml files processed from {cachename}.cache",
+    ]
+    if n_iter > 0:
+        msgs = msgs + [
+            f"{n_failed} could not be recovered",
+            f"{n_recovered} removed from cache, and are now in the database",
+            f"{n_skipped} removed from cache, and were already in the database",
+        ]
+    print(*msgs, sep="\n")
 
 
 if __name__ == "__main__":
