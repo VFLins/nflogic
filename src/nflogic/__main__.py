@@ -146,9 +146,7 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
     except KeyboardInterrupt:
         pass
 
-    msgs = [
-        f"{n_iter} xml files processed in {dir_path}",
-    ]
+    msgs = [f"{n_iter} xml files processed in {dir_path}"]
     if n_iter > 0:
         msgs = msgs + [
             f"{n_failed} failed",
@@ -167,6 +165,11 @@ def parse_on_cache(cachename: str):
             print(f"This might take a while... {n_iter} files processed.", end="\r")
 
             parser = parse.FactParser(parser_input)
+            if parser.erroed():
+                n_failed = n_failed + 1
+                cache._save_failed_parser_init(parser_input)
+                continue
+
             parser.parse()
             if parser.erroed():
                 n_failed = n_failed + 1
@@ -179,16 +182,16 @@ def parse_on_cache(cachename: str):
                 fails_cache.rm(parser_input)
                 n_skipped = n_skipped + 1
                 continue
-        db.insert_row(parser=parser, close=False)
-        n_recovered = n_recovered + 1
-        cache._save_successfull_fileparse(parser_input=parser_input)
+
+            db.insert_row(parser=parser, close=False)
+            cache._save_successfull_fileparse(parser_input=parser_input)
+            fails_cache.rm(parser_input)
+            n_recovered = n_recovered + 1
 
     except KeyboardInterrupt:
         pass
 
-    msgs = [
-        f"{n_iter} xml files processed from {cachename}.cache",
-    ]
+    msgs = [f"{n_iter} xml files processed from {cachename}.cache"]
     if n_iter > 0:
         msgs = msgs + [
             f"{n_failed} could not be recovered",
