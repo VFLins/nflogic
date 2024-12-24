@@ -324,7 +324,7 @@ class BaseParser:
     def _get_version(self) -> str | None:
         """return a `str` with the version number of the document"""
         try:
-            return self._get_key("nfeProc")["@versao"]
+            return self._get_key("@versao")
         except Exception as err:
             self.err.append(err)
             raise err
