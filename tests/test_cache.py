@@ -1,9 +1,12 @@
 import pytest
 import os
 from pathlib import Path
-from tempfile import TemporaryFile
+from tempfile import TemporaryFile, TemporaryDirectory
+from nflogic import parse
 from nflogic.cache import (
     CACHE_PATH,
+    _save_successfull_fileparse,
+    get_not_processed_inputs,
     valid_cachename,
     get_cachenames,
     CacheHandler,
@@ -177,3 +180,32 @@ def test_first_invalid_elem():
         assert ch._first_invalid_elem() == {"path": 1234, "buy": True}
     finally:
         Path(ch.cachefile).unlink()
+
+
+def test_get_not_processed_inputs_fact():
+    """Test get_not_processed_inputs() when `parser_type="fact"`."""
+    with TemporaryDirectory() as dir:
+        file_paths = [os.path.join(dir, f"file{i}.xml") for i in range(5)]
+        for id, file_path in enumerate(file_paths):
+            buffer = open(file_path, "w+")
+            buffer.write(
+                f"""<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe Id="NFe{id}" versao="4.00"><emit><xNome>TEST_SELLER</xNome></emit><dest><xNome>TEST_BUYER</xNome></dest></infNFe></NFe></nfeProc>"""
+            )
+            buffer.close()
+            result = get_not_processed_inputs(
+                file_paths, buy=True, ignore_not_parsed=False, parser_type="fact"
+            )
+            expected = [{"path": file, "buy": True} for file in file_paths[id:]]
+            assert list(result) == expected
+            _save_successfull_fileparse({"path": file_path, "buy": True})
+
+        # cleanup
+        for parser_input in [{"path": file, "buy": True} for file in file_paths]:
+            success_cache = CacheHandler("__fact_table_success__")
+            success_cache.rm(parser_input)
+
+
+def test_get_not_processed_inputs_ignore_data():
+    """Test if test_get_not_processed_inputs()'s `ignore_data` are evaluated correctly."""
+    # TODO
+    pass
