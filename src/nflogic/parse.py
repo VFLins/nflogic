@@ -35,6 +35,32 @@ FactParserData = TypedDict(
         "TotalTributos": float,
     },
 )
+TranscParserData = TypedDict(
+    "TransacParserData",
+    {
+        "ChaveNFe": str,
+        "CodProduto": str,  # codes that might start
+        "CodBarras": str,  # with zero are stored
+        "CodNCM": str,  # as strings
+        "CodCEST": str,
+        "CodCFOP": int,
+        "QuantComercial": float,
+        "QuantTributavel": float,
+        "UnidComercial": str,
+        "UnidTributavel": str,
+        "DescricaoProd": str,
+        "ValorUnitario": float,
+        "BaseCalcPIS": float,
+        "ValorPIS": float,
+        "BaseCalcCOFINS": float,
+        "ValorCOFINS": float,
+        "BaseCalcRetidoICMS": float,
+        "ValorRetidoICMS": float,
+        "ValorSubstitutoICMS": float,
+        "BaseCalcEfetivoICMS": float,
+        "ValorEfetivoICMS": float,
+    },
+)
 
 
 class KeyType(str):
