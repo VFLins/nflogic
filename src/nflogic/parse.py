@@ -3,6 +3,7 @@ from datetime import datetime
 from collections import OrderedDict
 from pathlib import Path
 from lxml import etree
+from copy import copy
 import inspect
 import xmltodict
 from xml.parsers.expat import ExpatError
@@ -224,7 +225,9 @@ class FactRowElem(RowElem):
         TotalDesconto: FloatCoercibleType,
         TotalTributos: FloatCoercibleType,
     ):
-        super().__init__(**vars())
+        vars_dict = copy(vars())
+        del vars_dict["self"]
+        super().__init__(**vars_dict)
 
 
 class TransacRowElem(RowElem):
@@ -254,7 +257,9 @@ class TransacRowElem(RowElem):
         BaseCalcEfetivoICMS: FloatCoercibleType,
         ValorEfetivoICMS: FloatCoercibleType,
     ):
-        super().__init__(**vars())
+        vars_dict = copy(vars())
+        del vars_dict["self"]
+        super().__init__(**vars_dict)
 
 
 # PARSER
@@ -457,3 +462,12 @@ class FactParser(BaseParser):
             self.err.append(
                 ParserValidationError(f"Unable to validate data {str(err)}")
             )
+
+
+class TransacParser(BaseParser):
+    def _get_product_codes():
+        pass
+    def _get_product_desc():
+        pass
+    def _get_product_tax_info():
+        pass
