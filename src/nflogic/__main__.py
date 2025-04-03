@@ -94,7 +94,30 @@ def summary_err_types(errdf: pd.DataFrame):
     return summary
 
 
-def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
+def _handle_parser_errors(parser_input: parse.ParserInput, full_parse: bool) -> parse.FactParser | None:
+    if full_parse:
+        #parser = parse.FullParser(parser_input)
+        raise NotImplementedError("Not able to perform full parsing yet.")
+    else:
+        parser = parse.FactParser(parser_input)
+
+    if parser.erroed():
+        n_failed = n_failed + 1
+        cache._save_failed_parser_init(parser.INPUTS)
+        return
+
+    parser.parse()
+    if parser.erroed():
+        n_failed = n_failed + 1
+        cache_handler = cache.CacheHandler(parser.name)
+        if parser.INPUTS not in cache_handler.data:
+            cache_handler.add(parser.INPUTS)
+        return
+    return parser
+
+def parse_on_dir(
+    dir_path: str, buy: bool, full_parse: bool = False, ignore_init_errors: bool = True
+):
     """
     Tries to parse all xml files present in `path`.
 
@@ -110,31 +133,21 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
     new_parser_inputs = cache.get_not_processed_inputs(
         filepaths=nfes, buy=buy, ignore_not_parsed=ignore_init_errors
     )
-    n_iter, n_failed, n_skipped, n_recovered = 0, 0, 0, 0
+    n_iter, n_failed, n_recovered = 0, 0, 0
     try:
         for parser_input in new_parser_inputs:
             n_iter = n_iter + 1
             print(f"This might take a while... {n_iter} files processed.", end="\r")
 
-            parser = parse.FactParser(parser_input)
-            if parser.erroed():
+            parser = _handle_parser_errors(parser_input, full_parse=full_parse)
+            if parser is None:
                 n_failed = n_failed + 1
-                cache._save_failed_parser_init(parser_input)
-                continue
-
-            parser.parse()
-            if parser.erroed():
-                n_failed = n_failed + 1
-                fails_cache = cache.CacheHandler(parser.name)
-                if parser_input not in fails_cache.data:
-                    fails_cache.add(parser_input)
                 continue
 
             if parser.data.ChaveNFe in db.processed_keys(parser.name):
                 # TODO: create a function to test this conditional inside the database
                 # instead of retrieving rows from database and checking in python
                 cache._save_successfull_fileparse(parser_input=parser_input)
-                n_skipped = n_skipped + 1
                 continue
 
             db.insert_row(parser=parser, close=False)
@@ -148,11 +161,7 @@ def parse_on_dir(dir_path: str, buy: bool, ignore_init_errors: bool = True):
 
     msgs = [f"{n_iter} xml files processed in {dir_path}"]
     if n_iter > 0:
-        msgs = msgs + [
-            f"{n_failed} failed",
-            f"{n_recovered} failed before, but are now in the database",
-            f"{n_skipped} already in the database",
-        ]
+        msgs = msgs + [f"{n_failed} failed"]
     print(*msgs, sep="\n")
 
 
