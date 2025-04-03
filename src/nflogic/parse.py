@@ -162,7 +162,8 @@ class RowElem:
 
     def __init__(self, **kwargs):
         for name, value in kwargs.items():
-            self.__setattr__(name, value)
+            if name in self.__init__.__annotations__.keys():
+                self.__setattr__(name, value)
         self.values = self._validate_and_assign()
 
     def _validate_and_assign(self):
@@ -223,17 +224,37 @@ class FactRowElem(RowElem):
         TotalDesconto: FloatCoercibleType,
         TotalTributos: FloatCoercibleType,
     ):
-        super().__init__(
-            **{
-                "ChaveNFe": ChaveNFe,
-                "DataHoraEmi": DataHoraEmi,
-                "PagamentoTipo": PagamentoTipo,
-                "PagamentoValor": PagamentoValor,
-                "TotalProdutos": TotalProdutos,
-                "TotalDesconto": TotalDesconto,
-                "TotalTributos": TotalTributos,
-            }
-        )
+        super().__init__(**vars())
+
+
+class TransacRowElem(RowElem):
+    """Validates and holds row data for a TransacParser. See parent class for more details."""
+
+    def __init__(
+        self,
+        ChaveNFe: KeyType,
+        CodProduto: str,
+        CodBarras: str,
+        CodNCM: str,
+        CodCEST: str,
+        CodCFOP: str,
+        QuantComercial: FloatCoercibleType,
+        QuantTributavel: FloatCoercibleType,
+        UnidComercial: str,
+        UnidTributavel: str,
+        DescricaoProd: str,
+        ValorUnitario: FloatCoercibleType,
+        BaseCalcPIS: FloatCoercibleType,
+        ValorPIS: FloatCoercibleType,
+        BaseCalcCOFINS: FloatCoercibleType,
+        ValorCOFINS: FloatCoercibleType,
+        BaseCalcRetidoICMS: FloatCoercibleType,
+        ValorRetidoICMS: FloatCoercibleType,
+        ValorSubstitutoICMS: FloatCoercibleType,
+        BaseCalcEfetivoICMS: FloatCoercibleType,
+        ValorEfetivoICMS: FloatCoercibleType,
+    ):
+        super().__init__(**vars())
 
 
 # PARSER
