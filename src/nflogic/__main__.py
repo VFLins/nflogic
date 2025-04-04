@@ -94,27 +94,6 @@ def summary_err_types(errdf: pd.DataFrame):
     return summary
 
 
-def _handle_parser_errors(parser_input: parse.ParserInput, full_parse: bool) -> parse.FactParser | None:
-    if full_parse:
-        #parser = parse.FullParser(parser_input)
-        raise NotImplementedError("Not able to perform full parsing yet.")
-    else:
-        parser = parse.FactParser(parser_input)
-
-    if parser.erroed():
-        n_failed = n_failed + 1
-        cache._save_failed_parser_init(parser.INPUTS)
-        return
-
-    parser.parse()
-    if parser.erroed():
-        n_failed = n_failed + 1
-        cache_handler = cache.CacheHandler(parser.name)
-        if parser.INPUTS not in cache_handler.data:
-            cache_handler.add(parser.INPUTS)
-        return
-    return parser
-
 def parse_on_dir(
     dir_path: str, buy: bool, full_parse: bool = False, ignore_init_errors: bool = True
 ):
@@ -139,7 +118,7 @@ def parse_on_dir(
             n_iter = n_iter + 1
             print(f"This might take a while... {n_iter} files processed.", end="\r")
 
-            parser = _handle_parser_errors(parser_input, full_parse=full_parse)
+            parser = cache._handle_parser_error(parser_input, full_parse=full_parse)
             if parser is None:
                 n_failed = n_failed + 1
                 continue
@@ -173,14 +152,8 @@ def parse_on_cache(cachename: str):
             n_iter = n_iter + 1
             print(f"This might take a while... {n_iter} files processed.", end="\r")
 
-            parser = parse.FactParser(parser_input)
-            if parser.erroed():
-                n_failed = n_failed + 1
-                cache._save_failed_parser_init(parser_input)
-                continue
-
-            parser.parse()
-            if parser.erroed():
+            parser = cache._handle_parser_error(parser_input, full_parse=False)
+            if parser is None:
                 n_failed = n_failed + 1
                 continue
 

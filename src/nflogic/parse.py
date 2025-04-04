@@ -464,10 +464,16 @@ class FactParser(BaseParser):
             )
 
 
-class TransacParser(BaseParser):
+class _TransacParser(BaseParser):
     def _get_product_codes():
         pass
+
     def _get_product_desc():
         pass
+
     def _get_product_tax_info():
         pass
+
+
+class FullParser(BaseParser, _TransacParser):
+    pass

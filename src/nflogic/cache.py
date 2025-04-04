@@ -4,7 +4,8 @@ from typing import Literal
 from pathlib import Path
 import os
 
-from nflogic.parse import ParserInput
+from nflogic.parse import ParserInput, FactParser, FullParser
+from nflogic import db
 
 
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
@@ -222,3 +223,57 @@ class CacheHandler:
             pickle.dump(obj=self.data, file=cache)
 
         self.data = self._load()
+
+
+class ParserManipulator:
+    def __init__(self, full_parse: bool = True):
+        self.full_parse = full_parse
+        self.n_parsed = 0
+        self.n_failed = 0
+        self.n_skipped = 0
+        self.n_recovered = 0
+
+    def add_parser(
+        self,
+        parser_input: ParserInput,
+        con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
+    ):
+        parser = self._test_return_parser(parser_input)
+        if not parser.erroed():
+            self._handle_parser_success(parser=parser, con=con)
+
+    def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
+        if self.full_parse:
+            # return parse.FullParser(parser_input)
+            raise NotImplementedError("Not able to perform full parsing yet.")
+        else:
+            return FactParser(parser_input)
+
+    def _test_return_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
+        """
+        Creates a parser and returns it, add +1 to `self.n_fails` if it erroed.
+        """
+        parser = self._get_parser(parser_input)
+        if parser.erroed():
+            self.n_failed = self.n_failed + 1
+            _save_failed_parser_init(parser.INPUTS)
+            return parser
+        parser.parse()
+        if parser.erroed():
+            self.n_failed = self.n_failed + 1
+            cache_handler = CacheHandler(parser.name)
+            if parser.INPUTS not in cache_handler.data:
+                cache_handler.add(parser.INPUTS)
+        return parser
+
+    def _handle_parser_success(
+        self,
+        parser: FactParser | FullParser,
+        con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
+    ):
+        db.insert_row(parser=parser, con=con, close=False)
+        _save_successfull_fileparse(parser_input=parser.INPUTS)
+        fails_cache = CacheHandler(parser.name)
+        if parser.INPUTS in fails_cache.data:
+            fails_cache.rm(parser.INPUTS)
+            self.n_recovered = self.n_recovered + 1
