@@ -266,6 +266,26 @@ class ParserManipulator:
                 cache_handler.add(parser.INPUTS)
         return parser
 
+    def _remove_successful_parser_from_cache(
+        self, parser: FactParser | FullParser
+    ) -> bool:
+        """
+        Removes parser inputs from all possible cache files, does nothing if parser erroed.
+        Add +1 to `self.n_recovered` if it was removed from any cache file.
+        """
+        if parser.erroed():
+            return
+        init_fail_cache = CacheHandler("COULD_NOT_GET_NAME")
+        parse_fail_cache = CacheHandler(parser.name)
+        failed_init: bool = parser.INPUTS in init_fail_cache
+        failed_parse: bool = parser.INPUTS in parse_fail_cache
+        if failed_init:
+            init_fail_cache.rm(parser.INPUTS)
+        if failed_parse:
+            parse_fail_cache.rm(parser.INPUTS)
+        if failed_init or failed_parse:
+            self.n_recovered = self.n_recovered + 1
+
     def _handle_parser_success(
         self,
         parser: FactParser | FullParser,
@@ -273,7 +293,4 @@ class ParserManipulator:
     ):
         db.insert_row(parser=parser, con=con, close=False)
         _save_successfull_fileparse(parser_input=parser.INPUTS)
-        fails_cache = CacheHandler(parser.name)
-        if parser.INPUTS in fails_cache.data:
-            fails_cache.rm(parser.INPUTS)
-            self.n_recovered = self.n_recovered + 1
+        self._remove_successful_parser_from_cache(parser)
