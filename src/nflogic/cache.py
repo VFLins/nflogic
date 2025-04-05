@@ -239,8 +239,11 @@ class ParserManipulator:
         con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
     ):
         parser = self._test_return_parser(parser_input)
-        if not parser.erroed():
-            self._handle_parser_success(parser=parser, con=con)
+        if parser.erroed():
+            return
+        if self._is_in_db(parser):
+            return
+        self._handle_parser_success(parser=parser, con=con)
 
     def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
         if self.full_parse:
@@ -277,8 +280,8 @@ class ParserManipulator:
             return
         init_fail_cache = CacheHandler("COULD_NOT_GET_NAME")
         parse_fail_cache = CacheHandler(parser.name)
-        failed_init: bool = parser.INPUTS in init_fail_cache
-        failed_parse: bool = parser.INPUTS in parse_fail_cache
+        failed_init: bool = parser.INPUTS in init_fail_cache.data
+        failed_parse: bool = parser.INPUTS in parse_fail_cache.data
         if failed_init:
             init_fail_cache.rm(parser.INPUTS)
         if failed_parse:
@@ -286,11 +289,22 @@ class ParserManipulator:
         if failed_init or failed_parse:
             self.n_recovered = self.n_recovered + 1
 
+    def _insert_parser_data(
+            parser: FactParser | FullParser,
+            con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
+            close: bool = False,
+        ):
+        for row in parser.data:
+            db.insert_row(parser=parser, con=con, close=False)
+        if close:
+            con.close()
+
     def _handle_parser_success(
         self,
         parser: FactParser | FullParser,
         con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
+        close: bool = False,
     ):
-        db.insert_row(parser=parser, con=con, close=False)
+        self._insert_parser_data(parser=parser, con=con, close=close)
         _save_successfull_fileparse(parser_input=parser.INPUTS)
         self._remove_successful_parser_from_cache(parser)

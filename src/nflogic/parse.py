@@ -1,4 +1,4 @@
-from typing import TypedDict, get_type_hints
+from typing import TypedDict, get_type_hints, Type
 from datetime import datetime
 from collections import OrderedDict
 from pathlib import Path
@@ -271,7 +271,7 @@ class BaseParser:
 
     def __init__(self, parser_input: ParserInput):
         self.INPUTS = parser_input
-        self.data = None
+        self.data = []
         self.err = []
 
         expected_classes = (dict, OrderedDict)
@@ -380,6 +380,13 @@ class BaseParser:
         except Exception as err:
             self.err.append(err)
             raise err
+    
+    def _get_nfekey(self) -> KeyType | None:
+        try:
+            return self._get_key("@Id")[3:]
+        except Exception:
+            self.err.append(ParserParseError(f"Parsing failed at {__funcname__()}"))
+            return None
 
 
 class FactParser(BaseParser):
@@ -408,13 +415,6 @@ class FactParser(BaseParser):
             self.err.append(f"Parsing failed at {__funcname__()}: {str(err)}")
             return None
 
-    def _get_nfekey(self) -> KeyType | None:
-        try:
-            return self._get_key("@Id")[3:]
-        except Exception:
-            self.err.append(ParserParseError(f"Parsing failed at {__funcname__()}"))
-            return None
-
     def _get_dt(self) -> datetime | None:
         try:
             dt = self._get_key("dhEmi")
@@ -437,7 +437,7 @@ class FactParser(BaseParser):
                 discount = total["vDesc"]
         return {"products": products, "discount": discount, "taxes": taxes}
 
-    def parse(self):
+    def _get_fact_rows(self):
         key = self._get_nfekey()
         dt = self._get_dt()
         pay = self._get_pay()
@@ -447,33 +447,95 @@ class FactParser(BaseParser):
                 ParserParseError("Unable to fetch all data, validation will be skipped")
             )
             return
-
         try:
-            self.data = FactRowElem(
-                ChaveNFe=key,
-                DataHoraEmi=dt,
-                PagamentoTipo=pay["type"],
-                PagamentoValor=pay["amount"],
-                TotalProdutos=total["products"],
-                TotalDesconto=total["discount"],
-                TotalTributos=total["taxes"],
+            out = []
+            out.append(
+                FactRowElem(
+                    ChaveNFe=key,
+                    DataHoraEmi=dt,
+                    PagamentoTipo=pay["type"],
+                    PagamentoValor=pay["amount"],
+                    TotalProdutos=total["products"],
+                    TotalDesconto=total["discount"],
+                    TotalTributos=total["taxes"],
+                )
             )
+            return out
         except Exception as err:
             self.err.append(
                 ParserValidationError(f"Unable to validate data {str(err)}")
             )
+
+    def parse(self):
+        rows = self._get_fact_rows()
+        self.data = self.data + rows
 
 
 class _TransacParser(BaseParser):
     def _get_product_codes():
         pass
 
-    def _get_product_desc():
+    def _get_product_desc() -> list[str]:
+        pass
+
+    def _get_product_amount():
         pass
 
     def _get_product_tax_info():
         pass
 
+    def _get_transac_rows(self):
+        key = self._get_nfekey()
+        codes = self._get_product_codes()
+        amounts = self._get_product_amount()
+        names = self._get_product_desc()
+        txinfos = self._get_product_tax_info()
+        if None in (key, codes, amounts, names, txinfos):
+            self.err.append(
+                ParserParseError("Unable to fetch all data, validation will be skipped")
+            )
+            return
+        try:
+            out = []
+            for code, amount, name, txinfo in zip(codes, amounts, names, txinfos):
+                out.append(
+                    TransacRowElem(
+                        ChaveNFe=key,
+                        CodProduto=code["prod"],
+                        CodBarras=code["ean"],
+                        CodNCM=code["ncm"],
+                        CodCEST=code["cest"],
+                        CodCFOP=code["cfop"],
+                        QuantComercial=amount["qcom"],
+                        QuantTributavel=amount["qtrib"],
+                        UnidComercial=amount["undcom"],
+                        UnidTributavel=amount["undtrib"],
+                        DescricaoProd=name,
+                        ValorUnitario=txinfo["vund"],
+                        BaseCalcPIS=txinfo["bpis"],
+                        ValorPIS=txinfo["vpis"],
+                        BaseCalcCOFINS=txinfo["bcofins"],
+                        ValorCOFINS=txinfo["vcofins"],
+                        BaseCalcRetidoICMS=txinfo["bricms"],
+                        ValorRetidoICMS=txinfo["vricms"],
+                        ValorSubstitutoICMS=txinfo["vsicms"],
+                        BaseCalcEfetivoICMS=txinfo["bicms"],
+                        ValorEfetivoICMS=txinfo["vicms"],
+                    )
+                )
+            return out
+        except Exception as err:
+            self.err.append(
+                ParserValidationError(f"Unable to validate data {str(err)}")
+            )
 
-class FullParser(BaseParser, _TransacParser):
-    pass
+    def parse(self):
+        rows = self._get_transac_rows()
+        self.data = self.data + rows
+
+
+class FullParser(FactParser, _TransacParser):
+    def parse(self):
+        fact_rows = self._get_fact_rows()
+        transac_rows = self._get_transac_rows()
+        self.data = self.data + fact_rows + transac_rows
