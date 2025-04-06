@@ -94,20 +94,43 @@ def get_not_processed_inputs(
     )
 
 
-def _save_successfull_fileparse(
-    parser_input: ParserInput, parser_type: Literal["fact", "transac"] = "fact"
-):
-    """Adds a `ParserInput` to `__{parser_type}_table_success__.cache` file. Does nothing otherwise."""
+def _save_successfull_fileparse(parser: FactParser | FullParser):
+    """
+    Adds a `ParserInput` to `__{parser_type}_table_success__.cache` file if it parsed
+    with no errors, does nothing otherwise. Raises `ValueError` if parser is not of one
+    of the hinted types.
+    """
+    expected_types = [FactParser, FullParser]
+    if not isinstance(parser, (FactParser, FullParser)):
+        raise ValueError(
+            f"Parser should be one of {expected_types=}, got {type(parser)}."
+        )
+    if type(parser) is FactParser:
+        parser_type = "fact"
+    if type(parser) is FullParser:
+        parser_type = "full"
+    if not parser._parsed():
+        return
     success_cache = CacheHandler(f"__{parser_type}_table_success__")
-    if parser_input not in success_cache.data:
-        success_cache.add(parser_input)
+    if parser.INPUTS not in success_cache.data:
+        success_cache.add(parser.INPUTS)
 
 
-def _save_failed_parser_init(parser_input: ParserInput):
-    """Adds a `ParserInput` to `__could_not_parse_xml__.cache` file. Does nothing otherwise."""
+def _save_failed_parser_init(parser: FactParser | FullParser):
+    """
+    Adds a `ParserInput` to `__could_not_parse_xml__.cache` file if it erroed on init,
+    does nothing otherwise. Raises `ValueError` if parser is not of one of the hinted types.
+    """
+    expected_types = [FactParser, FullParser]
+    if type(parser) not in expected_types:
+        raise ValueError(
+            f"Parser should be one of {expected_types=}, got {type(parser)}."
+        )
+    if ParserInitError not in parser.err:
+        return
     fail_cache = CacheHandler("__could_not_parse_xml__")
-    if parser_input not in fail_cache.data:
-        fail_cache.add(parser_input)
+    if parser.INPUTS not in fail_cache.data:
+        fail_cache.add(parser.INPUTS)
 
 
 class KeyAlreadyProcessedError(Exception):
