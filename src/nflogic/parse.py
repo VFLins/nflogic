@@ -387,6 +387,10 @@ class BaseParser:
             self.err.append(ParserParseError(f"Parsing failed at {__funcname__()}"))
             return None
 
+    def _parsed(self) -> bool:
+        """Informs if `self.parse()` was ever called."""
+        return self.erroed() or bool(len(self.data))
+
 
 class FactParser(BaseParser):
     """
@@ -466,8 +470,11 @@ class FactParser(BaseParser):
             )
 
     def parse(self):
+        if self._parsed():
+            return
         rows = self._get_fact_rows()
-        self.data = self.data + rows
+        if rows is not None:
+            self.data = self.data + rows
 
 
 class _TransacParser(BaseParser):
@@ -529,12 +536,20 @@ class _TransacParser(BaseParser):
             )
 
     def parse(self):
+        if self._parsed():
+            return
         rows = self._get_transac_rows()
-        self.data = self.data + rows
+        if rows is not None:
+            self.data = self.data + rows
 
 
 class FullParser(FactParser, _TransacParser):
     def parse(self):
+        if self._parsed():
+            return
         fact_rows = self._get_fact_rows()
         transac_rows = self._get_transac_rows()
-        self.data = self.data + fact_rows + transac_rows
+        if fact_rows is not None:
+            self.data = self.data + fact_rows
+        if transac_rows is not None:
+            self.data = self.data + transac_rows
