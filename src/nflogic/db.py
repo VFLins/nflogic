@@ -3,7 +3,7 @@ import sqlite3
 import re
 import os
 
-from nflogic.parse import FactParser
+from nflogic.parse import FactParser, FullParser, TransacRowElem, FactRowElem
 
 
 # CONSTANTS
@@ -21,7 +21,7 @@ os.makedirs(DB_DIR, exist_ok=True)
 ###############
 
 
-def gen_tablename(name: str):
+def fmt_tablename(name: str):
     """Transforms strings to a format that SQLite would accept as a table name:
 
     1. Removes all leading numbers,
@@ -58,7 +58,7 @@ def processed_keys(
         `sqlite3.OperationalError` if table doesn't exist.
     """
 
-    tablename = gen_tablename(tablename)
+    tablename = fmt_tablename(tablename)
     create_table(con, tablename)
 
     dbcur = con.cursor()
@@ -87,7 +87,7 @@ def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
     dbcur = con.cursor()
     dbcur.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS {gen_tablename(tablename)} (
+        CREATE TABLE IF NOT EXISTS {fmt_tablename(tablename)} (
             Id INTEGER PRIMARY KEY,
             ChaveNFe TEXT NOT NULL UNIQUE,
             DataHoraEmi TEXT,
@@ -103,37 +103,87 @@ def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
         con.close()
 
 
-def insert_row(
-    parser: FactParser,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
-):
+def insert_transac_row(
+        row: TransacRowElem,
+        tablename: str,
+        con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+        close: bool = False,
+    ):
     """
-    Inserts a row of data on the database associated with `con` the table
-    name will be collected from `parser` and formatted by `gen_tablename()`.
+    Inserts a row of data from a TransacRowElem.
 
     **Args**
-        parser (nflogic.parse.FactParser): Parser that holds the data that will be inserted.
+        Row (nflogic.parse.TransacRowElem): Element that holds the data that will be inserted;
+        tablename (str): Name of the table where the data will be inserted into;
         con (sqlite3.Connection): Connection to desired database;
-        close (bool): Should close the connection `con` after the operation completes?
+        close (bool): Should close the connection after the operation completes?
 
-    **Returns** None
+    **Returns** `None`
 
     **Raises**
-        `ValueError` if *parser* doesn't hold data.
+        `ValueError` if *row* doesn't hold data.
         `sqlite3.OperationalError` if table doesn't exist.
     """
-    if not parser.data:
-        raise ValueError(
-            f"Parser with inputs '{parser.INPUTS}' doesn't have any data to insert."
-        )
-
-    tablename = gen_tablename(parser.name)
     create_table(con, tablename=tablename)
 
     dbcur = con.cursor()
     dbcur.execute(
-        f"""INSERT INTO {gen_tablename(tablename)} (
+        f"""INSERT INTO {fmt_tablename(tablename)} (
+            ChaveNFe,
+            CodProduto,
+            CodBarras,
+            CodNCM,
+            CodCEST,
+            CodCFOP,
+            QuantComercial,
+            QuantTributavel,
+            UnidComercial,
+            UnidTributavel,
+            DescricaoProd,
+            ValorUnitario,
+            BaseCalcPIS,
+            ValorPIS,
+            BaseCalcCOFINS,
+            ValorCOFINS,
+            BaseCalcRetidoICMS,
+            ValorRetidoICMS,
+            ValorSubstitutoICMS,
+            BaseCalcEfetivoICMS,
+            ValorEfetivoICMS,
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
+        row.values,
+    )
+    con.commit()
+    if close:
+        con.close()
+
+
+def insert_fact_row(
+        row: FactRowElem,
+        tablename: str,
+        con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+        close: bool = False,
+    ):
+    """
+    Inserts a row of data from a FactRowElem.
+
+    **Args**
+        Row (nflogic.parse.FactRowElem): Element that holds the data that will be inserted;
+        tablename (str): Name of the table where the data will be inserted into;
+        con (sqlite3.Connection): Connection to desired database;
+        close (bool): Should close the connection after the operation completes?
+
+    **Returns** `None`
+
+    **Raises**
+        `ValueError` if *row* doesn't hold data.
+        `sqlite3.OperationalError` if table doesn't exist.
+    """
+    create_table(con, tablename=tablename)
+
+    dbcur = con.cursor()
+    dbcur.execute(
+        f"""INSERT INTO {fmt_tablename(tablename)} (
             ChaveNFe,
             DataHoraEmi,
             PagamentoTipo,
@@ -142,9 +192,41 @@ def insert_row(
             TotalDesconto,
             TotalTributos
         ) VALUES (?,?,?,?,?,?,?);""",
-        parser.data.values,
+        row.values,
     )
     con.commit()
+    if close:
+        con.close()
 
+
+def insert_rows(
+        parser: FactParser | FullParser,
+        con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+        close: bool = False,
+    ):
+    """
+    Inserts all data from a parser into the database pointed by `con`.
+    The tables's names is generated from `parser.name`.
+
+    **Args**
+        Row (nflogic.parse.FactRowElem): Element that holds the data that will be inserted;
+        tablename (str): Name of the table where the data will be inserted into;
+        con (sqlite3.Connection): Connection to desired database;
+        close (bool): Should close the connection after the operation completes?
+
+    **Returns** `None`
+
+    **Raises**
+        `ValueError` if *row* doesn't hold data.
+        `sqlite3.OperationalError` if table doesn't exist.
+    """
+    fact_tablename = fmt_tablename(parser.name)
+    transac_tablename = f"ITENS_{fact_tablename}"
+
+    for row in parser.data:
+        if type(row) is FactRowElem:
+            insert_fact_row(row=row, tablename=fact_tablename, con=con, close=False)
+        if type(row) is TransacRowElem:
+            insert_transac_row(row=row, tablename=transac_tablename, con=con, close=False)
     if close:
         con.close()

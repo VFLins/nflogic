@@ -289,22 +289,12 @@ class ParserManipulator:
         if failed_init or failed_parse:
             self.n_recovered = self.n_recovered + 1
 
-    def _insert_parser_data(
-            parser: FactParser | FullParser,
-            con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
-            close: bool = False,
-        ):
-        for row in parser.data:
-            db.insert_row(parser=parser, con=con, close=False)
-        if close:
-            con.close()
-
     def _handle_parser_success(
         self,
         parser: FactParser | FullParser,
         con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
         close: bool = False,
     ):
-        self._insert_parser_data(parser=parser, con=con, close=close)
+        db.insert_rows(parser=parser, con=con, close=close)
         _save_successfull_fileparse(parser_input=parser.INPUTS)
         self._remove_successful_parser_from_cache(parser)
