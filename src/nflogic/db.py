@@ -104,11 +104,11 @@ def create_table(con: sqlite3.Connection, tablename: str, close: bool = False):
 
 
 def insert_transac_row(
-        row: TransacRowElem,
-        tablename: str,
-        con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-        close: bool = False,
-    ):
+    row: TransacRowElem,
+    tablename: str,
+    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+    close: bool = False,
+):
     """
     Inserts a row of data from a TransacRowElem.
 
@@ -159,11 +159,11 @@ def insert_transac_row(
 
 
 def insert_fact_row(
-        row: FactRowElem,
-        tablename: str,
-        con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-        close: bool = False,
-    ):
+    row: FactRowElem,
+    tablename: str,
+    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+    close: bool = False,
+):
     """
     Inserts a row of data from a FactRowElem.
 
@@ -200,10 +200,10 @@ def insert_fact_row(
 
 
 def insert_rows(
-        parser: FactParser | FullParser,
-        con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-        close: bool = False,
-    ):
+    parser: FactParser | FullParser,
+    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
+    close: bool = False,
+):
     """
     Inserts all data from a parser into the database pointed by `con`.
     The tables's names is generated from `parser.name`.
@@ -227,6 +227,8 @@ def insert_rows(
         if type(row) is FactRowElem:
             insert_fact_row(row=row, tablename=fact_tablename, con=con, close=False)
         if type(row) is TransacRowElem:
-            insert_transac_row(row=row, tablename=transac_tablename, con=con, close=False)
+            insert_transac_row(
+                row=row, tablename=transac_tablename, con=con, close=False
+            )
     if close:
         con.close()

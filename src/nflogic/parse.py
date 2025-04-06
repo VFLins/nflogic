@@ -2,7 +2,6 @@ from typing import TypedDict, get_type_hints, Type
 from datetime import datetime
 from collections import OrderedDict
 from pathlib import Path
-from lxml import etree
 from copy import copy
 import inspect
 import xmltodict
@@ -380,7 +379,7 @@ class BaseParser:
         except Exception as err:
             self.err.append(err)
             raise err
-    
+
     def _get_nfekey(self) -> KeyType | None:
         try:
             return self._get_key("@Id")[3:]

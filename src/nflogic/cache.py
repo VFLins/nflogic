@@ -4,7 +4,7 @@ from typing import Literal
 from pathlib import Path
 import os
 
-from nflogic.parse import ParserInput, FactParser, FullParser
+from nflogic.parse import ParserInput, FactParser, FullParser, ParserInitError
 from nflogic import db
 
 
@@ -161,14 +161,14 @@ class CacheHandler:
 
     def _check_item(self, item: ParserInput):
         for param, typ in ParserInput.__annotations__.items():
-            if type(item[param]) != typ:
+            if type(item[param]) is not typ:
                 raise TypeError(f"{item} is not of `ParserInput` type.")
 
     def _first_invalid_elem(self) -> ParserInput | None:
         """Returns the first item in `self.data` that is not a `nflogic.cache.ParserInput`."""
         for idx, elem in enumerate(self.data):
-            if type(elem) != dict:
-                print(f"self.data[{idx}] is not dict")
+            if not isinstance(elem, dict):
+                print(f"self.data[{idx}] is not dict-like")
                 return elem
             try:
                 _, _ = elem["path"], elem["buy"]
@@ -230,20 +230,19 @@ class ParserManipulator:
         self.full_parse = full_parse
         self.n_parsed = 0
         self.n_failed = 0
-        self.n_skipped = 0
         self.n_recovered = 0
 
     def add_parser(
         self,
         parser_input: ParserInput,
         con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
+        close: bool = False,
     ):
         parser = self._test_return_parser(parser_input)
+        self.n_parsed = self.n_parsed + 1
         if parser.erroed():
             return
-        if self._is_in_db(parser):
-            return
-        self._handle_parser_success(parser=parser, con=con)
+        self._handle_parser_success(parser=parser, con=con, close=close)
 
     def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
         if self.full_parse:
