@@ -253,6 +253,7 @@ class ParserManipulator:
         self.full_parse = full_parse
         self.n_parsed = 0
         self.n_failed = 0
+        self.n_skipped = 0
         self.n_recovered = 0
 
     def add_parser(
@@ -264,13 +265,16 @@ class ParserManipulator:
         parser = self._test_return_parser(parser_input)
         self.n_parsed = self.n_parsed + 1
         if parser.erroed():
+            self.n_failed = self.n_failed + 1
+            return
+        if db.all_rows_in_db(parser, con=con, close=False):
+            self.n_skipped = self.n_skipped + 1
             return
         self._handle_parser_success(parser=parser, con=con, close=close)
 
     def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
         if self.full_parse:
-            # return parse.FullParser(parser_input)
-            raise NotImplementedError("Not able to perform full parsing yet.")
+            return FullParser(parser_input)
         else:
             return FactParser(parser_input)
 
@@ -280,12 +284,10 @@ class ParserManipulator:
         """
         parser = self._get_parser(parser_input)
         if parser.erroed():
-            self.n_failed = self.n_failed + 1
             _save_failed_parser_init(parser.INPUTS)
             return parser
         parser.parse()
         if parser.erroed():
-            self.n_failed = self.n_failed + 1
             cache_handler = CacheHandler(parser.name)
             if parser.INPUTS not in cache_handler.data:
                 cache_handler.add(parser.INPUTS)
@@ -295,10 +297,11 @@ class ParserManipulator:
         self, parser: FactParser | FullParser
     ) -> bool:
         """
-        Removes parser inputs from all possible cache files, does nothing if parser erroed.
-        Add +1 to `self.n_recovered` if it was removed from any cache file.
+        Removes parser inputs from all possible cache files, does nothing if
+        parser erroed or didn't parse. Add +1 to `self.n_recovered` if it was
+        removed from any cache file.
         """
-        if parser.erroed():
+        if (len(parser.err) > 0) or (len(parser.data) == 0):
             return
         init_fail_cache = CacheHandler("COULD_NOT_GET_NAME")
         parse_fail_cache = CacheHandler(parser.name)
