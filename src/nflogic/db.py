@@ -69,13 +69,13 @@ def fact_row_exists(
         f"""
         SELECT count(*) FROM {tablename}
         WHERE
-            ChaveNFe=?,
-            DataHoraEmi=?,
-            PagamentoTipo=?,
-            PagamentoValor=?,
-            TotalProdutos=?,
-            TotalDesconto=?,
-            TotalTributos=?
+            ChaveNFe=?
+            AND DataHoraEmi=?
+            AND PagamentoTipo=?
+            AND PagamentoValor=?
+            AND TotalProdutos=?
+            AND TotalDesconto=?
+            AND TotalTributos=?;
         """,
         row.values,
     )
@@ -111,27 +111,27 @@ def transac_row_exists(
         f"""
         SELECT count(*) FROM {tablename}
         WHERE
-            ChaveNFe=?,
-            CodProduto=?,
-            CodBarras=?,
-            CodNCM=?,
-            CodCEST=?,
-            CodCFOP=?,
-            QuantComercial=?,
-            QuantTributavel=?,
-            UnidComercial=?,
-            UnidTributavel=?,
-            DescricaoProd=?,
-            ValorUnitario=?,
-            BaseCalcPIS=?,
-            ValorPIS=?,
-            BaseCalcCOFINS=?,
-            ValorCOFINS=?,
-            BaseCalcRetidoICMS=?,
-            ValorRetidoICMS=?,
-            ValorSubstitutoICMS=?,
-            BaseCalcEfetivoICMS=?,
-            ValorEfetivoICMS=?
+            ChaveNFe=?
+            AND CodProduto=?
+            AND CodBarras=?
+            AND CodNCM=?
+            AND CodCEST=?
+            AND CodCFOP=?
+            AND QuantComercial=?
+            AND QuantTributavel=?
+            AND UnidComercial=?
+            AND UnidTributavel=?
+            AND DescricaoProd=?
+            AND ValorUnitario=?
+            AND BaseCalcPIS=?
+            AND ValorPIS=?
+            AND BaseCalcCOFINS=?
+            AND ValorCOFINS=?
+            AND BaseCalcRetidoICMS=?
+            AND ValorRetidoICMS=?
+            AND ValorSubstitutoICMS=?
+            AND BaseCalcEfetivoICMS=?
+            AND ValorEfetivoICMS=?;
         """,
         row.values,
     )
@@ -365,7 +365,7 @@ def insert_fact_row(
         `ValueError` if *row* doesn't hold data.
         `sqlite3.OperationalError` if table doesn't exist.
     """
-    create_fact_table(con, tablename=tablename)
+    create_fact_table(tablename, con=con)
 
     dbcur = con.cursor()
     dbcur.execute(

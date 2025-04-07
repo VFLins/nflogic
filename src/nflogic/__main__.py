@@ -116,7 +116,9 @@ def parse_dir(
         man = cache.ParserManipulator(full_parse=full_parse)
         for parser_input in new_parser_inputs:
             man.add_parser(parser_input)
-            print(f"This might take a while... {man.n_parsed} files processed.", end="\r")
+            print(
+                f"This might take a while... {man.n_parsed} files processed.", end="\r"
+            )
     except KeyboardInterrupt:
         pass
     msgs = [f"{man.n_parsed} xml files processed in {dir_path}"]

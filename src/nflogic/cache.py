@@ -321,5 +321,5 @@ class ParserManipulator:
         close: bool = False,
     ):
         db.insert_rows(parser=parser, con=con, close=close)
-        _save_successfull_fileparse(parser_input=parser.INPUTS)
+        _save_successfull_fileparse(parser)
         self._remove_successful_parser_from_cache(parser)
