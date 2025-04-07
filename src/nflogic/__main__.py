@@ -94,7 +94,7 @@ def summary_err_types(errdf: pd.DataFrame):
     return summary
 
 
-def parse_on_dir(
+def parse_dir(
     dir_path: str, buy: bool, full_parse: bool = False, ignore_init_errors: bool = True
 ):
     """
@@ -112,35 +112,16 @@ def parse_on_dir(
     new_parser_inputs = cache.get_not_processed_inputs(
         filepaths=nfes, buy=buy, ignore_not_parsed=ignore_init_errors
     )
-    n_iter, n_failed, n_recovered = 0, 0, 0
     try:
+        man = cache.ParserManipulator(full_parse=full_parse)
         for parser_input in new_parser_inputs:
-            n_iter = n_iter + 1
-            print(f"This might take a while... {n_iter} files processed.", end="\r")
-
-            parser = cache._handle_parser_error(parser_input, full_parse=full_parse)
-            if parser is None:
-                n_failed = n_failed + 1
-                continue
-
-            if parser.data.ChaveNFe in db.processed_keys(parser.name):
-                # TODO: create a function to test this conditional inside the database
-                # instead of retrieving rows from database and checking in python
-                cache._save_successfull_fileparse(parser_input=parser_input)
-                continue
-
-            db.insert_row(parser=parser, close=False)
-            cache._save_successfull_fileparse(parser_input=parser_input)
-            fails_cache = cache.CacheHandler(parser.name)
-            if parser_input in fails_cache.data:
-                fails_cache.rm(parser_input)
-                n_recovered = n_recovered + 1
+            man.add_parser(parser_input)
+            print(f"This might take a while... {man.n_parsed} files processed.", end="\r")
     except KeyboardInterrupt:
         pass
-
-    msgs = [f"{n_iter} xml files processed in {dir_path}"]
-    if n_iter > 0:
-        msgs = msgs + [f"{n_failed} failed"]
+    msgs = [f"{man.n_parsed} xml files processed in {dir_path}"]
+    if man.n_parsed > 0:
+        msgs = msgs + [f"{man.n_failed} failed"]
     print(*msgs, sep="\n")
 
 
