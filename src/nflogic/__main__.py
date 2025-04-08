@@ -108,11 +108,11 @@ def parse_dir(
           `xmltodict` before or not
     """
     # TODO: Open a database connection at the beginning and close at the end of each run
-    nfes = xml_files_in_dir(dir_path=dir_path)
-    new_parser_inputs = cache.get_not_processed_inputs(
-        filepaths=nfes, buy=buy, ignore_not_parsed=ignore_init_errors
-    )
     try:
+        nfes = xml_files_in_dir(dir_path=dir_path)
+        new_parser_inputs = cache.get_not_processed_inputs(
+            filepaths=nfes, buy=buy, ignore_not_parsed=ignore_init_errors
+        )
         man = cache.ParserManipulator(full_parse=full_parse)
         for parser_input in new_parser_inputs:
             man.add_parser(parser_input)

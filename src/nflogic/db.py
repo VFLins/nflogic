@@ -66,23 +66,13 @@ def fact_row_exists(
     """
     dbcur = con.cursor()
     dbcur.execute(
-        f"""
-        SELECT count(*) FROM {tablename}
-        WHERE
-            ChaveNFe=?
-            AND DataHoraEmi=?
-            AND PagamentoTipo=?
-            AND PagamentoValor=?
-            AND TotalProdutos=?
-            AND TotalDesconto=?
-            AND TotalTributos=?;
-        """,
-        row.values,
+        f"SELECT count(*) FROM {tablename} WHERE ChaveNFe=?;",
+        [row.values[0]],
     )
     res = dbcur.fetchone()[0]
     if close:
         con.close()
-    return res > 0
+    return bool(res)
 
 
 def transac_row_exists(
