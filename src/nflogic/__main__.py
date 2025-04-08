@@ -127,41 +127,21 @@ def parse_dir(
     print(*msgs, sep="\n")
 
 
-def parse_on_cache(cachename: str):
-    fails_cache = cache.CacheHandler(cachename)
-    n_iter, n_failed, n_skipped, n_recovered = 0, 0, 0, 0
+def parse_cache(cachename: str, full_parse: bool = False):
     try:
+        fails_cache = cache.CacheHandler(cachename)
+        man = cache.ParserManipulator(full_parse)
         for parser_input in fails_cache.data:
-            n_iter = n_iter + 1
-            print(f"This might take a while... {n_iter} files processed.", end="\r")
-
-            parser = cache._handle_parser_error(parser_input, full_parse=False)
-            if parser is None:
-                n_failed = n_failed + 1
-                continue
-
-            if parser._get_nfekey() in db.processed_keys(parser.name):
-                # TODO: create a function to test this conditional inside the database
-                # instead of retrieving rows from database and checking in python
-                cache._save_successfull_fileparse(parser_input=parser_input)
-                fails_cache.rm(parser_input)
-                n_skipped = n_skipped + 1
-                continue
-
-            db.insert_row(parser=parser, close=False)
-            cache._save_successfull_fileparse(parser_input=parser_input)
-            fails_cache.rm(parser_input)
-            n_recovered = n_recovered + 1
-
+            man.add_parser(parser_input)
+            print(f"This might take a while... {man.n_parsed} files processed.", end="\r")
     except KeyboardInterrupt:
         pass
-
-    msgs = [f"{n_iter} xml files processed from {cachename}.cache"]
-    if n_iter > 0:
+    msgs = [f"{man.n_parsed} xml files processed from {cachename}.cache"]
+    if man.n_parsed > 0:
         msgs = msgs + [
-            f"{n_failed} could not be recovered",
-            f"{n_recovered} removed from cache, and are now in the database",
-            f"{n_skipped} removed from cache, and were already in the database",
+            f"{man.n_failed} could not be recovered",
+            f"{man.n_recovered} removed from cache, and are now in the database",
+            f"{man.n_skipped} removed from cache, and were already in the database",
         ]
     print(*msgs, sep="\n")
 
