@@ -111,7 +111,7 @@ def parse_dir(
     try:
         nfes = xml_files_in_dir(dir_path=dir_path)
         new_parser_inputs = cache.get_not_processed_inputs(
-            filepaths=nfes, buy=buy, ignore_not_parsed=ignore_init_errors
+            filepaths=nfes, buy=buy, ignore_fails=ignore_init_errors
         )
         man = cache.ParserManipulator(full_parse=full_parse)
         for parser_input in new_parser_inputs:
@@ -129,11 +129,13 @@ def parse_dir(
 
 def parse_cache(cachename: str, full_parse: bool = False):
     try:
-        fails_cache = cache.CacheHandler(cachename)
+        fails_cache = cache.CacheHandler(cachename, full_parse)
         man = cache.ParserManipulator(full_parse)
         for parser_input in fails_cache.data:
             man.add_parser(parser_input)
-            print(f"This might take a while... {man.n_parsed} files processed.", end="\r")
+            print(
+                f"This might take a while... {man.n_parsed} files processed.", end="\r"
+            )
     except KeyboardInterrupt:
         pass
     msgs = [f"{man.n_parsed} xml files processed from {cachename}.cache"]

@@ -1,6 +1,5 @@
 import pickle
 import logging
-from typing import Literal
 from pathlib import Path
 import os
 
@@ -28,12 +27,19 @@ log.addHandler(loghandler)
 log.propagate = False
 
 
+def _get_success_cachename(full_parse: bool):
+    """Utility that delivers the name of a success cache."""
+    if full_parse:
+        return "__both_table_success__"
+    return "__fact_table_success__"
+
+
 def valid_cachename(cachename: str) -> bool:
     """Verifies if a cachename exists *and* is valid. Return the answer as a boolean value."""
     cachefile_path = os.path.join(CACHE_PATH, f"{cachename}.cache")
     if not os.path.isfile(cachefile_path):
         return False
-    c = CacheHandler(cachename)
+    c = CacheHandler(cachename, False)
     return c.is_valid()
 
 
@@ -54,8 +60,8 @@ def get_cachenames() -> list[str]:
 def get_not_processed_inputs(
     filepaths: list[str],
     buy: bool,
-    ignore_not_parsed: bool,
-    parser_type: Literal["fact", "transac", "both"] = "fact",
+    ignore_fails: bool,
+    full_parse: bool = False,
 ) -> list[ParserInput]:
     """
     Generator of `ParserInput`s that weren't successfully added to the database yet.
@@ -63,29 +69,15 @@ def get_not_processed_inputs(
     Args
         filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
         buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
-        ignore_not_parsed: wether to ignore files that could not be parsed by
-          `xmltodict` before or not
-        parser_type: related to the parser and database table, that might be "fact"
+        ignore_fails: wether to ignore files that could not be parsed by `xmltodict`
+          before or not
+        full_parse: related to the parser and database table, that might be "fact"
           for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
     """
-    if ignore_not_parsed:
-        fail_cache = CacheHandler("__could_not_parse_xml__")
-
-    if parser_type != "both":
-        success_cache = CacheHandler(f"__{parser_type}_table_success__")
-        ignore_data = success_cache.data
-        if ignore_not_parsed:
-            ignore_data = ignore_data + fail_cache.data
-        return (
-            {"path": file, "buy": buy}
-            for file in filepaths
-            if {"path": file, "buy": buy} not in ignore_data
-        )
-
-    fact_cache = CacheHandler("__fact_table_success__")
-    transac_cache = CacheHandler("__transac_table_success__")
-    ignore_data = fact_cache.data + transac_cache.data
-    if ignore_not_parsed:
+    success_cache = CacheHandler(_get_success_cachename(full_parse), full_parse)
+    ignore_data = success_cache.data
+    if ignore_fails:
+        fail_cache = CacheHandler("__could_not_parse_xml__", full_parse)
         ignore_data = ignore_data + fail_cache.data
     return (
         {"path": file, "buy": buy}
@@ -105,13 +97,12 @@ def _save_successfull_fileparse(parser: FactParser | FullParser):
         raise ValueError(
             f"Parser should be one of {expected_types=}, got {type(parser)}."
         )
-    if type(parser) is FactParser:
-        parser_type = "fact"
-    if type(parser) is FullParser:
-        parser_type = "full"
     if not parser._parsed():
         return
-    success_cache = CacheHandler(f"__{parser_type}_table_success__")
+    full_parse = False
+    if type(parser) is FullParser:
+        full_parse = True
+    success_cache = CacheHandler(_get_success_cachename(full_parse), full_parse)
     if parser.INPUTS not in success_cache.data:
         success_cache.add(parser.INPUTS)
 
@@ -128,7 +119,10 @@ def _save_failed_parser_init(parser: FactParser | FullParser):
         )
     if ParserInitError not in parser.err:
         return
-    fail_cache = CacheHandler("__could_not_parse_xml__")
+    full_parse = False
+    if type(parser) is FullParser:
+        full_parse = True
+    fail_cache = CacheHandler("__could_not_parse_xml__", full_parse)
     if parser.INPUTS not in fail_cache.data:
         fail_cache.add(parser.INPUTS)
 
@@ -148,8 +142,10 @@ class KeyNotFoundError(Exception):
 
 
 class CacheHandler:
-    def __init__(self, cachename: str) -> None:
+    def __init__(self, cachename: str, full_parse: bool = False) -> None:
         self.cachename = cachename
+        if full_parse:
+            self.cachename = f"FULL {cachename}"
         self.cachefile = os.path.join(CACHE_PATH, f"{cachename}.cache")
         self.data = self._load()
 
@@ -288,7 +284,7 @@ class ParserManipulator:
             return parser
         parser.parse()
         if parser.erroed():
-            cache_handler = CacheHandler(parser.name)
+            cache_handler = CacheHandler(parser.name, self.full_parse)
             if parser.INPUTS not in cache_handler.data:
                 cache_handler.add(parser.INPUTS)
         return parser
@@ -303,8 +299,8 @@ class ParserManipulator:
         """
         if (len(parser.err) > 0) or (len(parser.data) == 0):
             return
-        init_fail_cache = CacheHandler("COULD_NOT_GET_NAME")
-        parse_fail_cache = CacheHandler(parser.name)
+        init_fail_cache = CacheHandler("__could_not_parse_xml__", self.full_parse)
+        parse_fail_cache = CacheHandler(parser.name, self.full_parse)
         failed_init: bool = parser.INPUTS in init_fail_cache.data
         failed_parse: bool = parser.INPUTS in parse_fail_cache.data
         if failed_init:
