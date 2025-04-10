@@ -228,6 +228,7 @@ def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = Fal
         );
         """
     )
+    con.commit()
     if close:
         con.close()
 
@@ -275,6 +276,7 @@ def create_transac_table(con: sqlite3.Connection, tablename: str, close: bool = 
         );
         """
     )
+    con.commit()
     if close:
         con.close()
 
@@ -305,28 +307,28 @@ def insert_transac_row(
     dbcur = con.cursor()
     dbcur.execute(
         f"""INSERT INTO {fmt_tablename(tablename)} (
-            ChaveNFe,
-            CodProduto,
-            CodBarras,
-            CodNCM,
-            CodCEST,
-            CodCFOP,
-            QuantComercial,
-            QuantTributavel,
-            UnidComercial,
-            UnidTributavel,
-            DescricaoProd,
-            ValorUnitario,
-            BaseCalcPIS,
-            ValorPIS,
-            BaseCalcCOFINS,
-            ValorCOFINS,
-            BaseCalcRetidoICMS,
-            ValorRetidoICMS,
-            ValorSubstitutoICMS,
-            BaseCalcEfetivoICMS,
-            ValorEfetivoICMS,
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
+                ChaveNFe,
+                CodProduto,
+                CodBarras,
+                CodNCM,
+                CodCEST,
+                CodCFOP,
+                QuantComercial,
+                QuantTributavel,
+                UnidComercial,
+                UnidTributavel,
+                DescricaoProd,
+                ValorUnitario,
+                BaseCalcPIS,
+                ValorPIS,
+                BaseCalcCOFINS,
+                ValorCOFINS,
+                BaseCalcRetidoICMS,
+                ValorRetidoICMS,
+                ValorSubstitutoICMS,
+                BaseCalcEfetivoICMS,
+                ValorEfetivoICMS,
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
         row.values,
     )
     con.commit()
