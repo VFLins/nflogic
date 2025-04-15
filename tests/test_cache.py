@@ -183,7 +183,7 @@ def test_first_invalid_elem():
 
 
 def test_get_not_processed_inputs_fact():
-    """Test get_not_processed_inputs() when `parser_type="fact"`."""
+    """Test get_not_processed_inputs() when parsing only fact table data."""
     with TemporaryDirectory() as dir:
         file_paths = [os.path.join(dir, f"file{i}.xml") for i in range(5)]
         for id, file_path in enumerate(file_paths):
@@ -193,15 +193,17 @@ def test_get_not_processed_inputs_fact():
             )
             buffer.close()
             result = get_not_processed_inputs(
-                file_paths, buy=True, ignore_not_parsed=False, parser_type="fact"
+                file_paths, buy=True, ignore_fails=False, full_parse=False
             )
             expected = [{"path": file, "buy": True} for file in file_paths[id:]]
             assert list(result) == expected
-            _save_successfull_fileparse({"path": file_path, "buy": True})
+            _save_successfull_fileparse(
+                parse.FactParser({"path": file_path, "buy": True})
+            )
 
         # cleanup
+        success_cache = CacheHandler("__fact_table_success__", full_parse=False)
         for parser_input in [{"path": file, "buy": True} for file in file_paths]:
-            success_cache = CacheHandler("__fact_table_success__")
             success_cache.rm(parser_input)
 
 

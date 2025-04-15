@@ -90,15 +90,15 @@ def test_get_data():
     if dp.erroed():
         raise dp.err[-1]
 
-    assert dp.data.ChaveNFe == "26240811122233344455550010045645641789789784"
-    assert dp.data.DataHoraEmi == datetime(
+    assert dp.data[0].ChaveNFe == "26240811122233344455550010045645641789789784"
+    assert dp.data[0].DataHoraEmi == datetime(
         2024, 8, 31, 16, 17, 16, tzinfo=tzBrazilEast()
     )
-    assert dp.data.PagamentoTipo == "14"
-    assert dp.data.PagamentoValor == "996.85"
-    assert dp.data.TotalProdutos == "996.85"
-    assert dp.data.TotalDesconto == "0.00"
-    assert dp.data.TotalTributos == "348.77"
+    assert dp.data[0].PagamentoTipo == "14"
+    assert dp.data[0].PagamentoValor == "996.85"
+    assert dp.data[0].TotalProdutos == "996.85"
+    assert dp.data[0].TotalDesconto == "0.00"
+    assert dp.data[0].TotalTributos == "348.77"
 
 
 @pytest.mark.parametrize(

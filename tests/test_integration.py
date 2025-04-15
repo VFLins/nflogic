@@ -2,7 +2,7 @@ import os
 import sqlite3
 
 from nflogic.parse import FactParser, FactRowElem
-from nflogic.db import gen_tablename, insert_row
+from nflogic.db import fmt_tablename, insert_fact_row
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -15,11 +15,11 @@ def test_tablename():
         "buy": False,
     }
     p = FactParser(parser_inp)
-    tname = gen_tablename(p.name)
+    tname = fmt_tablename(p.name)
     assert tname == "VENDA_FORNECEDOR"
 
 
-def test_insert_row():
+def test_insert_fact_row():
     parser_inp = {
         "path": os.path.join(SCRIPT_DIR, "test_xml_v4.xml"),
         "buy": False,
@@ -29,10 +29,10 @@ def test_insert_row():
         p.parse()
         if p.erroed():
             raise p.err[-1]
-        row = p.data
-        insert_row(parser=p, con=con, close=False)
+        row, tablename = p.data[0], fmt_tablename(p.name)
+        insert_fact_row(row=row, tablename=tablename, con=con, close=False)
         cur = con.cursor()
-        cur.execute(f"SELECT * FROM {gen_tablename(p.name)}")
+        cur.execute(f"SELECT * FROM {tablename}")
         res = cur.fetchall()
 
     assert len(res) == 1
