@@ -347,7 +347,8 @@ def insert_fact_row(
 
     **Args**
         Row (nflogic.parse.FactRowElem): Element that holds the data that will be inserted;
-        tablename (str): Name of the table where the data will be inserted into;
+        tablename (str): Name of the table where the data will be inserted into, will be
+          formatted before insertion;
         con (sqlite3.Connection): Connection to desired database;
         close (bool): Should close the connection after the operation completes?
 
