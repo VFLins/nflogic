@@ -42,7 +42,7 @@ TranscParserData = TypedDict(
     "TransacParserData",
     {
         "ChaveNFe": str,
-        "CodProduto": str, # codes that might start with zero
+        "CodProduto": str,  # codes that might start with zero
         "CodBarras": str,  # are stored as strings
         "CodNCM": str,
         "CodCEST": str,
@@ -82,18 +82,22 @@ class FloatCoercibleType(str):
 
 
 class ParserInitError(Exception):
-    """Error class that signals an error encountered in"""
+    """Error during initialization of the parser."""
 
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
 
 class ParserParseError(Exception):
+    """Error while parsing the xml document."""
+
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
 
 class ParserValidationError(Exception):
+    """Error during validation of the data parsed from the xml document."""
+
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
@@ -346,16 +350,17 @@ class BaseParser:
         if version:
             self.version = version
 
-    def _get_key(self, key: str):
+    def _get_key(self, key: str, dictionary: dict = self.xml):
         """
-        Traverse the dictionary `d` looking for the specified `key`.
+        Traverse `dictionary` looking for the specified `key`.
 
-        :arg key: The key in `self.xml` to search for.
-        :raises KeyError: If `key` is not found at any level of `d`.
-        :returns: The value associated to the first occurrence of `key` in `d`.
+        :param key: The key in `self.xml` to search for.
+        :param dictionary: Dictionary that will be traversed.
+        :raises KeyError: If `key` is not found at any level of `dictionary`.
+        :returns: The value associated to the first occurrence of `key` in `dictionary`.
         """
 
-        def get_dict_key(key, d=self.xml):
+        def get_dict_key(key, d=dictionary):
             if key in d.keys():
                 return d[key]
             for val in d.values():
@@ -488,11 +493,33 @@ class FactParser(BaseParser):
 
 
 class _TransacParser(BaseParser):
-    def _get_product_codes(self):
-        pass
+    def _get_product_codes(self, products: list[dict]) -> list[dict[str, str]]:
+        """
+        Parses `products`' tax classification codes (NCM, CEST and CFOP), and
+        other codes used for identification (CODE and EAN).
 
-    def _get_product_desc(self) -> list[str]:
-        pass
+        :param products: List of dictionaries containig data from each product.
+        :return: List of code values for each `product` in the provided order.
+        """
+        return [
+            {
+                "prod": self._get_key("cProd", product),
+                "ean": self._get_key("cEAN", product),
+                "ncm": self._get_key("NCM", product),
+                "cest": self._get_key("CEST", product),
+                "cfop": self._get_key("CFOP", product),
+            }
+            for product in products
+        ]
+
+    def _get_product_desc(self, products: list[dict]) -> list[str]:
+        """
+        Parses `products`' description text.
+
+        :param products: List of dictionaries containig data from each product.
+        :return: List of product names.
+        """
+        return [self._get_key("xProd", product) for product in products]
 
     def _get_product_amount(self):
         pass
