@@ -12,7 +12,10 @@ import re
 
 SCRIPT_PATH = os.path.realpath(__file__)
 BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
-__funcname__ = lambda: inspect.stack()[1][3]
+
+
+def __funcname__():
+    return inspect.stack()[1][3]
 
 
 # TYPES
@@ -39,9 +42,9 @@ TranscParserData = TypedDict(
     "TransacParserData",
     {
         "ChaveNFe": str,
-        "CodProduto": str,  # codes that might start
-        "CodBarras": str,  # with zero are stored
-        "CodNCM": str,  # as strings
+        "CodProduto": str, # codes that might start with zero
+        "CodBarras": str,  # are stored as strings
+        "CodNCM": str,
         "CodCEST": str,
         "CodCFOP": int,
         "QuantComercial": float,
@@ -137,7 +140,10 @@ def valid_float(val: any) -> bool:
 
 
 def valid_list_of_numbers(val: str) -> bool:
-    """Return `True` if the string in `val` can be converted to a list of numbers separated by semicolon, `False` otherwise."""
+    """
+    Return `True` if the string in `val` can be converted to a list of
+    numbers separated by semicolon, `False` otherwise.
+    """
     val = val.replace(" ", "")
     # check if string contains only integer/decimal numbers and semicolons
     if not re.match(r"^(\d+(\.\d+)?)(;(\d+(\.\d+)?))*$", val):
@@ -148,7 +154,7 @@ def valid_list_of_numbers(val: str) -> bool:
 
 
 def valid_key(val) -> bool:
-    if (type(val) == str) and (len(val) == 44) and val.isdigit():
+    if (type(val) is str) and (len(val) == 44) and val.isdigit():
         return True
     return False
 
@@ -157,7 +163,8 @@ class RowElem:
     """
     Generic class for validating parsed data. It's children must:
     1. Have annotated variable names with the corresponding data type
-    2. Run `super().__init__(**kwargs)` where kwargs are the parameters specified in `self.__init__()`
+    2. Run `super().__init__(**kwargs)` where kwargs are the parameters
+      specified in `self.__init__()`
     """
 
     def __init__(self, **kwargs):
@@ -212,7 +219,9 @@ class RowElem:
 
 
 class FactRowElem(RowElem):
-    """Validates and holds row data for a FactParser. See parent class for more details."""
+    """
+    Validates and holds row data for a FactParser. See parent class for more details.
+    """
 
     def __init__(
         self,
@@ -230,7 +239,10 @@ class FactRowElem(RowElem):
 
 
 class TransacRowElem(RowElem):
-    """Validates and holds row data for a TransacParser. See parent class for more details."""
+    """
+    Validates and holds row data for a TransacParser. See parent class for
+    more details.
+    """
 
     def __init__(
         self,
@@ -277,7 +289,8 @@ class BaseParser:
         if not isinstance(parser_input, expected_classes):
             self.err.append(
                 ParserInitError(
-                    f"Expected input's type to be one of {expected_classes}, got {type(parser_input)}"
+                    f"Expected input's type to be one of {
+                        expected_classes}, got {type(parser_input)}"
                 )
             )
             return
@@ -288,7 +301,9 @@ class BaseParser:
         except KeyError:
             self.err.append(
                 ParserInitError(
-                    f"Expected required keys {get_type_hints(ParserInput).keys()}, but found {self.INPUTS.keys()}."
+                    f"Expected required keys {
+                        get_type_hints(ParserInput).keys()}, "
+                    f"but found {self.INPUTS.keys()}."
                 )
             )
             return
@@ -335,14 +350,9 @@ class BaseParser:
         """
         Traverse the dictionary `d` looking for the specified `key`.
 
-        Args
-            key: The key in `self.xml` to search for.
-
-        Raises
-            KeyError: If `key` is not found at any level of `d`.
-
-        Returns
-            The value associated to the first occurrence of `key` in `d`.
+        :arg key: The key in `self.xml` to search for.
+        :raises KeyError: If `key` is not found at any level of `d`.
+        :returns: The value associated to the first occurrence of `key` in `d`.
         """
 
         def get_dict_key(key, d=self.xml):
@@ -478,16 +488,16 @@ class FactParser(BaseParser):
 
 
 class _TransacParser(BaseParser):
-    def _get_product_codes():
+    def _get_product_codes(self):
         pass
 
-    def _get_product_desc() -> list[str]:
+    def _get_product_desc(self) -> list[str]:
         pass
 
-    def _get_product_amount():
+    def _get_product_amount(self):
         pass
 
-    def _get_product_tax_info():
+    def _get_product_tax_info(self):
         pass
 
     def _get_transac_rows(self):
