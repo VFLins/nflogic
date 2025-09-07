@@ -350,7 +350,7 @@ class BaseParser:
         if version:
             self.version = version
 
-    def _get_key(self, key: str, dictionary: dict = self.xml):
+    def _get_key(self, key: str, dictionary: dict):
         """
         Traverse `dictionary` looking for the specified `key`.
 
@@ -381,8 +381,8 @@ class BaseParser:
         """Return 'COMPRA {BUYER_NAME}' if `buy==True`, 'VENDA {SELLER_NAME}' otherwise."""
         try:
             if buy:
-                return f"COMPRA {self._get_key('dest')['xNome']}"
-            return f"VENDA {self._get_key('emit')['xNome']}"
+                return f"COMPRA {self._get_key('dest', dictionary=self.xml)['xNome']}"
+            return f"VENDA {self._get_key('emit', dictionary=self.xml)['xNome']}"
         except Exception as err:
             self.err.append(err)
             return None
@@ -390,14 +390,14 @@ class BaseParser:
     def _get_version(self) -> str | None:
         """return a `str` with the version number of the document"""
         try:
-            return self._get_key("@versao")
+            return self._get_key("@versao", dictionary=self.xml)
         except Exception as err:
             self.err.append(err)
             raise err
 
     def _get_nfekey(self) -> KeyType | None:
         try:
-            return self._get_key("@Id")[3:]
+            return self._get_key("@Id", dictionary=self.xml)[3:]
         except Exception:
             self.err.append(ParserParseError(f"Parsing failed at {__funcname__()}"))
             return None
@@ -416,7 +416,7 @@ class FactParser(BaseParser):
     def _get_pay(self) -> PayInfo | None:
         """return the payment section of `self.xml` or `None` if failed."""
         try:
-            pay = self._get_key("pag")
+            pay = self._get_key("pag", dictionary=self.xml)
             if type(pay["detPag"]) is list:
                 pay_types = [float(e["tPag"]) for e in pay["detPag"]]
                 pay_vals = [float(e["vPag"]) for e in pay["detPag"]]
@@ -435,7 +435,7 @@ class FactParser(BaseParser):
 
     def _get_dt(self) -> datetime | None:
         try:
-            dt = self._get_key("dhEmi")
+            dt = self._get_key("dhEmi", dictionary=self.xml)
             return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
         except Exception as err:
             self.err.append(
@@ -445,7 +445,7 @@ class FactParser(BaseParser):
 
     def _get_total(self) -> TotalInfo | None:
         products, discount, taxes = "0", "0", "0"
-        total = self._get_key("ICMSTot")
+        total = self._get_key("ICMSTot", dictionary=self.xml)
         if isinstance(total, dict):
             if "vNF" in total.keys():
                 products = total["vNF"]
@@ -509,12 +509,12 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "prod": self._get_key("cProd", product),
-                "ean": self._get_key("cEAN", product),
-                "eantrib": self._get_key("cEANTrib", product), # TODO add to parser
-                "ncm": self._get_key("NCM", product),
-                "cest": self._get_key("CEST", product),
-                "cfop": self._get_key("CFOP", product),
+                "prod": self._get_key("cProd", dictionary=product),
+                "ean": self._get_key("cEAN", dictionary=product),
+                "eantrib": self._get_key("cEANTrib", dictionary=product), # TODO add to parser
+                "ncm": self._get_key("NCM", dictionary=product),
+                "cest": self._get_key("CEST", dictionary=product),
+                "cfop": self._get_key("CFOP", dictionary=product),
             }
             for product in products
         ]
@@ -526,7 +526,7 @@ class _TransacParser(BaseParser):
         :param products: List of dictionaries containig data from each product.
         :return: List of product names.
         """
-        return [self._get_key("xProd", product) for product in products]
+        return [self._get_key("xProd", dictionary=product) for product in products]
 
     def _get_product_amount(self, products: list[dict]) -> list[dict[str: any]]:
         """
@@ -543,10 +543,10 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "qcom": self._get_key("qCom", product),
-                "qtrib": self._get_key("qTrib", product),
-                "undcom": self._get_key("uCom", product),
-                "undtrib": self._get_key("uTrib", product),
+                "qcom": self._get_key("qCom", dictionary=product),
+                "qtrib": self._get_key("qTrib", dictionary=product),
+                "undcom": self._get_key("uCom", dictionary=product),
+                "undtrib": self._get_key("uTrib", dictionary=product),
             }
             for product in products
         ]
@@ -574,22 +574,29 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "vund": self._get_key("vProd", product),
-                "bpis": self._get_key("vBC", self._get_key("PIS", product)),
-                "vpis": self._get_key("vPIS", product),
-                "bcofins": self._get_key("vBC", self._get_key("COFINS", product)),
-                "vcofins": self._get_key("vCOFINS", product),
-                "bricms": self._get_key("vBCSTRet", product),
-                "vricms": self._get_key("vICMSSTRet", product),
-                "vsicms": self._get_key("vICMSSubstituto", product),
-                "bicms": self._get_key("vBCEfet", product),
-                "vicms": self._get_key("vICMSEfet", product),
+                "vund": self._get_key("vProd", dictionary=product),
+                "bpis": self._get_key(
+                    "vBC", dictionary=self._get_key("PIS", dictionary=product)
+                ),
+                "vpis": self._get_key("vPIS", dictionary=product),
+                "bcofins": self._get_key(
+                    "vBC", dictionary=self._get_key("COFINS", dictionary=product)
+                ),
+                "vcofins": self._get_key("vCOFINS", dictionary=product),
+                "bricms": self._get_key("vBCSTRet", dictionary=product),
+                "vricms": self._get_key("vICMSSTRet", dictionary=product),
+                "vsicms": self._get_key("vICMSSubstituto", dictionary=product),
+                "bicms": self._get_key("vBCEfet", dictionary=product),
+                "vicms": self._get_key("vICMSEfet", dictionary=product),
             }
             for product in products
         ]
 
 
     def _get_transac_rows(self):
+        products = (
+            
+        )
         key = self._get_nfekey()
         codes = self._get_product_codes()
         amounts = self._get_product_amount()
