@@ -496,7 +496,13 @@ class _TransacParser(BaseParser):
     def _get_product_codes(self, products: list[dict]) -> list[dict[str, str]]:
         """
         Parses `products`' tax classification codes (NCM, CEST and CFOP), and
-        other codes used for identification (CODE and EAN).
+        other codes used for identification (CODE and EAN), with keys:
+
+        - prod: Product identifier on seller-side system;
+        - ean: Barcode displayed in product's package;
+        - ncm: 'Nomenclatura Comum do Mercosul';
+        - cest: 'Código Especificador da Substituição Tributária';
+        - cfop: 'Código Fiscal de Operações e Prestações'.
 
         :param products: List of dictionaries containig data from each product.
         :return: List of code values for each `product` in the provided order.
@@ -505,6 +511,7 @@ class _TransacParser(BaseParser):
             {
                 "prod": self._get_key("cProd", product),
                 "ean": self._get_key("cEAN", product),
+                "eantrib": self._get_key("cEANTrib", product), # TODO add to parser
                 "ncm": self._get_key("NCM", product),
                 "cest": self._get_key("CEST", product),
                 "cfop": self._get_key("CFOP", product),
@@ -521,11 +528,66 @@ class _TransacParser(BaseParser):
         """
         return [self._get_key("xProd", product) for product in products]
 
-    def _get_product_amount(self):
-        pass
+    def _get_product_amount(self, products: list[dict]) -> list[dict[str: any]]:
+        """
+        Parses `products`' prices data (e.g. Number of items sold or taxed),
+        with keys:
+
+        - qcom: Number of items;
+        - qtrib: Amount of items or subitems considered for taxation;
+        - undcom: Identifier of _qcom_ items packaging (e.g. box, blister, pack);
+        - undtrib: Identifier of _qtrib_ items packaging.
+
+        :param products: List of dictionaries containig data from each product.
+        :return: List of pricing data of each item in `products`.
+        """
+        return [
+            {
+                "qcom": self._get_key("qCom", product),
+                "qtrib": self._get_key("qTrib", product),
+                "undcom": self._get_key("uCom", product),
+                "undtrib": self._get_key("uTrib", product),
+            }
+            for product in products
+        ]
 
     def _get_product_tax_info(self):
-        pass
+        """
+        Parses `products` for taxation information besides amount of items
+        (see _get_product_amount()) and price (e.g. unitary price, cost of any
+        applicable tax), with keys:
+
+        - vund: Price of one item of _qcom_;
+        - bpis: Amount on which the 'PIS' tax calculation is based;
+        - vpis: Amount collected for 'PIS' tax;
+        - bcofins: Amount on which the 'COFINS' tax calculation is based;
+        - vcofins: Amount collected for 'COFINS' tax;
+        - bricms: Amount on which 'ICMS' tax calculation was based previously in the
+          production chain;
+        - vricms: Amount previously collected for 'ICMS' tax in the production chain;
+        - vsicms: Amount collected for 'ICMS' tax by this seller;
+        - bicms: Amount on which the 'ICMS' tax calculation is based;
+        - vicms: Total amount collected for 'ICMS' tax.
+
+        :param products: List of dictionaries containig data from each product.
+        :return: List of taxation data of each item in `products`.
+        """
+        return [
+            {
+                "vund": self._get_key("vProd", product),
+                "bpis": self._get_key("vBC", self._get_key("PIS", product)),
+                "vpis": self._get_key("vPIS", product),
+                "bcofins": self._get_key("vBC", self._get_key("COFINS", product)),
+                "vcofins": self._get_key("vCOFINS", product),
+                "bricms": self._get_key("vBCSTRet", product),
+                "vricms": self._get_key("vICMSSTRet", product),
+                "vsicms": self._get_key("vICMSSubstituto", product),
+                "bicms": self._get_key("vBCEfet", product),
+                "vicms": self._get_key("vICMSEfet", product),
+            }
+            for product in products
+        ]
+
 
     def _get_transac_rows(self):
         key = self._get_nfekey()
