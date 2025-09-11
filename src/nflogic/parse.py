@@ -354,12 +354,11 @@ class BaseParser:
         """
         Traverse `dictionary` looking for the specified `key`.
 
-        :param key: The key in `self.xml` to search for.
+        :param key: The key to search for.
         :param dictionary: Dictionary that will be traversed.
         :raises KeyError: If `key` is not found at any level of `dictionary`.
         :returns: The value associated to the first occurrence of `key` in `dictionary`.
         """
-
         def get_dict_key(key, d=dictionary):
             if key in d.keys():
                 return d[key]
@@ -369,11 +368,35 @@ class BaseParser:
                     if dk:
                         return dk
             return None
-
         out = get_dict_key(key)
         if not out:
             self.err.append(
                 KeyError(f"Key '{key}' wasn't found in the provided dictionary.")
+            )
+        return out
+
+    def _get_all_keys(self, key, dictionary):
+        """
+        Traverse `dictionary` fetching all ocurrences of `key`, and return a list of
+        matches.
+
+        :param key: The key to search for.
+        :param dictionary: Dictionary that will be traversed.
+        :raises KeyError: If `key` is not found at any level of `dictionary`.
+        :returns: The value associated to the first occurrence of `key` in `dictionary`.
+        """
+        def yield_dict_key(key: str, d: dict):
+            if key in d.keys():
+                yield d[key]
+            for val in d.values():
+                if isinstance(val, dict):
+                    dk = yield_dict_key(key, d=val)
+                    if dk:
+                        yield dk
+        out = [res for res in yield_dict_key(key=key, d=dictionary)]
+        if len(out) == 0:
+            self.err.append(
+                KeyError(f"No instance of {key=} found in the provided dictionary.")
             )
         return out
 
@@ -592,11 +615,9 @@ class _TransacParser(BaseParser):
             for product in products
         ]
 
-
     def _get_transac_rows(self):
-        products = (
-            
-        )
+        products = _get_products_list()
+
         key = self._get_nfekey()
         codes = self._get_product_codes()
         amounts = self._get_product_amount()
