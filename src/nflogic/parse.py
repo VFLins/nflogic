@@ -386,14 +386,16 @@ class BaseParser:
         :returns: The value associated to the first occurrence of `key` in `dictionary`.
         """
         def yield_dict_key(key: str, d: dict):
+            result = []
             if key in d.keys():
-                yield d[key]
+                result.append(d[key])
             for val in d.values():
                 if isinstance(val, dict):
                     dk = yield_dict_key(key, d=val)
                     if dk:
-                        yield dk
-        out = [res for res in yield_dict_key(key=key, d=dictionary)]
+                        result = result + [i for i in dk]
+            yield result
+        out = [i for i in yield_dict_key(key=key, d=dictionary)]
         if len(out) == 0:
             self.err.append(
                 KeyError(f"No instance of {key=} found in the provided dictionary.")
