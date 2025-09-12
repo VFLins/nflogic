@@ -1,6 +1,7 @@
 from typing import TypedDict, get_type_hints, Type
-from datetime import datetime
 from collections import OrderedDict
+from datetime import datetime
+from bs4 import BeautifulSoup
 from pathlib import Path
 from copy import copy
 import inspect
@@ -534,26 +535,26 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "prod": self._get_key("cProd", dictionary=product),
-                "ean": self._get_key("cEAN", dictionary=product),
-                "eantrib": self._get_key("cEANTrib", dictionary=product), # TODO add to parser
-                "ncm": self._get_key("NCM", dictionary=product),
-                "cest": self._get_key("CEST", dictionary=product),
-                "cfop": self._get_key("CFOP", dictionary=product),
+                "prod": product.find("cProd").text,
+                "ean": product.find("cEAN").text,
+                "eantrib": product.find("cEANTrib").text,
+                "ncm": product.find("NCM").text,
+                "cest": product.find("CEST").text,
+                "cfop": product.find("CFOP").text,
             }
             for product in products
         ]
 
-    def _get_product_desc(self, products: list[dict]) -> list[str]:
+    def _get_product_desc(self, products: list[BeautifulSoup]) -> list[str]:
         """
         Parses `products`' description text.
 
         :param products: List of dictionaries containig data from each product.
         :return: List of product names.
         """
-        return [self._get_key("xProd", dictionary=product) for product in products]
+        return [product.find("xProd").text for product in products]
 
-    def _get_product_amount(self, products: list[dict]) -> list[dict[str: any]]:
+    def _get_product_amount(self, products: list[BeautifulSoup]) -> list[dict[str: any]]:
         """
         Parses `products`' prices data (e.g. Number of items sold or taxed),
         with keys:
@@ -568,15 +569,15 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "qcom": self._get_key("qCom", dictionary=product),
-                "qtrib": self._get_key("qTrib", dictionary=product),
-                "undcom": self._get_key("uCom", dictionary=product),
-                "undtrib": self._get_key("uTrib", dictionary=product),
+                "qcom": float(product.find("qCom").text),
+                "qtrib": float(product.find("qTrib").text),
+                "undcom": product.find("uCom").text,
+                "undtrib": product.find("uTrib").text,
             }
             for product in products
         ]
 
-    def _get_product_tax_info(self):
+    def _get_product_tax_info(self, products: list[BeautifulSoup]):
         """
         Parses `products` for taxation information besides amount of items
         (see _get_product_amount()) and price (e.g. unitary price, cost of any
@@ -599,26 +600,23 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "vund": self._get_key("vProd", dictionary=product),
-                "bpis": self._get_key(
-                    "vBC", dictionary=self._get_key("PIS", dictionary=product)
-                ),
-                "vpis": self._get_key("vPIS", dictionary=product),
-                "bcofins": self._get_key(
-                    "vBC", dictionary=self._get_key("COFINS", dictionary=product)
-                ),
-                "vcofins": self._get_key("vCOFINS", dictionary=product),
-                "bricms": self._get_key("vBCSTRet", dictionary=product),
-                "vricms": self._get_key("vICMSSTRet", dictionary=product),
-                "vsicms": self._get_key("vICMSSubstituto", dictionary=product),
-                "bicms": self._get_key("vBCEfet", dictionary=product),
-                "vicms": self._get_key("vICMSEfet", dictionary=product),
+                "vund": float(product.find("vProd").text),
+                "bpis": float(getattr(product.find("PIS").find("vBC"), "text", 0)),
+                "vpis": float(getattr(product.find("PIS").find("vPIS"), "text", 0)),
+                "bcofins": float(getattr(product.find("COFINS").find("vBC"), "text", 0)),
+                "vcofins": float(getattr(product.find("COFINS").find("vCOFINS"), "text", 0)),
+                "bricms": float(getattr(product.find("vBCSTRet"), "text", 0)),
+                "vricms": float(getattr(product.find("vICMSSTRet"), "text", 0)),
+                "vsicms": float(getattr(product.find("vICMSSubstituto"), "text", 0)),
+                "bicms": float(getattr(product.find("vBCEfet"), "text", 0)),
+                "vicms": float(getattr(product.find("vICMSEfet"), "text", 0)),
             }
             for product in products
         ]
 
     def _get_transac_rows(self):
-        products = _get_products_list()
+        soup = BeautifulSoup(self.INPUTS["path"], features="xml")
+        products = soup("det")
 
         key = self._get_nfekey()
         codes = self._get_product_codes()
