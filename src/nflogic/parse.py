@@ -535,12 +535,12 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "prod": product.find("cProd").text,
-                "ean": product.find("cEAN").text,
-                "eantrib": product.find("cEANTrib").text,
-                "ncm": product.find("NCM").text,
-                "cest": product.find("CEST").text,
-                "cfop": product.find("CFOP").text,
+                "prod": getattr(product.find("cProd"), "text", ""),
+                "ean": getattr(product.find("cEAN"), "text", ""),
+                "eantrib": getattr(product.find("cEANTrib"), "text", ""),
+                "ncm": getattr(product.find("NCM"), "text", ""),
+                "cest": getattr(product.find("CEST"), "text", ""),
+                "cfop": getattr(product.find("CFOP"), "text", ""),
             }
             for product in products
         ]
@@ -561,18 +561,18 @@ class _TransacParser(BaseParser):
 
         - qcom: Number of items;
         - qtrib: Amount of items or subitems considered for taxation;
-        - undcom: Identifier of _qcom_ items packaging (e.g. box, blister, pack);
-        - undtrib: Identifier of _qtrib_ items packaging.
+        - undcom: Identifier of _qcom_ items' packaging (e.g. box, blister, pack);
+        - undtrib: Identifier of _qtrib_ items' packaging.
 
         :param products: List of dictionaries containig data from each product.
         :return: List of pricing data of each item in `products`.
         """
         return [
             {
-                "qcom": float(product.find("qCom").text),
-                "qtrib": float(product.find("qTrib").text),
-                "undcom": product.find("uCom").text,
-                "undtrib": product.find("uTrib").text,
+                "qcom": float(getattr(product.find("qCom"), "text", 0)),
+                "qtrib": float(getattr(product.find("qTrib"), "text", 0)),
+                "undcom": getattr(product.find("uCom"), "text", ""),
+                "undtrib": getattr(product.find("uTrib"), "text", ""),
             }
             for product in products
         ]
@@ -600,29 +600,50 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "vund": float(product.find("vProd").text),
-                "bpis": float(getattr(product.find("PIS").find("vBC"), "text", 0)),
-                "vpis": float(getattr(product.find("PIS").find("vPIS"), "text", 0)),
-                "bcofins": float(getattr(product.find("COFINS").find("vBC"), "text", 0)),
-                "vcofins": float(getattr(product.find("COFINS").find("vCOFINS"), "text", 0)),
-                "bricms": float(getattr(product.find("vBCSTRet"), "text", 0)),
-                "vricms": float(getattr(product.find("vICMSSTRet"), "text", 0)),
-                "vsicms": float(getattr(product.find("vICMSSubstituto"), "text", 0)),
-                "bicms": float(getattr(product.find("vBCEfet"), "text", 0)),
-                "vicms": float(getattr(product.find("vICMSEfet"), "text", 0)),
+                "vund": float(
+                    getattr(product.find("vProd"), "text", 0)
+                ),
+                "bpis": float(
+                    getattr(product.find("PIS").find("vBC"), "text", 0)
+                ),
+                "vpis": float(
+                    getattr(product.find("PIS").find("vPIS"), "text", 0)
+                ),
+                "bcofins": float(
+                    getattr(product.find("COFINS").find("vBC"), "text", 0)
+                ),
+                "vcofins": float(
+                    getattr(product.find("COFINS").find("vCOFINS"), "text", 0)
+                ),
+                "bricms": float(
+                    getattr(product.find("vBCSTRet"), "text", 0)
+                ),
+                "vricms": float(
+                    getattr(product.find("vICMSSTRet"), "text", 0)
+                ),
+                "vsicms": float(
+                    getattr(product.find("vICMSSubstituto"), "text", 0)
+                ),
+                "bicms": float(
+                    getattr(product.find("vBCEfet"), "text", 0)
+                ),
+                "vicms": float(
+                    getattr(product.find("vICMSEfet"), "text", 0)
+                ),
             }
             for product in products
         ]
 
     def _get_transac_rows(self):
-        soup = BeautifulSoup(self.INPUTS["path"], features="xml")
+        with open(self.INPUTS["path"]) as xmldoc:
+            soup = BeautifulSoup(xmldoc.read(), features="xml")
         products = soup("det")
 
         key = self._get_nfekey()
-        codes = self._get_product_codes()
-        amounts = self._get_product_amount()
-        names = self._get_product_desc()
-        txinfos = self._get_product_tax_info()
+        codes = self._get_product_codes(products)
+        amounts = self._get_product_amount(products)
+        names = self._get_product_desc(products)
+        txinfos = self._get_product_tax_info(products)
         if None in (key, codes, amounts, names, txinfos):
             self.err.append(
                 ParserParseError("Unable to fetch all data, validation will be skipped")
