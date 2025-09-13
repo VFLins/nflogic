@@ -340,45 +340,20 @@ class BaseParser:
         # only append if every encoding failed
         if self.xml == {}:
             self.err.append(ExpatError("Parsing failed with every encoding attempt."))
-        if name:
-            self.name = name
-        if version:
-            self.version = version
-
-    def _get_key(self, key: str, dictionary: dict):
-        """
-        Traverse `dictionary` looking for the specified `key`.
-
-        :param key: The key to search for.
-        :param dictionary: Dictionary that will be traversed.
-        :raises KeyError: If `key` is not found at any level of `dictionary`.
-        :returns: The value associated to the first occurrence of `key` in `dictionary`.
-        """
-        def get_dict_key(key, d=dictionary):
-            if key in d.keys():
-                return d[key]
-            for val in d.values():
-                if isinstance(val, dict):
-                    dk = get_dict_key(key, d=val)
-                    if dk:
-                        return dk
-            return None
-        out = get_dict_key(key)
-        if not out:
-            self.err.append(
-                KeyError(f"Key '{key}' wasn't found in the provided dictionary.")
-            )
-        return out
 
     def _get_name(self, buyer: bool) -> str | None:
         """Return 'COMPRA {BUYER_NAME}' if `buyer==True`, 'VENDA {SELLER_NAME}' otherwise."""
         try:
             metatag = "dest" if buyer else "emit"
             prefix = "COMPRA" if buyer else "VENDA"
-            return f"{prefix} {self.xml.find(metatag).find('xNome')}"
+            return f"{prefix} {self.xml.find(metatag).find('xNome').text}"
         except Exception as err:
             self.err.append(err)
             return None
+
+    @property
+    def name(self) -> str:
+        return self._get_name(buyer=self.INPUTS["buy"])
 
     @property
     def doc_version(self) -> str:
@@ -422,44 +397,32 @@ class FactParser(BaseParser):
     def _get_pay(self) -> PayInfo | None:
         """return the payment section of `self.xml` or `None` if failed."""
         try:
-            pay = self._get_key("pag", dictionary=self.xml)
-            if type(pay["detPag"]) is list:
-                pay_types = [float(e["tPag"]) for e in pay["detPag"]]
-                pay_vals = [float(e["vPag"]) for e in pay["detPag"]]
-                return {
-                    "type": convert_to_list_of_numbers(pay_types),
-                    "amount": convert_to_list_of_numbers(pay_vals),
-                }
-            else:
-                return {
-                    "type": convert_to_list_of_numbers(pay["detPag"]["tPag"]),
-                    "amount": convert_to_list_of_numbers(pay["detPag"]["vPag"]),
-                }
+            pay = self.xml.find("pag")("detPag")
+            pay_types = [int(getattr(e.find("tPag"), "text", 0)) for e in pay]
+            pay_vals = [float(getattr(e.find("vPag"), "text", 0)) for e in pay]
+            return {
+                "type": convert_to_list_of_numbers(pay_types),
+                "amount": convert_to_list_of_numbers(pay_vals),
+            }
         except Exception as err:
             self.err.append(f"Parsing failed at {__funcname__()}: {str(err)}")
-            return None
 
     def _get_dt(self) -> datetime | None:
         try:
-            dt = self._get_key("dhEmi", dictionary=self.xml)
+            dt = getattr(self.xml.find("dhEmi"), "text", None)
             return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
         except Exception as err:
             self.err.append(
                 ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
             )
-            return None
 
     def _get_total(self) -> TotalInfo | None:
-        products, discount, taxes = "0", "0", "0"
-        total = self._get_key("ICMSTot", dictionary=self.xml)
-        if isinstance(total, dict):
-            if "vNF" in total.keys():
-                products = total["vNF"]
-            if "vTotTrib" in total.keys():
-                taxes = total["vTotTrib"]
-            if "vDesc" in total.keys():
-                discount = total["vDesc"]
-        return {"products": products, "discount": discount, "taxes": taxes}
+        total = self.xml.find("ICMSTot")
+        return {
+            "products": getattr(total.find("vNF"), "text", "0"),
+            "discount": getattr(total.find("vDesc"), "text", "0"),
+            "taxes": getattr(total.find("vTotTrib"), "text", "0"),
+        }
 
     def _get_fact_rows(self):
         key = self.doc_nfekey
