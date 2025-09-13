@@ -326,26 +326,20 @@ class BaseParser:
 
     def _get_metadata(self):
         """Update the values of `self.xml`, `self.name` and `self.version`."""
-        self.xml, self.name, self.version = (
-            {},
-            "COULD_NOT_GET_NAME",
-            "COULD_NOT_GET_VERSION",
-        )
+        self.xml = BeautifulSoup(),
         # use Path obj to avoid introduction of extra backslashes,
         # don't know why, but it happens on windows
         xml_path = str(Path(self.INPUTS["path"]))
         for encoding in ["utf-8", "iso-8859-1"]:
             try:
-                with open(xml_path) as doc:
-                    self.xml = xmltodict.parse(doc.read(), encoding=encoding)
+                with open(xml_path, encoding=encoding) as doc:
+                    self.xml = BeautifulSoup(doc.read(), features="xml")
                 break
-            except ExpatError:
+            except UnicodeEncodeError:
                 continue
         # only append if every encoding failed
         if self.xml == {}:
             self.err.append(ExpatError("Parsing failed with every encoding attempt."))
-        name = self._get_name(self.INPUTS["buy"])
-        version = self._get_version()
         if name:
             self.name = name
         if version:
@@ -376,57 +370,43 @@ class BaseParser:
             )
         return out
 
-    def _get_all_keys(self, key, dictionary):
-        """
-        Traverse `dictionary` fetching all ocurrences of `key`, and return a list of
-        matches.
-
-        :param key: The key to search for.
-        :param dictionary: Dictionary that will be traversed.
-        :raises KeyError: If `key` is not found at any level of `dictionary`.
-        :returns: The value associated to the first occurrence of `key` in `dictionary`.
-        """
-        def yield_dict_key(key: str, d: dict):
-            result = []
-            if key in d.keys():
-                result.append(d[key])
-            for val in d.values():
-                if isinstance(val, dict):
-                    dk = yield_dict_key(key, d=val)
-                    if dk:
-                        result = result + [i for i in dk]
-            yield result
-        out = [i for i in yield_dict_key(key=key, d=dictionary)]
-        if len(out) == 0:
-            self.err.append(
-                KeyError(f"No instance of {key=} found in the provided dictionary.")
-            )
-        return out
-
-    def _get_name(self, buy: bool) -> str | None:
-        """Return 'COMPRA {BUYER_NAME}' if `buy==True`, 'VENDA {SELLER_NAME}' otherwise."""
+    def _get_name(self, buyer: bool) -> str | None:
+        """Return 'COMPRA {BUYER_NAME}' if `buyer==True`, 'VENDA {SELLER_NAME}' otherwise."""
         try:
-            if buy:
-                return f"COMPRA {self._get_key('dest', dictionary=self.xml)['xNome']}"
-            return f"VENDA {self._get_key('emit', dictionary=self.xml)['xNome']}"
+            metatag = "dest" if buyer else "emit"
+            prefix = "COMPRA" if buyer else "VENDA"
+            return f"{prefix} {self.xml.find(metatag).find('xNome')}"
         except Exception as err:
             self.err.append(err)
             return None
 
-    def _get_version(self) -> str | None:
-        """return a `str` with the version number of the document"""
-        try:
-            return self._get_key("@versao", dictionary=self.xml)
-        except Exception as err:
-            self.err.append(err)
-            raise err
+    @property
+    def doc_version(self) -> str:
+        """Return a `str` with the version number of the document."""
+        tag = self.xml.find("nfeProc", attrs={"versao": True})
+        return tag["versao"] if tag is not None else "Unable to fetch version."
 
-    def _get_nfekey(self) -> KeyType | None:
-        try:
-            return self._get_key("@Id", dictionary=self.xml)[3:]
-        except Exception:
-            self.err.append(ParserParseError(f"Parsing failed at {__funcname__()}"))
-            return None
+    @property
+    def doc_nfekey(self) -> KeyType | None:
+        """Return a `str` with the 'Chave NFe' of this document. This number is a
+        unique identifier of the document.
+        """
+        # first try
+        tag = self.xml.find("chNFe")
+        if tag is not None:
+            value = getattr(tag, "text", None)
+            if value is not None:
+                return value
+        # second try
+        tag = self.xml.find("infNFe", attrs={"Id": True})
+        if tag is not None:
+            return tag["Id"][3:]
+        # third try
+        tag = self.xml.find("Reference", attrs={"URI": True})
+        if tag is not None:
+            return tag["URI"][4:]
+        self.err.append(ParserParseError(f"Could not get {__funcname__()}"))
+        return None
 
     def _parsed(self) -> bool:
         """Informs if `self.parse()` was ever called."""
@@ -482,7 +462,7 @@ class FactParser(BaseParser):
         return {"products": products, "discount": discount, "taxes": taxes}
 
     def _get_fact_rows(self):
-        key = self._get_nfekey()
+        key = self.doc_nfekey
         dt = self._get_dt()
         pay = self._get_pay()
         total = self._get_total()
@@ -639,7 +619,7 @@ class _TransacParser(BaseParser):
             soup = BeautifulSoup(xmldoc.read(), features="xml")
         products = soup("det")
 
-        key = self._get_nfekey()
+        key = self.doc_nfekey
         codes = self._get_product_codes(products)
         amounts = self._get_product_amount(products)
         names = self._get_product_desc(products)
