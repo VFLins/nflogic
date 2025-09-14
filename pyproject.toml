@@ -48,3 +48,6 @@ namespaces = false
 [project.scripts]
 nflogic = "nflogic.cli:nflogic_cli"
 
+[project.entry-points."pipx.run"]
+nflogic = "nflogic.cli:nflogic_cli"
+
