@@ -85,22 +85,13 @@ class FloatCoercibleType(str):
 class ParserInitError(Exception):
     """Error during initialization of the parser."""
 
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
 
 class ParserParseError(Exception):
     """Error while parsing the xml document."""
 
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
-
 
 class ParserValidationError(Exception):
     """Error during validation of the data parsed from the xml document."""
-
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
 
 
 # DATA VALIDATION
@@ -242,6 +233,12 @@ class FactRowElem(RowElem):
         del vars_dict["self"]
         super().__init__(**vars_dict)
 
+    def __repr__(self):
+        ChaveNFe = getattr(self, "ChaveNFe", None)
+        DataHoraEmi = getattr(self, "DataHoraEmi", None)
+        if DataHoraEmi:
+            DataHoraEmi = DataHoraEmi.strftime("%Y-%m-%dT%H:%M:%S%z")
+        return f"<{__name__}.FactRowElem: {ChaveNFe=}>"
 
 class TransacRowElem(RowElem):
     """
@@ -276,6 +273,11 @@ class TransacRowElem(RowElem):
         vars_dict = copy(vars())
         del vars_dict["self"]
         super().__init__(**vars_dict)
+
+    def __repr__(self):
+        ChaveNFe = getattr(self, "ChaveNFe", None)
+        CodProduto = getattr(self, "CodProduto", None)
+        return f"<{__name__}.TransacRowElem: {ChaveNFe=}, {CodProduto=}>"
 
 
 # PARSER
