@@ -240,6 +240,7 @@ class FactRowElem(RowElem):
             DataHoraEmi = DataHoraEmi.strftime("%Y-%m-%dT%H:%M:%S%z")
         return f"<{__name__}.FactRowElem: {ChaveNFe=}>"
 
+
 class TransacRowElem(RowElem):
     """
     Validates and holds row data for a TransacParser. See parent class for
@@ -328,7 +329,7 @@ class BaseParser:
 
     def _get_metadata(self):
         """Update the values of `self.xml`, `self.name` and `self.version`."""
-        self.xml = BeautifulSoup(),
+        self.xml = (BeautifulSoup(),)
         # use Path obj to avoid introduction of extra backslashes,
         # don't know why, but it happens on windows
         xml_path = str(Path(self.INPUTS["path"]))
@@ -499,7 +500,7 @@ class _TransacParser(BaseParser):
         """
         return [product.find("xProd").text for product in products]
 
-    def _get_product_amount(self, products: list[BeautifulSoup]) -> list[dict[str: any]]:
+    def _get_product_amount(self, products: list[BeautifulSoup]) -> list[dict[str:any]]:
         """
         Parses `products`' prices data (e.g. Number of items sold or taxed),
         with keys:
@@ -545,36 +546,20 @@ class _TransacParser(BaseParser):
         """
         return [
             {
-                "vund": float(
-                    getattr(product.find("vProd"), "text", 0)
-                ),
-                "bpis": float(
-                    getattr(product.find("PIS").find("vBC"), "text", 0)
-                ),
-                "vpis": float(
-                    getattr(product.find("PIS").find("vPIS"), "text", 0)
-                ),
+                "vund": float(getattr(product.find("vProd"), "text", 0)),
+                "bpis": float(getattr(product.find("PIS").find("vBC"), "text", 0)),
+                "vpis": float(getattr(product.find("PIS").find("vPIS"), "text", 0)),
                 "bcofins": float(
                     getattr(product.find("COFINS").find("vBC"), "text", 0)
                 ),
                 "vcofins": float(
                     getattr(product.find("COFINS").find("vCOFINS"), "text", 0)
                 ),
-                "bricms": float(
-                    getattr(product.find("vBCSTRet"), "text", 0)
-                ),
-                "vricms": float(
-                    getattr(product.find("vICMSSTRet"), "text", 0)
-                ),
-                "vsicms": float(
-                    getattr(product.find("vICMSSubstituto"), "text", 0)
-                ),
-                "bicms": float(
-                    getattr(product.find("vBCEfet"), "text", 0)
-                ),
-                "vicms": float(
-                    getattr(product.find("vICMSEfet"), "text", 0)
-                ),
+                "bricms": float(getattr(product.find("vBCSTRet"), "text", 0)),
+                "vricms": float(getattr(product.find("vICMSSTRet"), "text", 0)),
+                "vsicms": float(getattr(product.find("vICMSSubstituto"), "text", 0)),
+                "bicms": float(getattr(product.find("vBCEfet"), "text", 0)),
+                "vicms": float(getattr(product.find("vICMSEfet"), "text", 0)),
             }
             for product in products
         ]
