@@ -1,1 +1,1 @@
-from nflogic.__main__ import *
+from nflogic.api import *

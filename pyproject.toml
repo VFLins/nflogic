@@ -20,10 +20,10 @@ classifiers = [
 ]
 version = "0.1.0"
 dependencies = [
-    "xmltodict==0.13.*",
     "beautifulsoup4",
     "pandas==2.2.0",
-    "lxml==5.*"
+    "lxml==5.*",
+    "typer==0.17.*",
 ]
 
 [project.optional-dependencies]
@@ -44,3 +44,7 @@ addopts = "--cov=src --cov-report html"
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false
+
+[project.scripts]
+nflogic = "nflogic.cli:nflogic_cli"
+
