@@ -325,7 +325,7 @@ class BaseParser:
             return
 
     def erroed(self) -> bool:
-        return bool(len(self.err))
+        return len(self.err) > 0
 
     def _get_metadata(self):
         """Update the values of `self.xml`, `self.name` and `self.version`."""
@@ -340,16 +340,18 @@ class BaseParser:
                 break
             except UnicodeEncodeError:
                 continue
+        # Ensure name can be parsed
+        _ = self.name
         # only append if every encoding failed
         if self.xml == {}:
             self.err.append(ExpatError("Parsing failed with every encoding attempt."))
 
     def _get_name(self, buyer: bool) -> str | None:
-        """Return 'COMPRA {BUYER_NAME}' if `buyer==True`, 'VENDA {SELLER_NAME}' otherwise."""
+        """'COMPRA BUYER NAME' if `buyer==True`, 'VENDA SELLER NAME' otherwise."""
         try:
-            metatag = "dest" if buyer else "emit"
+            metatag = "emit" if buyer else "dest"
             prefix = "COMPRA" if buyer else "VENDA"
-            return f"{prefix} {self.xml.find(metatag).find('xNome').text}"
+            return f"{prefix} {self.xml.find(metatag).find('xNome').text.upper()}"
         except Exception as err:
             self.err.append(err)
             return None
@@ -421,11 +423,16 @@ class FactParser(BaseParser):
 
     def _get_total(self) -> TotalInfo | None:
         total = self.xml.find("ICMSTot")
-        return {
-            "products": getattr(total.find("vNF"), "text", "0"),
-            "discount": getattr(total.find("vDesc"), "text", "0"),
-            "taxes": getattr(total.find("vTotTrib"), "text", "0"),
-        }
+        try:
+            return {
+                "products": getattr(total.find("vNF"), "text", "0"),
+                "discount": getattr(total.find("vDesc"), "text", "0"),
+                "taxes": getattr(total.find("vTotTrib"), "text", "0"),
+            }
+        except Exception as err:
+            self.err.append(
+                ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
+            )
 
     def _get_fact_rows(self):
         key = self.doc_nfekey
@@ -479,17 +486,22 @@ class _TransacParser(BaseParser):
         :param products: List of dictionaries containig data from each product.
         :return: List of code values for each `product` in the provided order.
         """
-        return [
-            {
-                "prod": getattr(product.find("cProd"), "text", ""),
-                "ean": getattr(product.find("cEAN"), "text", ""),
-                "eantrib": getattr(product.find("cEANTrib"), "text", ""),
-                "ncm": getattr(product.find("NCM"), "text", ""),
-                "cest": getattr(product.find("CEST"), "text", ""),
-                "cfop": getattr(product.find("CFOP"), "text", ""),
-            }
-            for product in products
-        ]
+        try:
+            return [
+                {
+                    "prod": getattr(product.find("cProd"), "text", ""),
+                    "ean": getattr(product.find("cEAN"), "text", ""),
+                    "eantrib": getattr(product.find("cEANTrib"), "text", ""),
+                    "ncm": getattr(product.find("NCM"), "text", ""),
+                    "cest": getattr(product.find("CEST"), "text", ""),
+                    "cfop": getattr(product.find("CFOP"), "text", ""),
+                }
+                for product in products
+            ]
+        except Exception as err:
+            self.err.append(
+                ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
+            )
 
     def _get_product_desc(self, products: list[BeautifulSoup]) -> list[str]:
         """
@@ -498,7 +510,12 @@ class _TransacParser(BaseParser):
         :param products: List of dictionaries containig data from each product.
         :return: List of product names.
         """
-        return [product.find("xProd").text for product in products]
+        try:
+            return [product.find("xProd").text for product in products]
+        except Exception as err:
+            self.err.append(
+                ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
+            )
 
     def _get_product_amount(self, products: list[BeautifulSoup]) -> list[dict[str:any]]:
         """
@@ -513,15 +530,20 @@ class _TransacParser(BaseParser):
         :param products: List of dictionaries containig data from each product.
         :return: List of pricing data of each item in `products`.
         """
-        return [
-            {
-                "qcom": float(getattr(product.find("qCom"), "text", 0)),
-                "qtrib": float(getattr(product.find("qTrib"), "text", 0)),
-                "undcom": getattr(product.find("uCom"), "text", ""),
-                "undtrib": getattr(product.find("uTrib"), "text", ""),
-            }
-            for product in products
-        ]
+        try:
+            return [
+                {
+                    "qcom": float(getattr(product.find("qCom"), "text", 0)),
+                    "qtrib": float(getattr(product.find("qTrib"), "text", 0)),
+                    "undcom": getattr(product.find("uCom"), "text", ""),
+                    "undtrib": getattr(product.find("uTrib"), "text", ""),
+                }
+                for product in products
+            ]
+        except Exception as err:
+            self.err.append(
+                ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
+            )
 
     def _get_product_tax_info(self, products: list[BeautifulSoup]):
         """
@@ -544,25 +566,30 @@ class _TransacParser(BaseParser):
         :param products: List of dictionaries containig data from each product.
         :return: List of taxation data of each item in `products`.
         """
-        return [
-            {
-                "vund": float(getattr(product.find("vProd"), "text", 0)),
-                "bpis": float(getattr(product.find("PIS").find("vBC"), "text", 0)),
-                "vpis": float(getattr(product.find("PIS").find("vPIS"), "text", 0)),
-                "bcofins": float(
-                    getattr(product.find("COFINS").find("vBC"), "text", 0)
-                ),
-                "vcofins": float(
-                    getattr(product.find("COFINS").find("vCOFINS"), "text", 0)
-                ),
-                "bricms": float(getattr(product.find("vBCSTRet"), "text", 0)),
-                "vricms": float(getattr(product.find("vICMSSTRet"), "text", 0)),
-                "vsicms": float(getattr(product.find("vICMSSubstituto"), "text", 0)),
-                "bicms": float(getattr(product.find("vBCEfet"), "text", 0)),
-                "vicms": float(getattr(product.find("vICMSEfet"), "text", 0)),
-            }
-            for product in products
-        ]
+        try:
+            return [
+                {
+                    "vund": float(getattr(product.find("vProd"), "text", 0)),
+                    "bpis": float(getattr(product.find("PIS").find("vBC"), "text", 0)),
+                    "vpis": float(getattr(product.find("PIS").find("vPIS"), "text", 0)),
+                    "bcofins": float(
+                        getattr(product.find("COFINS").find("vBC"), "text", 0)
+                    ),
+                    "vcofins": float(
+                        getattr(product.find("COFINS").find("vCOFINS"), "text", 0)
+                    ),
+                    "bricms": float(getattr(product.find("vBCSTRet"), "text", 0)),
+                    "vricms": float(getattr(product.find("vICMSSTRet"), "text", 0)),
+                    "vsicms": float(getattr(product.find("vICMSSubstituto"), "text", 0)),
+                    "bicms": float(getattr(product.find("vBCEfet"), "text", 0)),
+                    "vicms": float(getattr(product.find("vICMSEfet"), "text", 0)),
+                }
+                for product in products
+            ]
+        except Exception as err:
+            self.err.append(
+                ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
+            )
 
     def _get_transac_rows(self):
         with open(self.INPUTS["path"]) as xmldoc:
