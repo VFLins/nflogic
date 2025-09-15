@@ -280,7 +280,7 @@ class ParserManipulator:
         """
         parser = self._get_parser(parser_input)
         if parser.erroed():
-            _save_failed_parser_init(parser.INPUTS)
+            _save_failed_parser_init(parser)
             return parser
         parser.parse()
         if parser.erroed():
