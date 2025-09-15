@@ -19,8 +19,9 @@ nflogic_cli = Typer()
 def cachenames():
     """Display cache names of cachefiles produced by nflogic."""
     names = api.cache.get_cachenames()
+    n_dig = len(str(len(names)))
     for i, n in enumerate(names):
-        print(f"{i}, {n}")
+        print(f"{str(i).rjust(n_dig)} {n}")
 
 
 @nflogic_cli.command()
@@ -35,11 +36,11 @@ def errors(
     if summary:
         print(api.summary_err_types(errdf))
     else:
-        print(errdf)
+        print(errdf.to_string())
 
 
 @nflogic_cli.command()
-def parse_dir(
+def parse(
     directory: Path,
     parse_to: Annotated[
         ParseTo,
@@ -72,6 +73,11 @@ def parse_dir(
             full_parse=False,
             ignore_init_errors=ignore_init_errors,
         )
+
+@nflogic_cli.command()
+def parse_cache(cachename: str):
+    """Parse data from cache file."""
+    api.parse_cache(cachename=cachename, full_parse=True)
 
 
 if __name__ == "__main__":
