@@ -29,14 +29,11 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
     """
     Creates a data frame with all the errors rebuilt from the given cache.
 
-    **Args**
-        cachename: name of the cache to retrieve errors from.
-
-    **Returns**
-        `pandas.DataFrame` with column names "Inputs", "ErrorType" and "ErrorMessage"
-
-    **Raises**
-        `KeyError` if `cachename` doesn't exist, use `nflogic.cache.get_cachenames()` to check available cache names.
+    :param cachename: name of the cache to retrieve errors from.
+    :return: `pandas.DataFrame` with column names "Inputs", "ErrorType" and
+      "ErrorMessage"
+    :raise: `KeyError` if `cachename` doesn't exist, use
+      `nflogic.cache.get_cachenames()` to check available cache names.
     """
     if cachename not in cache.get_cachenames():
         raise KeyError("Not valid cachename.")
@@ -70,13 +67,10 @@ def summary_err_types(errdf: pd.DataFrame):
     """
     Returns a summary of error types for a dataframe returned by `rebuild_errors()`.
 
-    **Args**
-        errdf: Pandas dataframe where:
-            - `errdf.columns == ["Inputs", "ErrorType", "ErrorMessage"]`
-            - `errdf.dtypes == [dict, list, list]`
-
-    **Returns**
-        `pandas.DataFrame`
+    :param errdf: Pandas dataframe where:
+        - `errdf.columns == ["Inputs", "ErrorType", "ErrorMessage"]`
+        - `errdf.dtypes == [dict, list, list]`
+    :return: `pandas.DataFrame`
     """
     errdf["InitFail"] = tuple(
         map(lambda x: parse.ParserInitError in x, errdf["ErrorType"])
@@ -100,12 +94,11 @@ def parse_dir(
     """
     Tries to parse all xml files present in `path`.
 
-    Args
-        dir_path: path to the directory that contains the xml files
-        buy: should all files be processed as buying notes? `False` if they are
-          sales notes
-        ignore_init_errors: wether to ignore files that could not be parsed by
-          `xmltodict` before or not
+    :param dir_path: path to the directory that contains the xml files
+    :param buy: should all files be processed as buying notes? `False` if they are
+      sales notes
+    :param ignore_init_errors: wether to ignore files that could not be parsed by
+      `BeautifulSoup` before or not
     """
     # TODO: Open a database connection at the beginning and close at the end of each run
     try:
@@ -128,6 +121,12 @@ def parse_dir(
 
 
 def parse_cache(cachename: str, full_parse: bool = False):
+    """Tries to parse all documents listed in a cache file.
+
+    :param cachename: Name of the cache file.
+    :param full_parse: If `True`, process data for both fact and transaction tables,
+      otherwise will process data only for fact table.
+    """
     try:
         fails_cache = cache.CacheHandler(cachename, full_parse)
         man = cache.ParserManipulator(full_parse)

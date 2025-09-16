@@ -217,15 +217,11 @@ class CacheHandler:
     def add(self, item: ParserInput) -> None:
         """Adds `ParserInput` element to cache, raises `KeyAlreadyProcessedError` if already on cache."""
         self._check_item(item=item)
-
         if item in self._load():
             raise KeyAlreadyProcessedError(f"{item} já está na lista")
-
         self._heal()
-
         with open(self.cachefile, "wb") as cache:
             pickle.dump(obj=self.data + [item], file=cache)
-
         self.data = self._load()
 
     def rm(self, item: ParserInput) -> None:
@@ -233,14 +229,11 @@ class CacheHandler:
         if item not in self.data:
             file_name = os.path.split(self.cachefile)[1]
             raise KeyNotFoundError(f"Arquivo não foi registrado em {file_name}")
-
         self._heal()
-
         with open(self.cachefile, "wb") as cache:
             idx = self.data.index(item)
             _ = self.data.pop(idx)
             pickle.dump(obj=self.data, file=cache)
-
         self.data = self._load()
 
 
@@ -261,8 +254,7 @@ class ParserManipulator:
         parser = self._test_return_parser(parser_input)
         self.n_parsed = self.n_parsed + 1
         if parser.erroed():
-            self.n_failed = self.n_failed + 1
-            return
+            self._handle_cache_registry(parser=parser)
         if db.all_rows_in_db(parser, con=con, close=False):
             self.n_skipped = self.n_skipped + 1
             return
@@ -289,26 +281,43 @@ class ParserManipulator:
                 cache_handler.add(parser.INPUTS)
         return parser
 
-    def _remove_successful_parser_from_cache(
-        self, parser: FactParser | FullParser
-    ) -> bool:
-        """
-        Removes parser inputs from all possible cache files, does nothing if
+    def _remove_successful_parser_from_cache(self, parser: FactParser | FullParser):
+        """Removes parser inputs from all possible cache files, does nothing if
         parser erroed or didn't parse. Add +1 to `self.n_recovered` if it was
         removed from any cache file.
         """
+        self.n_recovered = self.n_recovered + 1
         if (len(parser.err) > 0) or (len(parser.data) == 0):
             return
+        init_cache, parse_cache = self._get_cache_handlers(parser=parser)
+        if (parser.INPUTS in init_cache.data):
+            init_cache.rm(parser.INPUTS)
+        if (parser.INPUTS in parse_cache.data):
+            parse_cache.rm(parser.INPUTS)
+
+    def _add_failed_parser_to_cache(self, parser: FactParser | FullParser):
+        """Adds parser inputs to all possible cache files, does nothing if parser
+        parsed and doesn't hold any errors. Add +1 to `self.n_failed` if it was added
+        to any cache file.
+        """
+        self.n_failed = self.n_failed + 1
+        if (len(parser.err) == 0) or (len(parser.data) > 0):
+            return
+        init_cache, parse_cache = self._get_cache_handlers(parser=parser)
+        err_cls = [type(err) for err in parser.err]
+        if (parser.INPUTS not in init_cache.data) and (ParserInitError in err_cls):
+            init_cache.add(parser.INPUTS)
+        has_non_init_err = any(type(err) != ParserInitError for err in parser.err)
+        if (parser.INPUTS not in parse_cache.data) and has_non_init_err:
+            parse_cache.add(parser.INPUTS)
+
+    def _get_cache_handlers(self, parser: FactParser | FullParser | None):
+        """Return cache handlers for the provided parser, the first to handle
+        initialization errors, and the second for any other error type.
+        """
         init_fail_cache = CacheHandler("__could_not_parse_xml__", self.full_parse)
         parse_fail_cache = CacheHandler(parser.name, self.full_parse)
-        failed_init: bool = parser.INPUTS in init_fail_cache.data
-        failed_parse: bool = parser.INPUTS in parse_fail_cache.data
-        if failed_init:
-            init_fail_cache.rm(parser.INPUTS)
-        if failed_parse:
-            parse_fail_cache.rm(parser.INPUTS)
-        if failed_init or failed_parse:
-            self.n_recovered = self.n_recovered + 1
+        return init_fail_cache, parse_fail_cache
 
     def _handle_parser_success(
         self,
@@ -319,3 +328,12 @@ class ParserManipulator:
         db.insert_rows(parser=parser, con=con, close=close)
         _save_successfull_fileparse(parser)
         self._remove_successful_parser_from_cache(parser)
+
+    def _handle_cache_registry(self, parser: FactParser | FullParser):
+        init_fail_cache, parse_fail_cache = self._get_cache_handlers(parser=parser)
+        in_init_fail_cache: bool = parser.INPUTS in init_fail_cache.data
+        in_parse_fail_cache: bool = parser.INPUTS in parse_fail_cache.data
+        if in_init_fail_cache or in_parse_fail_cache:
+            self._remove_successful_parser_from_cache(parser=parser)
+        else:
+            self._add_failed_parser_to_cache(parser=parser)
