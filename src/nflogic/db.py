@@ -65,13 +65,17 @@ def fact_row_exists(
         `sqlite3.OperationalError` if table doesn't exist.
     """
     dbcur = con.cursor()
-    dbcur.execute(
-        f"SELECT count(*) FROM {tablename} WHERE ChaveNFe=?;",
-        [row.values[0]],
-    )
+    try:
+        dbcur.execute(
+            f"SELECT count(*) FROM {tablename} WHERE ChaveNFe=?;",
+            [row.values[0]],
+        )
+    except sqlite3.OperationalError:
+        return False
+    finally:
+        if close:
+            con.close()
     res = dbcur.fetchone()[0]
-    if close:
-        con.close()
     return bool(res)
 
 
@@ -91,43 +95,47 @@ def transac_row_exists(
         close (bool): Should close the connection after the operation completes?
 
     **Returns** `bool`
+        False if table or row doesn't exist, True otherwise.
 
     **Raises**
         `ValueError` if *row* doesn't hold data.
-        `sqlite3.OperationalError` if table doesn't exist.
     """
     dbcur = con.cursor()
-    dbcur.execute(
-        f"""
-        SELECT count(*) FROM {tablename}
-        WHERE
-            ChaveNFe=?
-            AND CodProduto=?
-            AND CodBarras=?
-            AND CodNCM=?
-            AND CodCEST=?
-            AND CodCFOP=?
-            AND QuantComercial=?
-            AND QuantTributavel=?
-            AND UnidComercial=?
-            AND UnidTributavel=?
-            AND DescricaoProd=?
-            AND ValorUnitario=?
-            AND BaseCalcPIS=?
-            AND ValorPIS=?
-            AND BaseCalcCOFINS=?
-            AND ValorCOFINS=?
-            AND BaseCalcRetidoICMS=?
-            AND ValorRetidoICMS=?
-            AND ValorSubstitutoICMS=?
-            AND BaseCalcEfetivoICMS=?
-            AND ValorEfetivoICMS=?;
-        """,
-        row.values,
-    )
+    try:
+        dbcur.execute(
+            f"""
+            SELECT count(*) FROM {tablename}
+            WHERE
+                ChaveNFe=?
+                AND CodProduto=?
+                AND CodBarras=?
+                AND CodNCM=?
+                AND CodCEST=?
+                AND CodCFOP=?
+                AND QuantComercial=?
+                AND QuantTributavel=?
+                AND UnidComercial=?
+                AND UnidTributavel=?
+                AND DescricaoProd=?
+                AND ValorUnitario=?
+                AND BaseCalcPIS=?
+                AND ValorPIS=?
+                AND BaseCalcCOFINS=?
+                AND ValorCOFINS=?
+                AND BaseCalcRetidoICMS=?
+                AND ValorRetidoICMS=?
+                AND ValorSubstitutoICMS=?
+                AND BaseCalcEfetivoICMS=?
+                AND ValorEfetivoICMS=?;
+            """,
+            row.values,
+        )
+    except sqlite3.OperationalError:
+        return False
+    finally:
+        if close:
+            con.close()
     res = dbcur.fetchone()[0]
-    if close:
-        con.close()
     return bool(res)
 
 
@@ -249,7 +257,7 @@ def create_transac_table(con: sqlite3.Connection, tablename: str, close: bool = 
     dbcur = con.cursor()
     dbcur.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS {fmt_tablename(tablename)} (
+        CREATE TABLE IF NOT EXISTS ITENS_{fmt_tablename(tablename)} (
             Id INTEGER PRIMARY KEY,
             ChaveNFe TEXT NOT NULL,
             CodProduto TEXT,
@@ -306,7 +314,7 @@ def insert_transac_row(
 
     dbcur = con.cursor()
     dbcur.execute(
-        f"""INSERT INTO {fmt_tablename(tablename)} (
+        f"""INSERT INTO ITENS_{fmt_tablename(tablename)} (
                 ChaveNFe,
                 CodProduto,
                 CodBarras,

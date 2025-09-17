@@ -74,6 +74,7 @@ def parse(
             ignore_init_errors=ignore_init_errors,
         )
 
+
 @nflogic_cli.command()
 def parse_cache(cachename: str):
     """Parse data from cache file."""

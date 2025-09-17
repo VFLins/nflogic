@@ -293,9 +293,9 @@ class ParserManipulator:
         if (len(parser.err) > 0) or (len(parser.data) == 0):
             return
         init_cache, parse_cache = self._get_cache_handlers(parser=parser)
-        if (parser.INPUTS in init_cache.data):
+        if parser.INPUTS in init_cache.data:
             init_cache.rm(parser.INPUTS)
-        if (parser.INPUTS in parse_cache.data):
+        if parser.INPUTS in parse_cache.data:
             parse_cache.rm(parser.INPUTS)
 
     def _add_failed_parser_to_cache(self, parser: FactParser | FullParser):

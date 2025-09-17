@@ -588,7 +588,9 @@ class _TransacParser(BaseParser):
                     ),
                     "bricms": float(getattr(product.find("vBCSTRet"), "text", 0)),
                     "vricms": float(getattr(product.find("vICMSSTRet"), "text", 0)),
-                    "vsicms": float(getattr(product.find("vICMSSubstituto"), "text", 0)),
+                    "vsicms": float(
+                        getattr(product.find("vICMSSubstituto"), "text", 0)
+                    ),
                     "bicms": float(getattr(product.find("vBCEfet"), "text", 0)),
                     "vicms": float(getattr(product.find("vICMSEfet"), "text", 0)),
                 }
