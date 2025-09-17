@@ -116,7 +116,7 @@ def parse_dir(
         pass
     msgs = [f"{man.n_parsed} xml files processed in {dir_path}"]
     if man.n_parsed > 0:
-        msgs = msgs + [f"{man.n_failed} failed"]
+        msgs = msgs + [f"{man.n_failed} failed", f"{man.n_skipped} skipped"]
     print(*msgs, sep="\n")
 
 

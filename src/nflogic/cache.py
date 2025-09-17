@@ -143,7 +143,10 @@ class KeyNotFoundError(Exception):
 
 class CacheHandler:
     def __init__(self, cachename: str, full_parse: bool = False) -> None:
-        self.cachename = cachename
+        if not cachename:
+            self.cachename = "COULD_NOT_GET_NAME"
+        else:
+            self.cachename = db.fmt_tablename(cachename)
         if full_parse:
             self.cachename = f"FULL {cachename}"
         self.cachefile = os.path.join(CACHE_PATH, f"{cachename}.cache")

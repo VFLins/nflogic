@@ -349,9 +349,12 @@ class BaseParser:
     def _get_name(self, buyer: bool) -> str | None:
         """'COMPRA BUYER NAME' if `buyer==True`, 'VENDA SELLER NAME' otherwise."""
         try:
-            metatag = "emit" if buyer else "dest"
+            metatag = "dest" if buyer else "emit"
             prefix = "COMPRA" if buyer else "VENDA"
-            return f"{prefix} {self.xml.find(metatag).find('xNome').text.upper()}"
+            nametag = self.xml.find(metatag)
+            if not nametag:
+                return "COULD_NOT_GET_NAME"
+            return f"{prefix} {nametag.find('xNome').text.upper()}"
         except Exception as err:
             self.err.append(err)
             return None
@@ -403,6 +406,8 @@ class FactParser(BaseParser):
         """return the payment section of `self.xml` or `None` if failed."""
         try:
             pay = self.xml.find("pag")("detPag")
+            if not pay:
+                raise ParserParseError("Could not find nested tags: pag > detPag")
             pay_types = [int(getattr(e.find("tPag"), "text", 0)) for e in pay]
             pay_vals = [float(getattr(e.find("vPag"), "text", 0)) for e in pay]
             return {
@@ -422,8 +427,11 @@ class FactParser(BaseParser):
             )
 
     def _get_total(self) -> TotalInfo | None:
-        total = self.xml.find("ICMSTot")
+        tagname = "ICMSTot"
         try:
+            total = self.xml.find(tagname)
+            if not total:
+                raise ParserParseError(f"Could not get tag: {tagname}")
             return {
                 "products": getattr(total.find("vNF"), "text", "0"),
                 "discount": getattr(total.find("vDesc"), "text", "0"),
