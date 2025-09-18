@@ -247,17 +247,18 @@ def create_transac_table(con: sqlite3.Connection, tablename: str, close: bool = 
     Does nothing if table already exists
 
     **Args**
-        tablename (str): Name of the table that will be created.
+        tablename (str): Name of it's parent table name.
         con (sqlite3.Connection): Connection to desired database.
         close (bool): Should close the connection `con` after the operation completes?
 
     **Returns** None
     """
-    parent_tablename = tablename.replace("ITENS_", "")
+    child_tablename = f"ITENS_{fmt_tablename(tablename)}"
+    parent_tablename = tablename
     dbcur = con.cursor()
     dbcur.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS ITENS_{fmt_tablename(tablename)} (
+        CREATE TABLE IF NOT EXISTS {child_tablename} (
             Id INTEGER PRIMARY KEY,
             ChaveNFe TEXT NOT NULL,
             CodProduto TEXT,
@@ -280,7 +281,7 @@ def create_transac_table(con: sqlite3.Connection, tablename: str, close: bool = 
             ValorSubstitutoICMS REAL,
             BaseCalcEfetivoICMS REAL,
             ValorEfetivoICMS REAL,
-            FOREIGN KEY ChaveNFe REFERENCES {parent_tablename}(ChaveNFe)
+            FOREIGN KEY (ChaveNFe) REFERENCES {parent_tablename}(ChaveNFe)
         );
         """
     )
@@ -335,7 +336,7 @@ def insert_transac_row(
                 ValorRetidoICMS,
                 ValorSubstitutoICMS,
                 BaseCalcEfetivoICMS,
-                ValorEfetivoICMS,
+                ValorEfetivoICMS
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
         row.values,
     )

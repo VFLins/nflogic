@@ -211,6 +211,8 @@ class RowElem:
                 values.append(float(val))
                 continue
 
+            values.append(val)
+
         return tuple(values)
 
 
