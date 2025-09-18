@@ -51,9 +51,9 @@ def parse(
             ),
         ),
     ] = ParseTo.both,
-    ignore_init_errors: Annotated[
+    ignore_cached_errors: Annotated[
         Optional[bool],
-        Option("--ignore-init-errors/--parse-init-errors"),
+        Option("--ignore-cached-errors/--parse-cached-errors"),
     ] = True,
 ):
     """Parse all xml files in a directory."""
@@ -63,7 +63,7 @@ def parse(
             dir_path=directory,
             buy=True,
             full_parse=False,
-            ignore_init_errors=ignore_init_errors,
+            ignore_cached_errors=ignore_cached_errors,
         )
     if parse_to in ["seller", "both"]:
         print("Parsing to seller...")
@@ -71,7 +71,7 @@ def parse(
             dir_path=directory,
             buy=False,
             full_parse=False,
-            ignore_init_errors=ignore_init_errors,
+            ignore_cached_errors=ignore_cached_errors,
         )
 
 
