@@ -124,7 +124,7 @@ def parse_dir(
     if man.n_parsed > 0:
         msgs = msgs + [
             f"{man.n_failed} failed",
-            f"{man.n_skipped} already in the database",
+            f"{man.n_skipped} already in the database completely or partially",
         ]
     print(*msgs, sep="\n")
 
