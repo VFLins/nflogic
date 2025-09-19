@@ -221,7 +221,9 @@ def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = Fal
         con.close()
 
 
-def create_transac_table(con: sqlite3.Connection, parent_tablename: str, close: bool = False):
+def create_transac_table(
+    con: sqlite3.Connection, parent_tablename: str, close: bool = False
+):
     """Create *transaction table* with the provided name formatted by
     `nflogic.db.gen_tablename()`. Should *not* be called directly.
     Does nothing if table already exists

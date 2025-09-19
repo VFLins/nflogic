@@ -63,13 +63,12 @@ def get_not_processed_inputs(
     """
     Generator of `ParserInput`s that weren't successfully added to the database yet.
 
-    Args
-        filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
-        buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
-        ignore_fails: wether to ignore files that could not be parsed by `xmltodict`
-          before or not
-        full_parse: related to the parser and database table, that might be "fact"
-          for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
+    :param filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
+    :param buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
+    :param ignore_fails: wether to ignore files that could not be parsed by `xmltodict`
+        before or not
+    :param full_parse: related to the parser and database table, that might be "fact"
+        for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
     """
     success_cache = CacheHandler(_get_success_cachename(full_parse), full_parse)
     ignore_data = success_cache.data
@@ -96,7 +95,7 @@ def _save_successfull_fileparse(parser: FactParser | FullParser):
         )
     if not parser._parsed():
         return
-    full_parse = False if type(parser) is FullParser else True
+    full_parse = True if type(parser) is FullParser else False
     cachename = _get_success_cachename(full_parse=full_parse)
     success_cache = CacheHandler(cachename=cachename, full_parse=full_parse)
     if parser.INPUTS not in success_cache.data:

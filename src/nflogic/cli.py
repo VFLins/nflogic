@@ -64,8 +64,8 @@ def parse(
                 "fact/transaction standard, while a partial parse will only "
                 "produce the equivalent to the fact table."
             ),
-        )
-    ] = True
+        ),
+    ] = True,
 ):
     """Parse all xml files in a directory."""
     if parse_to in ["buyer", "both"]:
