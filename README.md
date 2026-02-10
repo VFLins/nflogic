@@ -5,7 +5,7 @@
 Este software permite processar os dados de muitos arquivos de notas fiscais eletrônicas e transformá-los em um conjunto de dados prontos para ser analisado por um analista de dados ou incorporado em uma aplicação para empresas.
 
 > [!WARNING]
-> Este projeto ainda está em fase experimental e deve ser usado com cautela, embora haja um esforço tal, ainda não é possível validar os dados coletados com total clareza.
+> Este projeto ainda está em fase experimental e deve ser usado com cautela, embora haja um esforço para tal, ainda não é possível validar os dados coletados com total clareza.
 
 
 # Instalando
