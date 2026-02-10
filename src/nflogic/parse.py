@@ -211,6 +211,8 @@ class RowElem:
                 values.append(float(val))
                 continue
 
+            values.append(val)
+
         return tuple(values)
 
 
@@ -358,6 +360,18 @@ class BaseParser:
         except Exception as err:
             self.err.append(err)
             return None
+
+    @staticmethod
+    def _get_nested_tag_text(obj: BeautifulSoup, *tags: str, default: any = None):
+        """Retrieve the `text` property under the nested `tags` from `obj`, while
+        handling errors. Return `default` if the value cannot be retrieved.
+        """
+        for tag in tags:
+            try:
+                obj = obj.find(tag)
+            except AttributeError:
+                return default
+        return getattr(obj, "text", default)
 
     @property
     def name(self) -> str:
@@ -577,22 +591,38 @@ class _TransacParser(BaseParser):
         try:
             return [
                 {
-                    "vund": float(getattr(product.find("vProd"), "text", 0)),
-                    "bpis": float(getattr(product.find("PIS").find("vBC"), "text", 0)),
-                    "vpis": float(getattr(product.find("PIS").find("vPIS"), "text", 0)),
+                    "vund": float(
+                        self._get_nested_tag_text(product, "vProd", default=0)
+                    ),
+                    "bpis": float(
+                        self._get_nested_tag_text(product, "PIS", "vBC", default=0)
+                    ),
+                    "vpis": float(
+                        self._get_nested_tag_text(product, "PIS", "vPIS", default=0)
+                    ),
                     "bcofins": float(
-                        getattr(product.find("COFINS").find("vBC"), "text", 0)
+                        self._get_nested_tag_text(product, "COFINS", "vBC", default=0)
                     ),
                     "vcofins": float(
-                        getattr(product.find("COFINS").find("vCOFINS"), "text", 0)
+                        self._get_nested_tag_text(
+                            product, "COFINS", "vCOFINS", default=0
+                        )
                     ),
-                    "bricms": float(getattr(product.find("vBCSTRet"), "text", 0)),
-                    "vricms": float(getattr(product.find("vICMSSTRet"), "text", 0)),
+                    "bricms": float(
+                        self._get_nested_tag_text(product, "vBCSTRet", default=0)
+                    ),
+                    "vricms": float(
+                        self._get_nested_tag_text(product, "vICMSSTRet", default=0)
+                    ),
                     "vsicms": float(
-                        getattr(product.find("vICMSSubstituto"), "text", 0)
+                        self._get_nested_tag_text(product, "ICMSSubstituto", default=0)
                     ),
-                    "bicms": float(getattr(product.find("vBCEfet"), "text", 0)),
-                    "vicms": float(getattr(product.find("vICMSEfet"), "text", 0)),
+                    "bicms": float(
+                        self._get_nested_tag_text(product, "vBCEfet", default=0)
+                    ),
+                    "vicms": float(
+                        self._get_nested_tag_text(product, "vICMSEfet", default=0)
+                    ),
                 }
                 for product in products
             ]

@@ -46,14 +46,25 @@ def parse(
         ParseTo,
         Option(
             help=(
-                "Using 'both' option will create two pairs of tables in the the "
-                "database, one to the seller and other to the buyer."
+                "Using 'both' option will create tables both the seller and "
+                "the buyer in the database."
             ),
         ),
     ] = ParseTo.both,
-    ignore_init_errors: Annotated[
+    ignore_cached_errors: Annotated[
         Optional[bool],
-        Option("--ignore-init-errors/--parse-init-errors"),
+        Option("--ignore-cached-errors/--parse-cached-errors"),
+    ] = True,
+    full_parse: Annotated[
+        Optional[bool],
+        Option(
+            "--full-parse/--partial-parse",
+            help=(
+                "A full parse will produce a pair of tables following a "
+                "fact/transaction standard, while a partial parse will only "
+                "produce the equivalent to the fact table."
+            ),
+        ),
     ] = True,
 ):
     """Parse all xml files in a directory."""
@@ -62,16 +73,16 @@ def parse(
         api.parse_dir(
             dir_path=directory,
             buy=True,
-            full_parse=False,
-            ignore_init_errors=ignore_init_errors,
+            full_parse=full_parse,
+            ignore_cached_errors=ignore_cached_errors,
         )
     if parse_to in ["seller", "both"]:
         print("Parsing to seller...")
         api.parse_dir(
             dir_path=directory,
             buy=False,
-            full_parse=False,
-            ignore_init_errors=ignore_init_errors,
+            full_parse=full_parse,
+            ignore_cached_errors=ignore_cached_errors,
         )
 
 

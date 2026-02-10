@@ -22,16 +22,14 @@ MOCK_CACHE_VALUES = [
 ]
 
 
-def test_valid_cachename():
+def test_cache_format():
     try:
         ch1 = CacheHandler("foo.c")
         ch2 = CacheHandler("bar.cache")
         ch3 = CacheHandler(".cache_baz")
         cache_names = [c.cachename for c in [ch1, ch2, ch3]]
         for cn in cache_names:
-            assert valid_cachename(cn) == True
-        not_cachename = "itsveryunlikelythatwewillhaveacachenamethisbigandspecific"
-        assert valid_cachename(not_cachename) == False
+            assert CacheHandler(cn).is_valid()
     finally:
         for cache in [ch1, ch2, ch3]:
             Path(cache.cachefile).unlink()

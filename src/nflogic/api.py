@@ -89,7 +89,10 @@ def summary_err_types(errdf: pd.DataFrame):
 
 
 def parse_dir(
-    dir_path: str, buy: bool, full_parse: bool = False, ignore_init_errors: bool = True
+    dir_path: str,
+    buy: bool,
+    full_parse: bool = False,
+    ignore_cached_errors: bool = True,
 ):
     """
     Tries to parse all xml files present in `path`.
@@ -104,7 +107,10 @@ def parse_dir(
     try:
         nfes = xml_files_in_dir(dir_path=dir_path)
         new_parser_inputs = cache.get_not_processed_inputs(
-            filepaths=nfes, buy=buy, ignore_fails=ignore_init_errors
+            filepaths=nfes,
+            buy=buy,
+            ignore_fails=ignore_cached_errors,
+            full_parse=full_parse,
         )
         man = cache.ParserManipulator(full_parse=full_parse)
         for parser_input in new_parser_inputs:
@@ -116,7 +122,10 @@ def parse_dir(
         pass
     msgs = [f"{man.n_parsed} xml files processed in {dir_path}"]
     if man.n_parsed > 0:
-        msgs = msgs + [f"{man.n_failed} failed", f"{man.n_skipped} skipped"]
+        msgs = msgs + [
+            f"{man.n_failed} failed",
+            f"{man.n_skipped} already in the database completely or partially",
+        ]
     print(*msgs, sep="\n")
 
 

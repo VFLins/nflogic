@@ -29,11 +29,8 @@ def fmt_tablename(name: str):
     3. Replace spaces by underscores,
     4. All letters uppercased.
 
-    **Args**
-        name (str): The name to be formatted.
-
-    **Returns** str
-        The formatted `name`.
+    :param name: The name to be formatted.
+    :return: The formatted `name` as `str`.
     """
 
     return re.sub(r"[^\w\s]", "", re.sub(r"^\d+", "", name)).replace(" ", "_").upper()
@@ -52,17 +49,12 @@ def fact_row_exists(
     """
     Checks if data of a `FactRowElem` is already present in the database.
 
-    **Args**
-        Row (nflogic.parse.FactRowElem): Element that holds the data that will be checked;
-        tablename (str): Name of the table where the data will be looked for;
-        con (sqlite3.Connection): Connection to desired database;
-        close (bool): Should close the connection after the operation completes?
-
-    **Returns** `bool`
-
-    **Raises**
-        `ValueError` if *row* doesn't hold data.
-        `sqlite3.OperationalError` if table doesn't exist.
+    :param row: Element that holds the data that will be checked;
+    :param tablename: Name of the table where the data will be looked for;
+    :param con: Connection to desired database;
+    :param close: Should close the connection after the operation completes?
+    :return: `bool`
+    :raise: `ValueError` if *row* doesn't hold data.
     """
     dbcur = con.cursor()
     try:
@@ -81,30 +73,28 @@ def fact_row_exists(
 
 def transac_row_exists(
     row: TransacRowElem,
-    tablename: str,
+    parent_tablename: str,
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ) -> bool:
     """
     Checks if data of a `TransacRowElem` is already present in the database.
 
-    **Args**
-        Row (nflogic.parse.TransacRowElem): Element that holds the data that will be checked;
-        tablename (str): Name of the table where the data will be looked for;
-        con (sqlite3.Connection): Connection to desired database;
-        close (bool): Should close the connection after the operation completes?
+    :param row: Element that holds the data that will be checked;
+    :param parent_tablename: Name fact table related to the data of interest;
+    :param con: Connection to desired database;
+    :param close: Should close the connection after the operation completes?
 
-    **Returns** `bool`
-        False if table or row doesn't exist, True otherwise.
+    :return: `bool` False if table or row doesn't exist, True otherwise.
 
-    **Raises**
-        `ValueError` if *row* doesn't hold data.
+    :raise: `ValueError` if *row* doesn't hold data.
     """
+    child_tablename = f"ITENS_{parent_tablename}"
     dbcur = con.cursor()
     try:
         dbcur.execute(
             f"""
-            SELECT count(*) FROM {tablename}
+            SELECT count(*) FROM {child_tablename}
             WHERE
                 ChaveNFe=?
                 AND CodProduto=?
@@ -148,31 +138,21 @@ def all_rows_in_db(
     Checks if ALL rows of a parser are present in the database. Returns `True`
     if parser doesn't hold any data.
 
-    **Args**
-        parser (nflogic.parse.FactParser | nflogic.parse.FullParser): Parser object holding data;
-        con (sqlite3.Connection): Connection to desired database;
-        close (bool): Should close the connection after the operation completes?
-
-    **Returns** `bool`
-
-    **Raises**
-        `sqlite3.OperationalError` if table doesn't exist.
+    :param parser: Parser object holding data;
+    :param con: Connection to desired database;
+    :param close: Should close the connection after the operation completes?
+    :return: `bool`
+    :raise: `sqlite3.OperationalError` if table doesn't exist.
     """
     if len(parser.data) == 0:
         return True
-    fact_tablename = fmt_tablename(parser.name)
-    transac_tablename = f"ITENS_{fact_tablename}"
-
+    tablename = fmt_tablename(parser.name)
     for row in parser.data:
         if type(row) is FactRowElem:
-            if not fact_row_exists(row=row, tablename=fact_tablename, con=con):
+            if not fact_row_exists(row=row, tablename=tablename, con=con):
                 return False
         if type(row) is TransacRowElem:
-            if not transac_row_exists(
-                row=row,
-                tablename=transac_tablename,
-                con=con,
-            ):
+            if not transac_row_exists(row=row, parent_tablename=tablename, con=con):
                 return False
     if close:
         con.close()
@@ -241,23 +221,25 @@ def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = Fal
         con.close()
 
 
-def create_transac_table(con: sqlite3.Connection, tablename: str, close: bool = False):
+def create_transac_table(
+    con: sqlite3.Connection, parent_tablename: str, close: bool = False
+):
     """Create *transaction table* with the provided name formatted by
     `nflogic.db.gen_tablename()`. Should *not* be called directly.
     Does nothing if table already exists
 
     **Args**
-        tablename (str): Name of the table that will be created.
+        tablename (str): Name of it's parent table name.
         con (sqlite3.Connection): Connection to desired database.
         close (bool): Should close the connection `con` after the operation completes?
 
     **Returns** None
     """
-    parent_tablename = tablename.replace("ITENS_", "")
+    child_tablename = f"ITENS_{fmt_tablename(parent_tablename)}"
     dbcur = con.cursor()
     dbcur.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS ITENS_{fmt_tablename(tablename)} (
+        CREATE TABLE IF NOT EXISTS {child_tablename} (
             Id INTEGER PRIMARY KEY,
             ChaveNFe TEXT NOT NULL,
             CodProduto TEXT,
@@ -280,7 +262,7 @@ def create_transac_table(con: sqlite3.Connection, tablename: str, close: bool = 
             ValorSubstitutoICMS REAL,
             BaseCalcEfetivoICMS REAL,
             ValorEfetivoICMS REAL,
-            FOREIGN KEY ChaveNFe REFERENCES {parent_tablename}(ChaveNFe)
+            FOREIGN KEY (ChaveNFe) REFERENCES {parent_tablename}(ChaveNFe)
         );
         """
     )
@@ -291,7 +273,7 @@ def create_transac_table(con: sqlite3.Connection, tablename: str, close: bool = 
 
 def insert_transac_row(
     row: TransacRowElem,
-    tablename: str,
+    parent_tablename: str,
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ):
@@ -300,7 +282,7 @@ def insert_transac_row(
 
     **Args**
         Row (nflogic.parse.TransacRowElem): Element that holds the data that will be inserted;
-        tablename (str): Name of the table where the data will be inserted into;
+        tablename (str): Name of it's parent tablename;
         con (sqlite3.Connection): Connection to desired database;
         close (bool): Should close the connection after the operation completes?
 
@@ -310,11 +292,12 @@ def insert_transac_row(
         `ValueError` if *row* doesn't hold data.
         `sqlite3.OperationalError` if table doesn't exist.
     """
-    create_transac_table(con, tablename=tablename)
+    child_tablename = f"ITENS_{parent_tablename}"
+    create_transac_table(con, parent_tablename=parent_tablename)
 
     dbcur = con.cursor()
     dbcur.execute(
-        f"""INSERT INTO ITENS_{fmt_tablename(tablename)} (
+        f"""INSERT INTO {child_tablename} (
                 ChaveNFe,
                 CodProduto,
                 CodBarras,
@@ -335,7 +318,7 @@ def insert_transac_row(
                 ValorRetidoICMS,
                 ValorSubstitutoICMS,
                 BaseCalcEfetivoICMS,
-                ValorEfetivoICMS,
+                ValorEfetivoICMS
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
         row.values,
     )
@@ -407,21 +390,15 @@ def insert_rows(
         `ValueError` if *row* doesn't hold data.
         `sqlite3.OperationalError` if table doesn't exist.
     """
-    fact_tablename = fmt_tablename(parser.name)
-    transac_tablename = f"ITENS_{fact_tablename}"
-
+    tablename = fmt_tablename(parser.name)
     for row in parser.data:
         if type(row) is FactRowElem:
-            if not fact_row_exists(row=row, tablename=fact_tablename, con=con):
-                insert_fact_row(row=row, tablename=fact_tablename, con=con, close=False)
+            if not fact_row_exists(row=row, tablename=tablename, con=con):
+                insert_fact_row(row=row, tablename=tablename, con=con, close=False)
         if type(row) is TransacRowElem:
-            if not transac_row_exists(
-                row=row,
-                tablename=transac_tablename,
-                con=con,
-            ):
+            if not transac_row_exists(row=row, parent_tablename=tablename, con=con):
                 insert_transac_row(
-                    row=row, tablename=transac_tablename, con=con, close=False
+                    row=row, parent_tablename=tablename, con=con, close=False
                 )
     if close:
         con.close()

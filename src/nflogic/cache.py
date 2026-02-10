@@ -46,14 +46,11 @@ def valid_cachename(cachename: str) -> bool:
 def get_cachenames() -> list[str]:
     """Returns a list of available cache names."""
     cachenames = []
-
     for f in os.listdir(CACHE_PATH):
         fullpath = os.path.join(CACHE_PATH, f)
         no_ext_filename = os.path.splitext(f)[0]
-
         if os.path.isfile(fullpath) and valid_cachename(no_ext_filename):
             cachenames.append(no_ext_filename)
-
     return cachenames
 
 
@@ -61,18 +58,17 @@ def get_not_processed_inputs(
     filepaths: list[str],
     buy: bool,
     ignore_fails: bool,
-    full_parse: bool = False,
+    full_parse: bool,
 ) -> list[ParserInput]:
     """
     Generator of `ParserInput`s that weren't successfully added to the database yet.
 
-    Args
-        filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
-        buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
-        ignore_fails: wether to ignore files that could not be parsed by `xmltodict`
-          before or not
-        full_parse: related to the parser and database table, that might be "fact"
-          for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
+    :param filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
+    :param buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
+    :param ignore_fails: wether to ignore files that could not be parsed by `xmltodict`
+        before or not
+    :param full_parse: related to the parser and database table, that might be "fact"
+        for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
     """
     success_cache = CacheHandler(_get_success_cachename(full_parse), full_parse)
     ignore_data = success_cache.data
@@ -99,10 +95,9 @@ def _save_successfull_fileparse(parser: FactParser | FullParser):
         )
     if not parser._parsed():
         return
-    full_parse = False
-    if type(parser) is FullParser:
-        full_parse = True
-    success_cache = CacheHandler(_get_success_cachename(full_parse), full_parse)
+    full_parse = True if type(parser) is FullParser else False
+    cachename = _get_success_cachename(full_parse=full_parse)
+    success_cache = CacheHandler(cachename=cachename, full_parse=full_parse)
     if parser.INPUTS not in success_cache.data:
         success_cache.add(parser.INPUTS)
 
@@ -241,12 +236,12 @@ class CacheHandler:
 
 
 class ParserManipulator:
-    def __init__(self, full_parse: bool = True):
+    def __init__(self, full_parse: bool = True, ignore_cached_errors: bool = True):
         self.full_parse = full_parse
-        self.n_parsed = 0
-        self.n_failed = 0
-        self.n_skipped = 0
-        self.n_recovered = 0
+        self.n_parsed = 0  # Processed, but might have failed
+        self.n_failed = 0  # Failed during parsing
+        self.n_skipped = 0  # Already present in the database
+        self.n_recovered = 0  # Parsing failed before, but succeeded now
 
     def add_parser(
         self,
@@ -260,6 +255,7 @@ class ParserManipulator:
             self._handle_cache_registry(parser=parser)
         if db.all_rows_in_db(parser, con=con, close=False):
             self.n_skipped = self.n_skipped + 1
+            _save_successfull_fileparse(parser)
             return
         self._handle_parser_success(parser=parser, con=con, close=close)
 
