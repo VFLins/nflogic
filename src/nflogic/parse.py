@@ -362,7 +362,7 @@ class BaseParser:
             return None
 
     @staticmethod
-    def _get_nested_tag_text(obj: BeautifulSoup, *tags : str, default: any = None):
+    def _get_nested_tag_text(obj: BeautifulSoup, *tags: str, default: any = None):
         """Retrieve the `text` property under the nested `tags` from `obj`, while
         handling errors. Return `default` if the value cannot be retrieved.
         """
