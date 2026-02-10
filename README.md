@@ -53,3 +53,5 @@ ou este, caso tenha instalado com `pipx`:
 ```bash
 pipx runpip nflogic show nflogic
 ```
+
+Procure pela linha que começa com "Location:" entre no diretóiro informado, e a partir de lá, o banco de dados será encontrado em "`nflogic/database/db.sqlite`".
