@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 from copy import copy
 import inspect
-import xmltodict
 from xml.parsers.expat import ExpatError
 import os
 import re
