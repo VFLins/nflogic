@@ -1,7 +1,12 @@
+![](./resources/gh_banner-nflogic.png)
+
 # Introdução
 
-Transforme séries de Notas Fiscais Eletrônicas XML em conjuntos de dados prontos para
-análise.
+Este software permite processar os dados de muitos arquivos de notas fiscais eletrônicas e transformá-los em um conjunto de dados prontos para ser analisado por um analista de dados ou incorporado em uma aplicação para empresas.
+
+> [!WARNING]
+> Este projeto ainda está em fase experimental e deve ser usado com cautela, embora haja um esforço tal, ainda não é possível validar os dados coletados com total clareza.
+
 
 # Instalando
 
@@ -55,3 +60,7 @@ pipx runpip nflogic show nflogic
 ```
 
 Procure pela linha que começa com "Location:" entre no diretóiro informado, e a partir de lá, o banco de dados será encontrado em "`nflogic/database/db.sqlite`".
+
+## Verificando erros
+
+Depois de processar muitos dados em massa, é possível que o `nflogic` encontre falhas em alguns arquivos
