@@ -21,9 +21,9 @@ classifiers = [
 version = "0.1.0"
 dependencies = [
     "beautifulsoup4",
-    "pandas==2.2.0",
-    "lxml==5.*",
-    "typer==0.17.*",
+    "pandas~=3.0.0",
+    "lxml~=6.0",
+    "typer~=0.17",
 ]
 
 [project.optional-dependencies]
