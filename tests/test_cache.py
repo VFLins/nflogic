@@ -182,8 +182,8 @@ def test_first_invalid_elem():
 
 def test_get_not_processed_inputs_fact():
     """Test get_not_processed_inputs() when parsing only fact table data."""
-    with TemporaryDirectory() as dir:
-        file_paths = [os.path.join(dir, f"file{i}.xml") for i in range(5)]
+    with TemporaryDirectory() as TMP_DIR:
+        file_paths = [os.path.join(TMP_DIR, f"file{i}.xml") for i in range(5)]
         for id, file_path in enumerate(file_paths):
             buffer = open(file_path, "w+")
             buffer.write(
