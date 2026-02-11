@@ -40,12 +40,14 @@ A principal funcionalidade do `nflogic` está em processar documentos XML de not
 eletrônicas, para isso
 
 - **API**
+
   ```python
   import nflogic
   nflogic.parse_dir(dir_path="/full/path/to/directory", buy=False)
   ```
 
 - **CLI**
+
   ```bash
   nflogic parse --ParseTo=seller "/full/path/to/directory"
   ```
@@ -85,6 +87,7 @@ registrado em um arquivo comum para todos os documentos em que o nome não pode 
 identificado, para listar os nomes dos arquivos de cache:
 
 - **API**
+
   ```python
   import nflogic
   # obtenha uma lista com o nome dos arquivos de cache
@@ -97,7 +100,7 @@ identificado, para listar os nomes dos arquivos de cache:
       print(f"{cn}\n----", summary.to_string(), "\n", sep="\n")
   ```
 
-> [!INFO]
+> [!NOTE]
 > Explicando um pouco o código acima:
 > 1. A função `rebuild_errors()` vai tentar repetir o procedimento que falhou
 >    anteriormente, registrando todas as informações pertinentes de falhas em um
@@ -106,12 +109,16 @@ identificado, para listar os nomes dos arquivos de cache:
 >    `pandas.DataFrame` mais conciso.
 
 - **CLI**
+
   Veja os nomes de cache disponíveis com:
+
   ```bash
   nflogic cachenames
   ```
+  
   Depois veja o resumo dos erros, substituindo `[CACHENAME]` por um dos nomes listados
   anteriormente:
+
   ```bash
   nflogic parse_cache [CACHENAME]
   ```
