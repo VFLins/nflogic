@@ -1,4 +1,4 @@
-from typing import TypedDict, get_type_hints, Type
+from typing import TypedDict, get_type_hints
 from collections import OrderedDict
 from datetime import datetime
 from bs4 import BeautifulSoup

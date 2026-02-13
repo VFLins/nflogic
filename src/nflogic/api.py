@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from nflogic import db, cache, parse
+from nflogic import cache, parse
 
 
 # CONSTANTS
