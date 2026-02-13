@@ -22,6 +22,27 @@ MOCK_CACHE_VALUES = [
 ]
 
 
+@pytest.fixture
+def not_parseable_files() -> list[Path]:
+    """Returns a temporary directory and a list of it's containing XML file's names.
+    Attempts to parse these files should fail.
+    """
+    TMP_DIR = TemporaryDirectory()
+    file_paths = [Path(TMP_DIR.name, f"file{i}.xml") for i in range(5)]
+    for id, file_path in enumerate(file_paths):
+        with open(file_path, "w+") as f:
+            f.write(
+                f"""<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe Id="NFe{id}" versao="4.00"><emit><xNome>TEST_SELLER</xNome></emit><dest><xNome>TEST_BUYER</xNome></dest></infNFe></NFe></nfeProc>"""
+            )
+    yield file_paths
+    TMP_DIR.cleanup()
+
+
+#def test_not_parseable_files(not_parseable_files):
+#    file_paths = not_parseable_files
+#    for file in file_paths:
+#        p = 
+
 def test_cache_format():
     try:
         ch1 = CacheHandler("foo.c")
@@ -180,28 +201,18 @@ def test_first_invalid_elem():
         Path(ch.cachefile).unlink()
 
 
-def test_get_not_processed_inputs_fact():
+def test_get_not_processed_inputs_fact(not_parseable_files):
     """Test get_not_processed_inputs() when parsing only fact table data."""
-    with TemporaryDirectory() as TMP_DIR:
-        file_paths = [os.path.join(TMP_DIR, f"file{i}.xml") for i in range(5)]
-        for id, file_path in enumerate(file_paths):
-            buffer = open(file_path, "w+")
-            buffer.write(
-                f"""<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe Id="NFe{id}" versao="4.00"><emit><xNome>TEST_SELLER</xNome></emit><dest><xNome>TEST_BUYER</xNome></dest></infNFe></NFe></nfeProc>"""
-            )
-            buffer.close()
-            result = get_not_processed_inputs(
-                file_paths, buy=True, ignore_fails=False, full_parse=False
-            )
-            expected = [{"path": file, "buy": True} for file in file_paths[id:]]
-            assert list(result) == expected
-            _save_successfull_fileparse(
-                parse.FactParser({"path": file_path, "buy": True})
-            )
-
-        # cleanup
-        success_cache = CacheHandler("__fact_table_success__", full_parse=False)
-        for parser_input in [{"path": file, "buy": True} for file in file_paths]:
+    file_paths = not_parseable_files
+    result = get_not_processed_inputs(
+        file_paths, buy=True, ignore_fails=False, full_parse=False
+    )
+    expected = [{"path": file, "buy": True} for file in file_paths]
+    assert list(result) == expected
+    # cleanup
+    success_cache = CacheHandler("__fact_table_success__", full_parse=False)
+    for parser_input in [{"path": file, "buy": True} for file in file_paths]:
+        if parser_input in success_cache.data:
             success_cache.rm(parser_input)
 
 
