@@ -37,7 +37,7 @@ Aqui estão alguns exemplos simples para aproveitar as principais funcionalidade
 ## Processando arquivos dentro de uma pasta
 
 A principal funcionalidade do `nflogic` está em processar documentos XML de notas fiscais
-eletrônicas, para isso
+eletrônicas, para isso:
 
 - **API**
 
@@ -104,7 +104,7 @@ identificado, para listar os nomes dos arquivos de cache:
 > Explicando um pouco o código acima:
 > 1. A função `rebuild_errors()` vai tentar repetir o procedimento que falhou
 >    anteriormente, registrando todas as informações pertinentes de falhas em um
->    [`pandas.DataFrame`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html)
+>    [`pandas.DataFrame`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html);
 > 2. A função `summary_err_types` agrupa os erros similares por tipo, retornando um
 >    `pandas.DataFrame` mais conciso.
 
