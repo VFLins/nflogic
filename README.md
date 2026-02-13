@@ -1,6 +1,6 @@
 ![nflogic banner](./resources/gh_banner-nflogic.png)
 
-[![build status](https://img.shields.io/github/actions/workflow/status/VFLins/nflogic/python-package.yml?branch=main&label=build&style=for-the-badge)](https://github.com/VFLins/nflogic/actions)
+[![build status](https://img.shields.io/github/actions/workflow/status/VFLins/nflogic/python-package.yml?branch=main&label=tests&style=for-the-badge)](https://github.com/VFLins/nflogic/actions)
 
 # Introdução
 
