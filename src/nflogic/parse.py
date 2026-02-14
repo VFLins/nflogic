@@ -298,8 +298,8 @@ class BaseParser:
         if not isinstance(parser_input, expected_classes):
             self.err.append(
                 ParserInitError(
-                    f"Expected input's type to be one of {
-                        expected_classes}, got {type(parser_input)}"
+                    "Expected input's type to be one of "
+                    f"{expected_classes}, got {type(parser_input)}"
                 )
             )
             return
@@ -310,8 +310,8 @@ class BaseParser:
         except KeyError:
             self.err.append(
                 ParserInitError(
-                    f"Expected required keys {
-                        get_type_hints(ParserInput).keys()}, "
+                    "Expected required keys "
+                    f"{get_type_hints(ParserInput).keys()}, "
                     f"but found {self.INPUTS.keys()}."
                 )
             )
