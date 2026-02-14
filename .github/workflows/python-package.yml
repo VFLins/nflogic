@@ -44,6 +44,7 @@ jobs:
       run: |
         pytest --cov=./ --cov-report=term-missing --cov-report=xml
     - name: Extract Coverage and Update JSON
+      if: matrix.python-version == '3.14'
       run: |
         # Extrai o valor do line-rate (ex: 0.8543)
         LINE_RATE=$(grep -oP '(?<=line-rate=")[^"]+' coverage.xml | head -n 1)
@@ -56,6 +57,7 @@ jobs:
         mkdir -p .github
         echo "{\"schemaVersion\": 1, \"label\": \"coverage\", \"message\": \"${PERCENT}%\", \"color\": \"${COLOR}\"}" > .github/coverage.json
     - name: Commit and Push Badge
+      if: matrix.python-version == '3.14'
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
