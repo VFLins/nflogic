@@ -43,10 +43,22 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=./ --cov-report=term-missing --cov-report=xml
-    - name: Display Coverage Summary
+    - name: Extract Coverage and Update JSON
       run: |
-        # Extrai a porcentagem total do relatório (comando simples de grep/awk)
-        COVERAGE=$(grep -oP '(?<=line-rate=")[^"]+' coverage.xml | head -n 1)
-        # Converte decimal (0.95) para porcentagem (95%)
-        PERCENT=$(echo "scale=2; $COVERAGE * 100" | bc | cut -d. -f1)
-        echo "### Total Coverage: ${PERCENT}%" >> $GITHUB_STEP_SUMMARY
+        # Extrai o valor do line-rate (ex: 0.8543)
+        LINE_RATE=$(grep -oP '(?<=line-rate=")[^"]+' coverage.xml | head -n 1)
+        # Transforma em inteiro (ex: 85)
+        PERCENT=$(echo "$LINE_RATE * 100 / 1" | bc)
+        # Define a cor da badge
+        COLOR="orange"
+        if [ "$PERCENT" -ge 90 ]; then COLOR="brightgreen"; elif [ "$PERCENT" -ge 75 ]; then COLOR="green"; fi
+        # Cria o diretório se não existir e gera o JSON
+        mkdir -p .github
+        echo "{\"schemaVersion\": 1, \"label\": \"coverage\", \"message\": \"${PERCENT}%\", \"color\": \"${COLOR}\"}" > .github/coverage.json
+    - name: Commit and Push Badge
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add .github/coverage.json
+        git commit -m "docs: update coverage badge [skip ci]" || exit 0
+        git push
