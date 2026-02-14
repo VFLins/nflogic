@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
+        python -m pip install flake8 pytest pytest-cov
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
@@ -37,4 +37,11 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest
+        pytest --cov=./ --cov-report=term-missing --cov-report=xml
+    - name: Display Coverage Summary
+      run: |
+        # Extrai a porcentagem total do relatório (comando simples de grep/awk)
+        COVERAGE=$(grep -oP '(?<=line-rate=")[^"]+' coverage.xml | head -n 1)
+        # Converte decimal (0.95) para porcentagem (95%)
+        PERCENT=$(echo "scale=2; $COVERAGE * 100" | bc | cut -d. -f1)
+        echo "### Total Coverage: ${PERCENT}%" >> $GITHUB_STEP_SUMMARY
