@@ -316,6 +316,10 @@ class BaseParser:
                 )
             )
             return
+        except TypeError:
+            self.err.append(
+                ParserInitError(f"Invalid argument {parser_input['path']=}")
+            )
 
         try:
             self._get_metadata()
