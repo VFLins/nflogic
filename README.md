@@ -1,7 +1,9 @@
-![nflogic banner](./resources/gh_banner-nflogic.png)
 
-[![build status](https://img.shields.io/github/actions/workflow/status/VFLins/nflogic/python-package.yml?branch=main&label=tests&style=for-the-badge)](https://github.com/VFLins/nflogic/actions)
-![test coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FVFLins%2Fnflogic%2Frefs%2Fheads%2Fmain%2F.github%2Fcoverage.json&style=for-the-badge)
+[![build status](https://img.shields.io/github/actions/workflow/status/VFLins/nflogic/python-package.yml?branch=main&label=tests&style=for-the-badge)](https://github.com/VFLins/nflogic/tree/main/tests)
+[![test coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FVFLins%2Fnflogic%2Frefs%2Fheads%2Fmain%2F.github%2Fcoverage.json&style=for-the-badge)](https://github.com/VFLins/nflogic/tree/main/tests)
+[![code style](https://img.shields.io/badge/code%20style-black-black?style=for-the-badge)](https://black.readthedocs.io/)
+
+![nflogic banner](./resources/gh_banner-nflogic.png)
 
 # Introdução
 
