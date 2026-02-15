@@ -6,7 +6,6 @@ import os
 from nflogic.parse import ParserInput, FactParser, FullParser, ParserInitError
 from nflogic import db
 
-
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 CACHE_PATH = os.path.join(SCRIPT_PATH, "cache")
 LOG_PATH = os.path.join(SCRIPT_PATH, "log")

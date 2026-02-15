@@ -2,7 +2,6 @@ import os
 import pandas as pd
 from nflogic import cache, parse
 
-
 # CONSTANTS
 ###############
 

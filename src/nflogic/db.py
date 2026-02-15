@@ -4,7 +4,6 @@ import os
 
 from nflogic.parse import FactParser, FullParser, TransacRowElem, FactRowElem
 
-
 # CONSTANTS
 ###############
 
@@ -201,8 +200,7 @@ def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = Fal
     **Returns** `None`
     """
     dbcur = con.cursor()
-    dbcur.execute(
-        f"""
+    dbcur.execute(f"""
         CREATE TABLE IF NOT EXISTS {fmt_tablename(tablename)} (
             Id INTEGER PRIMARY KEY,
             ChaveNFe TEXT NOT NULL UNIQUE,
@@ -213,8 +211,7 @@ def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = Fal
             TotalDesconto REAL,
             TotalTributos REAL
         );
-        """
-    )
+        """)
     con.commit()
     if close:
         con.close()
@@ -236,8 +233,7 @@ def create_transac_table(
     """
     child_tablename = f"ITENS_{fmt_tablename(parent_tablename)}"
     dbcur = con.cursor()
-    dbcur.execute(
-        f"""
+    dbcur.execute(f"""
         CREATE TABLE IF NOT EXISTS {child_tablename} (
             Id INTEGER PRIMARY KEY,
             ChaveNFe TEXT NOT NULL,
@@ -263,8 +259,7 @@ def create_transac_table(
             ValorEfetivoICMS REAL,
             FOREIGN KEY (ChaveNFe) REFERENCES {parent_tablename}(ChaveNFe)
         );
-        """
-    )
+        """)
     con.commit()
     if close:
         con.close()
