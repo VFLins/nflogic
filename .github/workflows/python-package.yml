@@ -1,4 +1,8 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# The original version of this workflow would install Python dependencies, run tests and lint with a variety of Python versions
+
+# This adds to the the original, running coverage test and issuing committing to .github/coverage.json with data required by
+# shields.io to dynamically generate a code coverage badge without adding any more dependencies
+
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
 name: Python package
@@ -8,12 +12,13 @@ on:
     branches: [ "main" ]
     paths:
       - "**.py"
+      - "pyproject.toml"
       - ".github/workflows/**"
   pull_request:
     branches: [ "main" ]
     paths:
       - "**.py"
-      - "requirements.txt"
+      - "pyproject.toml"
 
 jobs:
   build:
@@ -43,20 +48,26 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=./ --cov-report=term-missing --cov-report=xml
-    - name: Extract Coverage and Update JSON
+    - name: Extract coverage and update coverage.json
       if: matrix.python-version == '3.14'
       run: |
-        # Extrai o valor do line-rate (ex: 0.8543)
+        # extract the line-rate coverage value as floating point (ex: 0.8543)
         LINE_RATE=$(grep -oP '(?<=line-rate=")[^"]+' coverage.xml | head -n 1)
-        # Transforma em inteiro (ex: 85)
+        # convert line-rate to integer (ex: 85)
         PERCENT=$(echo "$LINE_RATE * 100 / 1" | bc)
-        # Define a cor da badge
+        # badge color
         COLOR="orange"
-        if [ "$PERCENT" -ge 90 ]; then COLOR="brightgreen"; elif [ "$PERCENT" -ge 75 ]; then COLOR="green"; fi
-        # Cria o diretório se não existir e gera o JSON
+        if [ "$PERCENT" -ge 90 ]; then
+          COLOR="brightgreen";
+        elif [ "$PERCENT" -ge 75 ]; then
+          COLOR="green";
+        elif [ "$PERCENT" -ge 50 ]; then
+          COLOR="yellow";
+        fi
+        # write to .github/coverage.json
         mkdir -p .github
         echo "{\"schemaVersion\": 1, \"label\": \"coverage\", \"message\": \"${PERCENT}%\", \"color\": \"${COLOR}\"}" > .github/coverage.json
-    - name: Commit and Push Badge
+    - name: Commit and push badge data
       if: matrix.python-version == '3.14'
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
