@@ -5,6 +5,15 @@
 
 ![nflogic banner](./resources/gh_banner-nflogic.png)
 
+- [Introdução](#introdução)
+- [Instalando](#instalando)
+- [Como usar](#como-usar)
+  - [Processando arquivos dentro de uma pasta](#processando-arquivos-dentro-de-uma-pasta)
+  - [Verificando erros](#verificando-erros)
+  - [Corrigindo erros / atualizando o `nflogic`](#corrigindo-erros--atualizando-o-nflogic)
+  - [Processando arquivos que já deram erro](#processando-arquivos-que-já-deram-erro)
+  
+
 # Introdução
 
 Este software permite processar os dados de muitos arquivos de notas fiscais eletrônicas
@@ -125,5 +134,68 @@ identificado, para listar os nomes dos arquivos de cache:
   anteriormente:
 
   ```bash
-  nflogic parse_cache [CACHENAME]
+  nflogic errors --summary [CACHENAME]
   ```
+  
+Usar a flag `--summary` faz com que retorne a tabela resumida dos erros agregados por
+tipo, omití-la retornaria o conjunto de dados completo.
+  
+## Corrigindo erros / atualizando o `nflogic`
+
+Os problemas de _parsing_ podem ser corrigidos localmente usando um editor de texto para
+modificar o código fonte do `nflogic`. Por se tratar de um programa interpretado, e não
+compilado, alterações no código são refletidas diretamente no comportamento da CLI
+localmente.
+
+Caso você tenha capacidade para entender o problema encontrado, e tenha uma sugestão para
+alterar o código fonte do `nflogic`, considere abrir uma
+[_issue_](https://github.com/VFLins/nflogic/issues) para informar sobre a existência do
+problema. Se você também se sente capaz de resolver o problema encontrado, sinta-se livre
+para propor uma [_pull request_](https://github.com/VFLins/nflogic/pulls) para que esta
+mudança afete os demais usuários.
+
+Se você não se identificou com nenhum dos casos citados acima, mantenha sua instalação do
+`nflogic` atualizada, o problema que você enfrenta pode ser corrigido em alguma
+atualização futura. Para atualizar a sua instalação:
+
+- **Pelo `pip`**
+
+  ```bash
+  pip install --upgrade nflogic
+  ```
+
+- **Pelo `pipx`**
+
+  ```bash
+  pipx upgrade nflogic
+  ```
+
+Leia as últimas linhas do resultado retornado para saber se alguma nova versão foi
+instalada, ou se você já está na versão mais recente.
+
+## Processando arquivos que deram erro no passado
+
+Como já sabemos como [verificar erros](#verificando-erros), podemos pular para a parte em
+que vemos como podemos fazer com que o `nflogic` tente processar novamente os arquivos que
+já deram erro no passado:
+
+- **API**
+
+  ```python
+  import nflogic
+  nflogic.parse_cache(cachename="SOME_CACHE_NAME", full_parse=True)
+  ```
+
+Neste caso, `cachename` deve ser um dos nomes de cache retornados por
+`nflogic.cache.get_cachenames()`, e `full_parse` indica se devem ser extraídos apenas os
+metadados da nota fiscal, ou também as informações transacionais, como nomes dos produtos
+ou valores unitários.
+
+- **CLI**
+
+  ```bash
+  nflogic parse-cache [CACHENAME]
+  ```
+
+A versão de CLI atualmente sempre processa os dados dos documentos em cache usando
+`full_parse=True`.
