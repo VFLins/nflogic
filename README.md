@@ -11,7 +11,7 @@
   - [Processando arquivos dentro de uma pasta](#processando-arquivos-dentro-de-uma-pasta)
   - [Verificando erros](#verificando-erros)
   - [Corrigindo erros / atualizando o `nflogic`](#corrigindo-erros--atualizando-o-nflogic)
-  - [Processando arquivos que já deram erro](#processando-arquivos-que-já-deram-erro)
+  - [Processando arquivos que já falharam](#processando-arquivos-que-já-falharam)
   
 
 # Introdução
@@ -173,7 +173,7 @@ atualização futura. Para atualizar a sua instalação:
 Leia as últimas linhas do resultado retornado para saber se alguma nova versão foi
 instalada, ou se você já está na versão mais recente.
 
-## Processando arquivos que deram erro no passado
+## Processando arquivos que já falharam
 
 Como já sabemos como [verificar erros](#verificando-erros), podemos pular para a parte em
 que vemos como podemos fazer com que o `nflogic` tente processar novamente os arquivos que
