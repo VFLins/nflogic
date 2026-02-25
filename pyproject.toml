@@ -18,7 +18,7 @@ classifiers = [
     "Operating System :: Microsoft :: Windows :: Windows 11",
     "License :: OSI Approved :: MIT License"
 ]
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
     "beautifulsoup4",
     "pandas~=3.0.0",
