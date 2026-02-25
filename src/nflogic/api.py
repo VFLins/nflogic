@@ -93,7 +93,7 @@ def parse_dir(
     buy: bool,
     full_parse: bool = False,
     ignore_cached_errors: bool = True,
-    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_DIR),
+    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_PATH),
 ):
     """
     Tries to parse all xml files present in `path`.
@@ -134,7 +134,7 @@ def parse_dir(
 def parse_cache(
     cachename: str,
     full_parse: bool = False,
-    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_DIR),
+    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_PATH),
 ):
     """Tries to parse all documents listed in a cache file.
 
