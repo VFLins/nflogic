@@ -140,14 +140,17 @@ class CacheHandler:
         if not cachename:
             self.cachename = "COULD_NOT_GET_NAME"
         else:
+            # Remove bars to avoid creating an exotic path
+            transform = str.maketrans("", "", r"\/")
+            cachename = cachename.translate(transform)
             self.cachename = db.fmt_tablename(cachename)
         if full_parse:
             self.cachename = f"FULL {cachename}"
-        self.cachefile = os.path.join(CACHE_PATH, f"{cachename}.cache")
+        self.cachefile = Path(CACHE_PATH, f"{cachename}.cache")
+        self.cachefile.touch(exist_ok=True)
         self.data = self._load()
 
     def _load(self) -> list:
-        Path(self.cachefile).touch(exist_ok=True)
         with open(self.cachefile, "rb") as cache:
             try:
                 output: list = pickle.load(cache)
