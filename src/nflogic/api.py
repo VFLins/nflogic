@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import pandas as pd
 from nflogic import cache, parse
 
@@ -92,6 +93,7 @@ def parse_dir(
     buy: bool,
     full_parse: bool = False,
     ignore_cached_errors: bool = True,
+    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_DIR),
 ):
     """
     Tries to parse all xml files present in `path`.
@@ -101,6 +103,7 @@ def parse_dir(
       sales notes
     :param ignore_init_errors: wether to ignore files that could not be parsed by
       `BeautifulSoup` before or not
+    :con: A `sqlite3.Connection` object, indicating which database to connect.
     """
     # TODO: Open a database connection at the beginning and close at the end of each run
     try:
@@ -111,7 +114,7 @@ def parse_dir(
             ignore_fails=ignore_cached_errors,
             full_parse=full_parse,
         )
-        man = cache.ParserManipulator(full_parse=full_parse)
+        man = cache.ParserManipulator(full_parse=full_parse, con=con)
         for parser_input in new_parser_inputs:
             man.add_parser(parser_input)
             print(
@@ -128,16 +131,21 @@ def parse_dir(
     print(*msgs, sep="\n")
 
 
-def parse_cache(cachename: str, full_parse: bool = False):
+def parse_cache(
+    cachename: str,
+    full_parse: bool = False,
+    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_DIR),
+):
     """Tries to parse all documents listed in a cache file.
 
     :param cachename: Name of the cache file.
     :param full_parse: If `True`, process data for both fact and transaction tables,
       otherwise will process data only for fact table.
+    :con: A `sqlite3.Connection` object, indicating which database to connect.
     """
     try:
         fails_cache = cache.CacheHandler(cachename, full_parse)
-        man = cache.ParserManipulator(full_parse)
+        man = cache.ParserManipulator(full_parse, con=con)
         for parser_input in fails_cache.data:
             man.add_parser(parser_input)
             print(

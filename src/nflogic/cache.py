@@ -235,28 +235,44 @@ class CacheHandler:
 
 
 class ParserManipulator:
-    def __init__(self, full_parse: bool = True, ignore_cached_errors: bool = True):
-        self.full_parse = full_parse
-        self.n_parsed = 0  # Processed, but might have failed
-        self.n_failed = 0  # Failed during parsing
-        self.n_skipped = 0  # Already present in the database
-        self.n_recovered = 0  # Parsing failed before, but succeeded now
-
-    def add_parser(
+    def __init__(
         self,
-        parser_input: ParserInput,
+        full_parse: bool = True,
+        ignore_cached_errors: bool = True,
         con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
-        close: bool = False,
     ):
+        """Handles workflow of data collection, and cache registry of multiple parsers.
+        also keep count of:
+
+        - `n_parsed` Parsers that processed and stored data successfuly;
+        - `n_failed` Parsers that could no process the data;
+        - `n_skipped` Parsers that processed data already stored;
+        - `n_recovered` Parsers that had failed before, but now was able to process
+          data, this data could be either stored or skipped.
+
+        :param full_parse: Whether the parsers should get all data from the documents
+          or just the payment info.
+        :param ignore_cached_errors: Wether documents that failed to process before
+          should be ignored.
+        :con: A `sqlite3.Connection` object, indicating which database to connect.
+        """
+        self.full_parse = full_parse
+        self.n_parsed = 0
+        self.n_failed = 0
+        self.n_skipped = 0
+        self.n_recovered = 0
+        self.con = con
+
+    def add_parser(self, parser_input: ParserInput, close: bool = False):
         parser = self._test_return_parser(parser_input)
         self.n_parsed = self.n_parsed + 1
         if parser.erroed():
             self._handle_cache_registry(parser=parser)
-        if db.all_rows_in_db(parser, con=con, close=False):
+        if db.all_rows_in_db(parser, con=self.con, close=False):
             self.n_skipped = self.n_skipped + 1
             _save_successfull_fileparse(parser)
             return
-        self._handle_parser_success(parser=parser, con=con, close=close)
+        self._handle_parser_success(parser=parser, con=self.con, close=close)
 
     def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
         if self.full_parse:
