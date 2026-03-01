@@ -5,7 +5,7 @@
 
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: Python package
+name: Test and check coverage
 
 on:
   push:
