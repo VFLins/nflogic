@@ -147,10 +147,10 @@ class CacheHandler:
         if full_parse:
             self.cachename = f"FULL {cachename}"
         self.cachefile = Path(CACHE_PATH, f"{cachename}.cache")
-        self.cachefile.touch(exist_ok=True)
         self.data = self._load()
 
     def _load(self) -> list:
+        self.cachefile.touch(exist_ok=True) # Should ensure file exists on every read.
         with open(self.cachefile, "rb") as cache:
             try:
                 output: list = pickle.load(cache)
