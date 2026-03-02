@@ -1,6 +1,5 @@
 
 name: Build documentation
-
 on:
   push:
     branches: [ "main" ]
@@ -13,19 +12,39 @@ on:
     paths:
       - "**.py"
       - "pyproject.toml"
+permissions:
+  contents: read
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
     steps:
-        - uses: actions/checkout@v4
-        - name: Set up Python ${{ matrix.python-version }}
-          uses: actions/setup-python@v3
-          with:
-            python-version: 3.13
-        - name: Install dependencies
-          run: |
-            python -m pip install --upgrade pip
-            python -m pip install pdoc .
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install pdoc .
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: pdoc nflogic.api -o ./docs --logo "https://raw.githubusercontent.com/VFLins/nflogic/refs/heads/main/resources/gh_banner-nflogic.png"
+      - run: typer nflogic.cli utils docs --name "nflogic" --output ./docs/CLI.md
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/
 
-            
+  deploy:          
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+    
