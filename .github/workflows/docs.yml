@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - run: pdoc nflogic.api -o ./docs --logo "https://raw.githubusercontent.com/VFLins/nflogic/refs/heads/main/resources/gh_banner-nflogic.png"
+      - run: pdoc nflogic.api -t ./docs/templates -o ./docs --logo "https://raw.githubusercontent.com/VFLins/nflogic/refs/heads/main/resources/gh_banner-nflogic.png"
       - run: typer nflogic.cli utils docs --name "nflogic" --output ./docs/CLI.md
       - uses: actions/upload-pages-artifact@v4
         with:
