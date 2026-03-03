@@ -1,5 +1,11 @@
 {% extends "default/module.html.jinja2" %}
 
+{% block nav_members %}
+    {% if module.members %}
+        {{ nav_members(module.members.values()) }}
+    {% endif %}
+{% endblock %}
+
 {% defaultmacro default_value(var) -%}
     {%- if var.default_value_str %}
 

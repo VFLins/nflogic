@@ -1,0 +1,12 @@
+nav.pdoc {
+  background-color: #274a63;
+}
+
+nav.pdoc > div > ul > li > a {
+  color: #fbd279;
+  font-weight: bold;
+}
+
+nav.pdoc > div > ul > li > a:hover {
+  color: #fef5b0;
+}

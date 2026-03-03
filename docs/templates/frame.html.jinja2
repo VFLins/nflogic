@@ -1,0 +1,8 @@
+{% extends "default/frame.html.jinja2" %}
+
+{% block backend_style %}
+    {{ super() }}
+    <style>
+        {% include "custom.css" %}
+    </style>
+{% endblock %}
