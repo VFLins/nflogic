@@ -7,9 +7,16 @@ from nflogic import cache, parse
 ###############
 
 SCRIPT_PATH = os.path.realpath(__file__)
+"""@private Path to this script file."""
+
 SCRIPT_DIR = os.path.split(SCRIPT_PATH)[0]
+"""@private Directory where nflogic's script files are located."""
+
 CACHE_DIR = os.path.join(SCRIPT_DIR, "cache")
+"""Directory where cache files are located, do not change."""
+
 DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
+"""Path to nflogic's database file, do not change."""
 
 
 # FEATURES
