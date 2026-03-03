@@ -7,6 +7,25 @@ nav.pdoc > div > ul > li > a {
   font-weight: bold;
 }
 
-nav.pdoc > div > ul > li > a:hover {
-  color: #fef5b0;
+nav.pdoc li:hover {
+  background-color: #3c6e91;
+}
+
+.pdoc .attr {
+  border-radius: 10px;
+}
+
+.pdoc-code .kc {
+  color: var(--name);
+}
+
+.pdoc-code .nb {
+  color: #aa5d1f;
+  font-style: italic;
+}
+
+.pdoc {
+  --accent: #e7f1f7;
+  --def: #aa5d1f;
+  --name: #134ba6;
 }
