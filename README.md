@@ -3,7 +3,7 @@
 [![test coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FVFLins%2Fnflogic%2Frefs%2Fheads%2Fmain%2F.github%2Fcoverage.json&style=for-the-badge)](https://github.com/VFLins/nflogic/tree/main/tests)
 [![api documentation](https://img.shields.io/badge/API-Documentation-blue?style=for-the-badge)](https://vflins.github.io/nflogic/nflogic/api.html)
 [![cli documentation](https://img.shields.io/badge/CLI-Documentation-blue?style=for-the-badge)](https://github.com/VFLins/nflogic/blob/main/docs/CLI.md)
-[![code style](https://img.shields.io/badge/code%20style-black-black?style=for-the-badge)](https://black.readthedocs.io/)
+[![code style](https://img.shields.io/badge/style-black-black?style=for-the-badge)](https://black.readthedocs.io/)
 
 ![nflogic banner](./resources/gh_banner-nflogic.png)
 
