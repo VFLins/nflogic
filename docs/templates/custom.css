@@ -1,31 +1,156 @@
+/*
+GLOBAL VARS
+*/
+
+.pdoc {
+  --accent: #d1dce5;
+  --code: #eee;
+  --def: #aa5d1f;
+  --name: #134ba6;
+}
+
+
+/*
+NAV ELEMENTS
+*/
+
+/* background */
 nav.pdoc {
   background-color: #274a63;
 }
 
-nav.pdoc > div > ul > li > a {
+/* headings */
+h2 {
   color: #fbd279;
+}
+
+/* clickable items */
+nav.pdoc > div > ul > li > a {
+  color: #eee;
   font-weight: bold;
+  font-family: monospace;
 }
 
 nav.pdoc li:hover {
-  background-color: #3c6e91;
+  background-color: #274a63;
 }
 
+nav.pdoc a {
+  color: #eee;
+  font-family: monospace;
+}
+
+nav.pdoc a:hover {
+  color: #fcd379;
+  font-family: monospace;
+}
+
+/* clickable items: attribution */
+nav.pdoc a.attribution {
+  font-family: system-ui;
+}
+
+nav.pdoc a.attribution:hover {
+  color: #eee;
+}
+
+/* clickable items: decorations */
+nav.pdoc .class:before,
+nav.pdoc .function:after {
+  color: #fef5b0;
+}
+
+/* modules button */
+nav.pdoc .module-list-button {
+  color: #eee;
+  border-color: #eee;
+}
+
+nav.pdoc .module-list-button:hover {
+  color: #fef5b0;
+  border-color: #fef5b0;
+}
+
+
+/*
+BODY ELEMENTS
+*/
+
+/* background */
+body {
+  background-color: #eee;
+}
+
+main.pdoc {
+  background-color: #eee;
+}
+
+/* class: linkables */
 .pdoc .attr {
   border-radius: 10px;
+  font-family: monospace;
 }
 
+/* params: values */
 .pdoc-code .kc {
   color: var(--name);
 }
 
-.pdoc-code .nb {
+/* params: types */
+.pdoc-code .nb,
+.pdoc-code .bp {
   color: #aa5d1f;
   font-style: italic;
 }
 
-.pdoc {
-  --accent: #e7f1f7;
-  --def: #aa5d1f;
-  --name: #134ba6;
+
+/*
+MOBILE ELEMENTS
+*/
+
+@media (max-width: 769px) {
+  #navtoggle {
+    border: solid 2px #eee;
+    color: #eee;
+    background-color: #274a63;
+  }
+}
+
+
+/*
+CODE BLOCKS
+*/
+
+.pdoc pre {
+  border: 0px;
+}
+
+/* docstrings */
+.pdoc-code .sd {
+  color: #134ba6;
+}
+
+/* functions and class methods */
+.pdoc-code .nc,
+.pdoc-code .fm,
+.pdoc-code .nf {
+  color: #134ba6;
+  font-weight: bold;
+}
+
+/* python keywords and standard functions */
+.pdoc-code .ow,
+.pdoc-code .nb,
+.pdoc-code .k,
+.pdoc-code .sa,
+.pdoc-code .si,
+.pdoc-code .p,
+.pdoc-code .o {
+  color: #aa5d1f;
+}
+
+/* python data */
+.pdoc-code .mi,
+.pdoc-code .s2 {
+  color: #134ba6;
 }
