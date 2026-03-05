@@ -9,6 +9,10 @@ dados ou incorporado em uma aplicação para empresas.
 > Este projeto ainda está em fase experimental e deve ser usado com cautela, embora haja
 > um esforço para tal, ainda não é possível validar os dados coletados com total clareza.
 
+Abaixo você pode encontrar instruções para [instalar](#instalando) e algumas
+[instruções rápidas](#instrucoes-rapidas) de uso, para ver a documentação de todos os
+recursos implementados no NF-Logic, acesse as páginas dedicadas para cada submódulo
+([`api`](/nflogic/api.html) e [`cli`](/nflogic/cli.html)) indicados na barra lateral.
 
 # Instalando
 
@@ -132,16 +136,11 @@ modificar o código fonte do `nflogic`. Por se tratar de um programa interpretad
 compilado, alterações no código são refletidas diretamente no comportamento da CLI
 localmente.
 
-Caso você tenha capacidade para entender o problema encontrado, e tenha uma sugestão para
-alterar o código fonte do `nflogic`, considere abrir uma
-[*issue*](https://github.com/VFLins/nflogic/issues) para informar sobre a existência do
-problema. Se você também se sente capaz de resolver o problema encontrado, sinta-se livre
-para propor uma [*pull request*](https://github.com/VFLins/nflogic/pulls) para que esta
-mudança afete os demais usuários.
-
-Se você não se identificou com nenhum dos casos citados acima, mantenha sua instalação do
-`nflogic` atualizada, o problema que você enfrenta pode ser corrigido em alguma
-atualização futura. Para atualizar a sua instalação:
+Você pode ajudar a melhorar a qualidade dos *parsers* oferecendo alguma
+[contribuição](#como-contribuir) para o desenvolvimento deste projeto, caso isso não
+seja possível, mantenha sua instalação do NF-Logic atualizada, o problema que você
+enfrenta pode ser corrigido em alguma atualização futura. Para atualizar a sua
+instalação:
 
 - **Pelo `pip`**
 
@@ -185,6 +184,14 @@ ou valores unitários.
 A versão de CLI atualmente sempre processa os dados dos documentos em cache usando
 `full_parse=True`.
 
+# Como contribuir
+
+Caso você tenha capacidade para entender o problema encontrado, e tenha uma sugestão para
+alterar o código fonte do *NF-Logic*, considere abrir uma
+[*issue*](https://github.com/VFLins/nflogic/issues) para informar sobre a existência do
+problema. Se você também se sente capaz de resolver o problema encontrado, sinta-se livre
+para propor uma [*pull request*](https://github.com/VFLins/nflogic/pulls) para que esta
+mudança afete os demais usuários na próxima versão do *NF-Logic*.
 """
 
 from nflogic.api import (
