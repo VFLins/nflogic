@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import pandas as pd
-from nflogic import cache, parse
+from . import cache, parse
 
 # CONSTANTS
 ###############

@@ -2,7 +2,7 @@ import sqlite3
 import re
 import os
 
-from nflogic.parse import FactParser, FullParser, TransacRowElem, FactRowElem
+from nflogic.api.parse import FactParser, FullParser, TransacRowElem, FactRowElem
 
 # CONSTANTS
 ###############
