@@ -122,7 +122,10 @@ CODE BLOCKS
 */
 
 .pdoc pre {
-  border: 0px;
+  border: 1px solid darkgray;
+  background-color: lightgray;
+  padding: 1.3em 1em 1.1em 1em;
+  border-radius: 8px;
 }
 
 /* docstrings */
@@ -145,12 +148,19 @@ CODE BLOCKS
 .pdoc-code .sa,
 .pdoc-code .si,
 .pdoc-code .p,
-.pdoc-code .o {
+.pdoc-code .o,
+.pdoc-code .kn {
   color: #aa5d1f;
 }
 
 /* python data */
 .pdoc-code .mi,
+.pdoc-code .nn,
 .pdoc-code .s2 {
   color: #134ba6;
+}
+
+/* comments */
+.pdoc-code .c1 {
+  color: #116969;
 }
