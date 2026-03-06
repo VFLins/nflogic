@@ -60,8 +60,16 @@ como vendas realizadas pelo vendedor que estiver informado no próprio documento
 existam múltiplos vendedores, uma tabela será construída para cada um que for encontrado.
 
 Os dados são armazenados em um banco de dados que fica junto ao local de instalação do
-`nflogic`. Para saber onde está instalado, você pode usar este comando, caso tenha
-instalado com `pip`:
+`nflogic`. A maneira recomendada para obter o local onde o banco de dados está é
+pela API:
+
+```python
+import nflogic
+print(nflogic.api.DB_PATH)
+```
+
+Caso não queira usar a API, você pode encontrar o banco de dados usando este comando,
+caso tenha instalado com `pip`:
 
 ```bash
 pip show nflogic
