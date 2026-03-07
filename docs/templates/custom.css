@@ -18,6 +18,7 @@ NAV ELEMENTS
 nav.pdoc {
   background-color: #274a63;
   padding: 0 var(--pad) 0 var(--pad);
+  box-shadow: none;
 }
 
 /* headings */
@@ -75,18 +76,19 @@ nav.pdoc .module-list-button:hover {
   border-color: #fef5b0;
 }
 
+/* search bar */
+input[type="search"] {
+  margin: 15px 0px;
+}
+
 
 /*
 BODY ELEMENTS
 */
 
 /* background */
-body {
-  background-color: #eee;
-}
-
-main.pdoc {
-  background-color: #eee;
+:root {
+  --pdoc-background: #eee;
 }
 
 /* class: linkables */
@@ -167,4 +169,9 @@ CODE BLOCKS
 /* comments */
 .pdoc-code .c1 {
   color: #116969;
+}
+
+/* TRADUÇÃO DE ELEMENTOS */
+.view-source-button::before {
+  content: "Ver código";
 }
