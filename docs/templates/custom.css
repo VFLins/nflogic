@@ -17,6 +17,7 @@ NAV ELEMENTS
 /* background */
 nav.pdoc {
   background-color: #274a63;
+  padding: 0 var(--pad) 0 var(--pad);
 }
 
 /* headings */
@@ -38,6 +39,9 @@ nav.pdoc li:hover {
 nav.pdoc a {
   color: #eee;
   font-family: monospace;
+  margin-bottom: 12px;
+  line-height: 1.15;
+  padding-right: var(--pad);
 }
 
 nav.pdoc a:hover {
