@@ -65,10 +65,8 @@ def errors(
     **`CACHENAME`** Nome do arquivo de cache sem extensão.
 
     ***Opções***
-    - **`--summary / [--complete]`**
-
-       Exibe os erros na forma detalhada (`--complete`) ou um resumo por tipo de erro
-       (`--summary`).
+    - **`--summary / [--complete]`** Exibe os erros na forma detalhada por padrão, use
+        `--summary` para ver um resumo por tipo de erro.
     """
     errdf = api.rebuild_errors(cachename)
     if summary:
@@ -120,22 +118,17 @@ def parse(
 
     ***Opções***
 
-    - **`--parse-to=buyer|seller|[both]`**
+    - **`--parse-to=buyer|seller|[both]`** Usar 'buyer' processa os arquivos como notas
+        de compra, 'seller' como notas de venda, e o valor padrão, 'both', para ambos
+        os casos.
 
-        `--parse-to=buyer` processa os arquivos como notas de compra,
-        `--parse-to=seller` como notas de venda, e o valor padrão `--parse-to=both`,
-        para ambos os casos.
+    - **`[--ignore-cached-errors] / --parse-cached-errors`** O valor padrão vai ignorar
+        arquivos que já foram processados sem sucesso, para tentar processar novamente
+        estes arquivos, use a opção `--parse-cached-errors`.
 
-    - **`[--ignore-cached-errors] / --parse-cached-errors`**
-
-        Use `--parse-cached-errors` para tentar processar novamente os arquivos que já
-        deram erro anteriormente.
-
-    - **`[--full-parse] / --partial-parse`**
-
-        `--full-parse` faz com que sejam processados tanto as informações de pagamento
-        quanto os produtos no banco de dados, já `--partial-parse` registra apenas as
-        informações de pagamento.
+    - **`[--full-parse] / --partial-parse`** O valor padrão faz com que sejam
+        registrados tanto as informações de pagamento quanto os produtos no banco de
+        dados, use `--partial-parse` para registrar apenas as informações de pagamento.
 
     .. note::
         Um processamento completo produz duas tabelas relacionadas no estilo
