@@ -109,6 +109,14 @@ BODY ELEMENTS
   font-style: italic;
 }
 
+/* admonitions */
+.pdoc .alert {
+  border-radius: 8px;
+  border: 2px solid transparent;
+  margin-right: 15px;
+  margin-left: 15px;
+}
+
 
 /*
 MOBILE ELEMENTS
@@ -128,7 +136,7 @@ CODE BLOCKS
 */
 
 .pdoc pre {
-  border: 1px solid darkgray;
+  border: 2px solid darkgray;
   background-color: lightgray;
   padding: 1.3em 1em 1.1em 1em;
   border-radius: 8px;
@@ -171,7 +179,11 @@ CODE BLOCKS
   color: #116969;
 }
 
-/* TRADUÇÃO DE ELEMENTOS */
+
+/*
+TRANSLATED ELEMS
+*/
+
 .view-source-button::before {
   content: "Ver código";
 }
