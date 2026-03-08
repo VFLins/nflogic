@@ -45,7 +45,7 @@ eletrônicas, para isso:
 - **API**
 
   ```python
-  import nflogic
+  import nflogic.api
   nflogic.parse_dir(dir_path="/full/path/to/directory", buy=False)
   ```
 
@@ -64,8 +64,8 @@ Os dados são armazenados em um banco de dados que fica junto ao local de instal
 pela API:
 
 ```python
-import nflogic
-print(nflogic.api.DB_PATH)
+import nflogic.api
+print(nflogic.DB_PATH)
 ```
 
 Caso não queira usar a API, você pode encontrar o banco de dados usando este comando,
@@ -100,7 +100,7 @@ identificado, para listar os nomes dos arquivos de cache:
 - **API**
 
   ```python
-  import nflogic
+  import nflogic.api
   # obtenha uma lista com o nome dos arquivos de cache
   cachenames = nflogic.cache.get_cachenames()
   # se algum erro ja tiver sido registrado, mostre na tela (stdout) o nome do cache
@@ -111,13 +111,13 @@ identificado, para listar os nomes dos arquivos de cache:
       print(f"{cn}\n----", summary.to_string(), "\n", sep="\n")
   ```
 
-> [!NOTE]
-> Explicando um pouco o código acima:
-> 1. A função `rebuild_errors()` vai tentar repetir o procedimento que falhou
->    anteriormente, registrando todas as informações pertinentes de falhas em um
->    [`pandas.DataFrame`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html);
-> 2. A função `summary_err_types` agrupa os erros similares por tipo, retornando um
->    `pandas.DataFrame` mais conciso.
+    > [!NOTE]
+    > Explicando um pouco o código acima:
+    > 1. A função `rebuild_errors()` vai tentar repetir o procedimento que falhou
+    >    anteriormente, registrando todas as informações pertinentes de falhas em um
+    >    [`pandas.DataFrame`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html);
+    > 2. A função `summary_err_types` agrupa os erros similares por tipo, retornando um
+    >    `pandas.DataFrame` mais conciso.
 
 - **CLI**
 
@@ -174,7 +174,7 @@ já deram erro no passado:
 - **API**
 
   ```python
-  import nflogic
+  import nflogic.api
   nflogic.parse_cache(cachename="SOME_CACHE_NAME", full_parse=True)
   ```
 
