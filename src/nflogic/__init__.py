@@ -203,9 +203,14 @@ mudança afete os demais usuários na próxima versão do *NF-Logic*.
 """
 
 from nflogic.api import (
-    xml_files_in_dir,
+    db,
+    cache,
+    parse,
+    DB_PATH,
+    CACHE_DIR,
     rebuild_errors,
     summary_err_types,
+    xml_files_in_dir,
     parse_dir,
     parse_cache,
 )

@@ -4,8 +4,8 @@ from pathlib import Path
 import os
 from datetime import datetime, timedelta, tzinfo
 
-from nflogic.parse import FactParser, FactRowElem
-from nflogic.db import (
+from nflogic.api.parse import FactParser, FactRowElem
+from nflogic.api.db import (
     fmt_tablename,
     create_fact_table,
     insert_fact_row,
@@ -21,7 +21,6 @@ TEST_PARSER_INPUTS = {
 
 
 class tzBrazilEast(tzinfo):
-
     def utcoffset(self, dt: datetime | None = None) -> timedelta:
         return timedelta(hours=-3) + self.dst(dt)
 

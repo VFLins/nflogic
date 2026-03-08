@@ -1,8 +1,8 @@
 import os
 import sqlite3
 
-from nflogic.parse import FactParser, FactRowElem
-from nflogic.db import fmt_tablename, insert_fact_row
+from nflogic.api.parse import FactParser, FactRowElem
+from nflogic.api.db import fmt_tablename, insert_fact_row
 
 
 SCRIPT_PATH = os.path.realpath(__file__)

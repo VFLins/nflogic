@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from tempfile import TemporaryFile, TemporaryDirectory
 from nflogic import parse
-from nflogic.cache import (
+from nflogic.api.cache import (
     CACHE_PATH,
     _save_successfull_fileparse,
     get_not_processed_inputs,
@@ -38,10 +38,11 @@ def not_parseable_files() -> list[Path]:
     TMP_DIR.cleanup()
 
 
-#def test_not_parseable_files(not_parseable_files):
+# def test_not_parseable_files(not_parseable_files):
 #    file_paths = not_parseable_files
 #    for file in file_paths:
-#        p = 
+#        p =
+
 
 def test_cache_format():
     try:
