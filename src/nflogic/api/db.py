@@ -20,15 +20,15 @@ os.makedirs(DB_DIR, exist_ok=True)
 
 
 def fmt_tablename(name: str):
-    """Transforms strings to a format that SQLite would accept as a table name:
+    """Transfoma um texto para torná-lo aceitável como nome de tabela pelo SQLite:
 
-    1. Removes all leading numbers,
-    2. Removes all special characters,
-    3. Replace spaces by underscores,
-    4. All letters uppercased.
+    1. Remove números do começo,
+    2. Remove caracteres especiais,
+    3. Transforma todos os espaços por *underscore*,
+    4. Todas as letras maiúsculas.
 
-    :param name: The name to be formatted.
-    :return: The formatted `name` as `str`.
+    :param name: O nome que será formatado.
+    :return: Uma *string* com `name` modificado.
     """
 
     return re.sub(r"[^\w\s]", "", re.sub(r"^\d+", "", name)).replace(" ", "_").upper()
@@ -44,15 +44,26 @@ def fact_row_exists(
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ) -> bool:
-    """
-    Checks if data of a `FactRowElem` is already present in the database.
+    """Verifica se os dados de uma `FactRowElem` já está presente em uma tabela no
+    banco de dados.
 
-    :param row: Element that holds the data that will be checked;
-    :param tablename: Name of the table where the data will be looked for;
-    :param con: Connection to desired database;
-    :param close: Should close the connection after the operation completes?
-    :return: `bool`
-    :raise: `ValueError` if *row* doesn't hold data.
+    .. note:: É possível que exista mais de um documento com a mesma "ChaveNFe"
+        Para garantir que não se façam dois ou mais registros apontando para a mesma
+        transação, esta função apenas verifica se o valor de "ChaveNFe" já foi
+        registrado na tabela indicada.
+
+    :param row: Objeto `nflogic.api.parse.FactRowElem` com os dados que serão
+        consultados, o valor da coluna "ChaveNFe" deve estar definido adequadamente.
+    :param tablename: Nome da tabela onde procurar por uma linha idêntica. Não é
+        tratado por `fmt_tablename` internamente.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
+
+    :return: Valor *booleano* indicando se esta linha já está presente no banco de
+        dados.
+    :raises ValueError: Se os dados em **row** estão ausentes ou inválidos.
     """
     dbcur = con.cursor()
     try:
@@ -75,17 +86,21 @@ def transac_row_exists(
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ) -> bool:
-    """
-    Checks if data of a `TransacRowElem` is already present in the database.
+    """Verifica se os dados de `nflogic.api.parse.TransacRowElem` já está presente em
+    uma tabela no banco de dados.
 
-    :param row: Element that holds the data that will be checked;
-    :param parent_tablename: Name fact table related to the data of interest;
-    :param con: Connection to desired database;
-    :param close: Should close the connection after the operation completes?
+    :param row: Objeto `nflogic.api.parse.TransacRowElem` com os dados que serão
+        consultados, o valor da coluna 'ChaveNFe' deve estar definido adequadamente.
+    :param parent_tablename: Nome da tabela *fato* relacionada à tabela *transação*
+        relevante no banco de dados. Não é tratado internamente por `fmt_tablename`.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
 
-    :return: `bool` False if table or row doesn't exist, True otherwise.
-
-    :raise: `ValueError` if *row* doesn't hold data.
+    :return: Valor *booleano* indicando se esta linha já está presente no banco de
+        dados.
+    :raises ValueError: Se os dados em **row** estão ausentes ou inválidos.
     """
     child_tablename = f"ITENS_{parent_tablename}"
     dbcur = con.cursor()
@@ -132,15 +147,20 @@ def all_rows_in_db(
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ) -> bool:
-    """
-    Checks if ALL rows of a parser are present in the database. Returns `True`
-    if parser doesn't hold any data.
+    """Verifica se todas as linhas de dados de um **parser** já foram adicionadas ao
+    banco de dados.
 
-    :param parser: Parser object holding data;
-    :param con: Connection to desired database;
-    :param close: Should close the connection after the operation completes?
-    :return: `bool`
-    :raise: `sqlite3.OperationalError` if table doesn't exist.
+    :param parser: Objeto `.parse.FactParser` ou `.parse.FullParser` com dados já
+        processados através de `.parse.FactParser.parse()` ou
+        `.parse.FullParser.parse()`.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
+
+    :return: Valor *booleano* indicando se todas as linhas já estão presentes, também
+        pode retornar `True` se o **parser** não tiver nenhuma linha de dados.
+    :raise sqlite3.OperationalError: Se a tabela não existir.
     """
     if len(parser.data) == 0:
         return True
@@ -161,19 +181,18 @@ def processed_keys(
     tablename: str,
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
-):
-    """Read `tablename` and returns all keys present in table.
+) -> list[str]:
+    """Cria uma lista com todas as chaves já registradas em uma tabela.
 
-    **Args**
-        con (sqlite3.Connection): Connection to desired database.
-        tablename (str): Name of the table that will be read.
-        close (bool): Should close the connection `con` after the operation completes?
+    :param tablename: Nome da tabela onde procurar por uma linha idêntica. Tratado por
+        `fmt_tablename` internamente.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
 
-    **Returns** `List[str]`
-        List of all corresponding keys.
-
-    **Raises**
-        `sqlite3.OperationalError` if table doesn't exist.
+    :return: Uma *lista* de todas as "ChaveNFe" correspondentes como *strings*.
+    :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     tablename = fmt_tablename(tablename)
     dbcur = con.cursor()
@@ -189,15 +208,18 @@ def processed_keys(
 
 
 def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = False):
-    """Create *fact table* with the provided name formatted by `nflogic.db.gen_tablename()`.
-    Should *not* be called directly. Does nothing if table already exists.
+    """Cria uma tabela *fato* com o nome fornecido formatado por `fmt_tablename()`.
+    Não faz nada se a tabela já existir.
 
-    **Args**
-        tablename (str): Name of the table that will be created.
-        con (sqlite3.Connection): Connection to desired database.
-        close (bool): Should close the connection `con` after the operation completes?
+    .. warning:: Função feita para uso interno
+        O uso direto desta função deve ser evitado, mesmo assim foi disponibilizado
+        publicamente na API.
 
-    **Returns** `None`
+    :param tablename: Nome da tabela que deseja criar.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
     """
     dbcur = con.cursor()
     dbcur.execute(f"""
@@ -220,16 +242,18 @@ def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = Fal
 def create_transac_table(
     con: sqlite3.Connection, parent_tablename: str, close: bool = False
 ):
-    """Create *transaction table* with the provided name formatted by
-    `nflogic.db.gen_tablename()`. Should *not* be called directly.
-    Does nothing if table already exists
+    """Cria uma tabela *transação* com o nome fornecido formatado por
+    `fmt_tablename()`. Não faz nada se a tabela já existir.
 
-    **Args**
-        tablename (str): Name of it's parent table name.
-        con (sqlite3.Connection): Connection to desired database.
-        close (bool): Should close the connection `con` after the operation completes?
+    .. warning:: Função feita para uso interno
+        O uso direto desta função deve ser evitado, mesmo assim foi disponibilizado
+        publicamente na API.
 
-    **Returns** None
+    :param tablename: Nome da tabela que deseja criar.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
     """
     child_tablename = f"ITENS_{fmt_tablename(parent_tablename)}"
     dbcur = con.cursor()
@@ -271,20 +295,18 @@ def insert_transac_row(
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ):
-    """
-    Inserts a row of data from a TransacRowElem.
+    """Insere os dados fornecidos à uma tabela *transação* no banco de dados.
 
-    **Args**
-        Row (nflogic.parse.TransacRowElem): Element that holds the data that will be inserted;
-        tablename (str): Name of it's parent tablename;
-        con (sqlite3.Connection): Connection to desired database;
-        close (bool): Should close the connection after the operation completes?
+    :param row: Objeto `.parse.TransacRowElem` com os dados que devem ser inseridos.
+    :param parent_tablename: Nome da tabela *fato* relacionada à tabela *transação*
+        relevante no banco de dados. Não é tratado internamente por `fmt_tablename`.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
 
-    **Returns** `None`
-
-    **Raises**
-        `ValueError` if *row* doesn't hold data.
-        `sqlite3.OperationalError` if table doesn't exist.
+    :raises ValueError: Se algum dado necessário estiver ausente.
+    :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     child_tablename = f"ITENS_{parent_tablename}"
     create_transac_table(con, parent_tablename=parent_tablename)
@@ -327,21 +349,18 @@ def insert_fact_row(
     con: sqlite3.Connection = sqlite3.connect(DB_PATH),
     close: bool = False,
 ):
-    """
-    Inserts a row of data from a FactRowElem.
+    """Insere os dados fornecidos à uma tabela *fato* no banco de dados.
 
-    **Args**
-        Row (nflogic.parse.FactRowElem): Element that holds the data that will be inserted;
-        tablename (str): Name of the table where the data will be inserted into, will be
-          formatted before insertion;
-        con (sqlite3.Connection): Connection to desired database;
-        close (bool): Should close the connection after the operation completes?
+    :param row: Objeto `.parse.TransacRowElem` com os dados que devem ser inseridos.
+    :param tablename: Nome da tabela *fato* que receberá os dados. Tratado internamente
+        por `fmt_tablename`.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
 
-    **Returns** `None`
-
-    **Raises**
-        `ValueError` if *row* doesn't hold data.
-        `sqlite3.OperationalError` if table doesn't exist.
+    :raises ValueError: Se algum dado necessário estiver ausente.
+    :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     create_fact_table(tablename, con=con)
 
@@ -369,20 +388,19 @@ def insert_rows(
     close: bool = False,
 ):
     """
-    Inserts all data from a parser into the database pointed by `con`.
-    The tables's names is generated from `parser.name`.
+    Insere todos os dados de um `.parse.FactParser` ou `.parse.FullParser` no banco de
+    dados. O nome da tabela é obtido do atributo `.parse.BaseParser.name` deste parser.
 
-    **Args**
-        Row (nflogic.parse.FactRowElem): Element that holds the data that will be inserted;
-        tablename (str): Name of the table where the data will be inserted into;
-        con (sqlite3.Connection): Connection to desired database;
-        close (bool): Should close the connection after the operation completes?
+    :param parser: Objeto `.parse.FactParser` ou `.parse.FullParser` com dados já
+        processados através de `.parse.FactParser.parse()` ou
+        `.parse.FullParser.parse()`.
+    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+        consulta será realizada.
+    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+        fechada ao final desta consulta.
 
-    **Returns** `None`
-
-    **Raises**
-        `ValueError` if *row* doesn't hold data.
-        `sqlite3.OperationalError` if table doesn't exist.
+    :raises ValueError: Se uma linha de dados não tiver todos os dados necessários.
+    :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     tablename = fmt_tablename(parser.name)
     for row in parser.data:
