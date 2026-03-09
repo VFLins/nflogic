@@ -26,15 +26,28 @@ log.addHandler(loghandler)
 log.propagate = False
 
 
-def _get_success_cachename(full_parse: bool):
-    """Utility that delivers the name of a success cache."""
+def _get_success_cachename(full_parse: bool) -> str:
+    """@public Utilitário que retorna o nome de cache de arquivos processados com
+    sucesso.
+
+    :param full_parse: Valor *booleano* indicando se deve obter o cache de sucesso em
+        ambas as tabelas ou apenas na tabela *fato*.
+
+    :return str: Uma *string* com o nome do arquivo de cache.
+    """
     if full_parse:
         return "__both_table_success__"
     return "__fact_table_success__"
 
 
 def valid_cachename(cachename: str) -> bool:
-    """Verifies if a cachename exists *and* is valid. Return the answer as a boolean value."""
+    """Verifica se um arquivo de cache existe *e* seu conteúdo é válido.
+
+    :param cachename: Nome do arquivo sem extensão, use `get_cachenames` para ver os
+        nomes disponíveis.
+
+    :return: Resposta à verificação como um valor *booleano*.
+    """
     cachefile_path = os.path.join(CACHE_PATH, f"{cachename}.cache")
     if not os.path.isfile(cachefile_path):
         return False
@@ -43,7 +56,9 @@ def valid_cachename(cachename: str) -> bool:
 
 
 def get_cachenames() -> list[str]:
-    """Returns a list of available cache names."""
+    """Lista os nomes de cache disponíveis.
+
+    :return: Uma *lista* dos nomes como *strings*."""
     cachenames = []
     for f in os.listdir(CACHE_PATH):
         fullpath = os.path.join(CACHE_PATH, f)
@@ -59,15 +74,19 @@ def get_not_processed_inputs(
     ignore_fails: bool,
     full_parse: bool,
 ) -> list[ParserInput]:
-    """
-    Generator of `ParserInput`s that weren't successfully added to the database yet.
+    """Cria um gerador de `.parse.ParserInput` que ainda não foram processados e
+    registrados com sucesso no banco de dados.
 
-    :param filepaths: list of `ParserInput["path"]` elements to build `ParserInput` from
-    :param buy: value of `ParserInput["buy"]` for all `ParserInput` that will be built
-    :param ignore_fails: wether to ignore files that could not be parsed by `xmltodict`
-        before or not
-    :param full_parse: related to the parser and database table, that might be "fact"
-        for `FactParser`, "transac" for `TransacParser` (to be implemented), or "both"
+    :param filepaths: *lista* de caminhos como *string* para os arquivos usados para o
+        gerador. Estes valores farão parte da chave "path" dos `.parse.ParserInput`
+        entregues pelo gerador.
+    :param buy: Valor da chave "buy" dos `.parse.ParserInput` gerados. Indica se os
+        arquivos devem ser processados como notas de compra ou de venda.
+    :param ignore_fails: Valor *booleano* indicando se os *inputs* que falharam antes
+        devem ser incluídos no gerador.
+    :param full_parse: Valor *booleano*, se verdadeiro, indica que serão usados os
+        dados do cache dos arquivos foram processados pelo `.parse.FullParser`, ou
+        pelo `.parse.FactParser` caso contrário.
     """
     success_cache = CacheHandler(_get_success_cachename(full_parse), full_parse)
     ignore_data = success_cache.data
@@ -82,10 +101,11 @@ def get_not_processed_inputs(
 
 
 def _save_successfull_fileparse(parser: FactParser | FullParser):
-    """
-    Adds a `ParserInput` to `__{parser_type}_table_success__.cache` file if it parsed
-    with no errors, does nothing otherwise. Raises `ValueError` if parser is not of one
-    of the hinted types.
+    """Registrar este *parser* no cache de processamentos realizados com sucesso.
+    Se o *parser* tiver algum erro, não será registrado no cache.
+
+    :param parser: Objeto .parse.FactParser ou .parse.FullParser com dados já
+        processados através de .parse.FactParser.parse() ou .parse.FullParser.parse().
     """
     expected_types = [FactParser, FullParser]
     if not isinstance(parser, (FactParser, FullParser)):
@@ -102,9 +122,11 @@ def _save_successfull_fileparse(parser: FactParser | FullParser):
 
 
 def _save_failed_parser_init(parser: FactParser | FullParser):
-    """
-    Adds a `ParserInput` to `__could_not_parse_xml__.cache` file if it erroed on init,
-    does nothing otherwise. Raises `ValueError` if parser is not of one of the hinted types.
+    """Registra este parser no cache de *parser* que não puderam ser inicializados.
+    Não fará nada se não encontrar um `.parse.ParserInitError` neste *parser*.
+
+    :param parser: Objeto .parse.FactParser ou .parse.FullParser com dados já
+        processados através de .parse.FactParser.parse() ou .parse.FullParser.parse().
     """
     expected_types = [FactParser, FullParser]
     if type(parser) not in expected_types:
@@ -122,14 +144,14 @@ def _save_failed_parser_init(parser: FactParser | FullParser):
 
 
 class KeyAlreadyProcessedError(Exception):
-    """Indicates that a file was processed before."""
+    """Erro que indica que um arquivo já foi processado antes."""
 
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
 
 class KeyNotFoundError(Exception):
-    """Indicates that a searched key could not be found."""
+    """Erro que indica que uma chave não pôde ser encontrada no arquivo."""
 
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
@@ -137,6 +159,14 @@ class KeyNotFoundError(Exception):
 
 class CacheHandler:
     def __init__(self, cachename: str, full_parse: bool = False) -> None:
+        """Lida com registros do trabalho de *parsers* no cache, guardando os inputs
+        para evitar que arquivos sejam processados sem necessidade.
+
+        :param cachename: Nome do arquivo de cache sem extensão.
+        :param full_parse: Valor *booleano* que sinaliza que o *parser* usado é
+            `.parse.FullParser` quando verdadeiro, ou `.parse.FactParser` caso
+            contrário.
+        """
         if not cachename:
             self.cachename = "COULD_NOT_GET_NAME"
         else:
@@ -146,11 +176,15 @@ class CacheHandler:
             self.cachename = db.fmt_tablename(cachename)
         if full_parse:
             self.cachename = f"FULL {cachename}"
-        self.cachefile = Path(CACHE_PATH, f"{cachename}.cache")
-        self.data = self._load()
 
-    def _load(self) -> list:
-        self.cachefile.touch(exist_ok=True) # Should ensure file exists on every read.
+        self.cachefile: Path = Path(CACHE_PATH, f"{cachename}.cache")
+        """Caminho para o arquivo de cache refletido por este `CacheHandler`."""
+
+        self.data: list[ParserInput] = self._load()
+        """*Lista* de `.parse.ParserInput` registrados neste cache."""
+
+    def _load(self) -> list[ParserInput]:
+        self.cachefile.touch(exist_ok=True)  # Should ensure file exists on every read.
         with open(self.cachefile, "rb") as cache:
             try:
                 output: list = pickle.load(cache)
@@ -203,8 +237,8 @@ class CacheHandler:
         return None
 
     def is_valid(self) -> bool:
-        """
-        Test wether the structure of `self.data` is formatted as a list of `nflogic.cache.ParserInput`.
+        """Testa se a estrutura de seus próprios dados `CacheHandler.data` está
+        formatada adequadamente como uma lista de `.parse.ParserInput`.
         """
         if type(self.data) != list:
             print("self.data is not list")
@@ -215,7 +249,10 @@ class CacheHandler:
         return True
 
     def add(self, item: ParserInput) -> None:
-        """Adds `ParserInput` element to cache, raises `KeyAlreadyProcessedError` if already on cache."""
+        """Adiciona um `.parse.ParserInput` ao cache.
+
+        :raises `KeyAlreadyProcessedError`: Se já estiver registrado.
+        """
         self._check_item(item=item)
         if item in self._load():
             raise KeyAlreadyProcessedError(f"{item} já está na lista")
@@ -225,7 +262,10 @@ class CacheHandler:
         self.data = self._load()
 
     def rm(self, item: ParserInput) -> None:
-        """Removes `ParserInput` element from cache, raises `KeyNotFoundError` if not found."""
+        """Remove um `.parse.ParserInput` do cache.
+
+        :raises `KeyNotFoundError`: Se não estiver registrado.
+        """
         if item not in self.data:
             file_name = os.path.split(self.cachefile)[1]
             raise KeyNotFoundError(f"Arquivo não foi registrado em {file_name}")
@@ -247,26 +287,45 @@ class ParserManipulator:
         """Handles workflow of data collection, and cache registry of multiple parsers.
         also keep count of:
 
-        - `n_parsed` Parsers that processed and stored data successfuly;
-        - `n_failed` Parsers that could no process the data;
-        - `n_skipped` Parsers that processed data already stored;
-        - `n_recovered` Parsers that had failed before, but now was able to process
-          data, this data could be either stored or skipped.
-
         :param full_parse: Whether the parsers should get all data from the documents
           or just the payment info.
         :param ignore_cached_errors: Wether documents that failed to process before
           should be ignored.
-        :con: A `sqlite3.Connection` object, indicating which database to connect.
+        :param con: A `sqlite3.Connection` object, indicating which database to connect.
         """
         self.full_parse = full_parse
+        """Valor *booleano* indicando o tipo de *parser* produzido por este
+        `ParserManipulator`.
+        """
+
         self.n_parsed = 0
+        """Número de documentos processados."""
+
         self.n_failed = 0
+        """Número de documentos processados com erro."""
+
         self.n_skipped = 0
+        """Número de documentos não processados por já estar presente no banco de
+        dados.
+        """
+
         self.n_recovered = 0
+        """Número de documentos que já foram processados com erro anteriormente, mas
+        que foram processados com sucesso desta vez.
+        """
+
         self.con = con
+        """Objeto `sqlite3.Connection` conectado ao banco de dados onde a
+            consulta será realizada.
+        """
 
     def add_parser(self, parser_input: ParserInput, close: bool = False):
+        """Cria, testa e registra os dados de um *parser*.
+
+        :param parser_input: Parâmetros usados para criar o *parser*.
+        :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
+            fechada ao final desta consulta.
+        """
         parser = self._test_return_parser(parser_input)
         self.n_parsed = self.n_parsed + 1
         if parser.erroed():
@@ -278,6 +337,13 @@ class ParserManipulator:
         self._handle_parser_success(parser=parser, con=self.con, close=close)
 
     def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
+        """Produz um *parser* com base no valor atual de
+        `ParserManipulator.full_parse`.
+
+        :param parser_input: Parâmetros usados para criar o *parser*.
+
+        :return `.parse.FactParser` | `.parse.FullParser`: *Parser produzido.
+        """
         if self.full_parse:
             return FullParser(parser_input)
         else:
