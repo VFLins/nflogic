@@ -38,70 +38,125 @@ class ParserInput(TypedDict):
 
 
 class PayInfo(TypedDict):
-    """*Dicionário* do Python com tipos definidos, usado para armazenar dados de
-    pagamento.
+    """*Dicionário* do Python com tipos definidos, usado apenas internamente pelos
+    *parsers* ao processar informações de pagamento.
     """
 
     type: str
-    """Indica as formas de pagamento usadas, separados por `;`."""
+    """Equivalente à `FactParserData.PagamentoTipo`."""
 
     amount: str
-    """Indica os valores pagos em cada forma de pagamento, separados por `;`."""
+    """Equivalente à `FactParserData.PagamentoValor`."""
 
 
 class TotalInfo(TypedDict):
-    """*Dicionário* do Python com tipos definidos, usado para armazenar dados dos
-    valores totais no documento.
+    """*Dicionário* do Python com tipos definidos, usado apenas internamente pelos
+    *parsers* ao processar informações de valores totais no documento.
     """
 
     products: float
-    """Valor total dos produtos ou serviços."""
+    """Equivalente à `FactParserData.TotalProdutos`."""
 
     discount: float
-    """Valor total dos descontos concedidos."""
+    """Equivalente à `FactParserData.TotalDesconto`."""
 
     taxes: float
+    """Equivalente à `FactParserData.TotalTributos`."""
+
+
+class FactParserData(TypedDict):
+    """Estrutura de dados que deve ser transferido de um *parser* para o banco de
+    dados. Pode ser usado como referência documental para as tabelas *fato* produzidas
+    pelo `nflogic`.
+    """
+
+    ChaveNFe: str
+    """Número oficial de identificação da nota fiscal com a receita federal."""
+
+    DataHoraEmi: datetime
+    """Data e hora de emissão do documento, inclui indicação de fuso horário."""
+
+    PagamentoTipo: str
+    """Indica as formas de pagamento usadas, separados por `;`."""
+
+    PagamentoValor: str
+    """Indica os valores pagos em cada forma de pagamento, separados por `;`."""
+
+    TotalProdutos: float
+    """Valor total dos produtos ou serviços."""
+
+    TotalDesconto: float
+    """Valor total dos descontos concedidos."""
+
+    TotalTributos: float
     """Valor total dos tributos cobrados."""
 
 
-FactParserData = TypedDict(
-    "FactParserData",
-    {
-        "ChaveNFe": str,
-        "DataHoraEmi": datetime,
-        "PagamentoTipo": str,
-        "PagamentoValor": str,
-        "TotalProdutos": float,
-        "TotalDesconto": float,
-        "TotalTributos": float,
-    },
-)
-TranscParserData = TypedDict(
-    "TransacParserData",
-    {
-        "ChaveNFe": str,
-        "CodProduto": str,  # codes that might start with zero
-        "CodBarras": str,  # are stored as strings
-        "CodNCM": str,
-        "CodCEST": str,
-        "CodCFOP": int,
-        "QuantComercial": float,
-        "QuantTributavel": float,
-        "UnidComercial": str,
-        "UnidTributavel": str,
-        "DescricaoProd": str,
-        "ValorUnitario": float,
-        "BaseCalcPIS": float,
-        "ValorPIS": float,
-        "BaseCalcCOFINS": float,
-        "ValorCOFINS": float,
-        "BaseCalcRetidoICMS": float,
-        "ValorRetidoICMS": float,
-        "ValorSubstitutoICMS": float,
-        "BaseCalcEfetivoICMS": float,
-        "ValorEfetivoICMS": float,
-    },
-)
+class TransacParserData(TypedDict): 
+    ChaveNFe: str
+    """Número oficial de identificação da nota fiscal com a receita federal."""
+
+    CodProduto: str
+    """Código de identificação do produto, gerado interna e independentemente pelo
+    sistema de estoque do vendedor. Registrado como *String* porque pode começar com
+    zeros.
+    """
+
+    CodBarras: str
+    """Código de barras único do produto cadastrado pelo Cadastro Nacional de Produtos
+    (CNP). Registrado como *String* porque pode começar com zeros.
+    """
+
+    CodNCM: str
+    """Código da Nomenclatura Comum do Mercosul (NCM) do produto, usado para
+    categorizar tributariamente os produtos. Registrado como *String* porque pode
+    começar com zeros.
+    """
+
+    CodCEST: str
+    """Código Especificador da Substituição Tributária, usado para identificar produtos
+    sujeitos à substituição tributária. Registrado como *String* porque pode começar
+    com zeros.
+    """
+
+    CodCFOP: int
+    """Código Fiscal de Operações e Prestações (CFOP), epecificando a natureza da
+    circulação desta mercadoria.
+    """
+
+    QuantComercial: float
+    """Quantidade informada na venda ao cliente."""
+
+    QuantTributavel: float
+    """Quantidade informada na declaração tributária."""
+
+    UnidComercial: str
+    """Unidade (ex.: fardos, litros, caixas) informada na venda ao cliente."""
+
+    UnidTributavel: str
+    """Unidade (ex.: fardos, litros, caixas) informada na declaração tributária."""
+
+    DescricaoProd: str
+    """Texto descrevendo o produto, definido internamente pelo sistema de estoque do
+    vendedor.
+    """
+
+    ValorUnitario: float
+    """Preço de uma unidade comercial (`TransacRowElem.UnidComercial`)."""
+
+    BaseCalcPIS: float
+    """Base de cálculo usada para calcular o tributo do Programa de Integração Social
+    (PIS).
+    """
+
+    ValorPIS: float
+    BaseCalcCOFINS: float
+    ValorCOFINS: float
+    BaseCalcRetidoICMS: float
+    ValorRetidoICMS: float
+    ValorSubstitutoICMS: float
+    BaseCalcEfetivoICMS: float
+    ValorEfetivoICMS: float
 
 
 class KeyType(str):
