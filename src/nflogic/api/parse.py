@@ -10,7 +10,10 @@ import os
 import re
 
 SCRIPT_PATH = os.path.realpath(__file__)
+"""@private Caminho para este *script*, não alterar."""
+
 BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
+"""@private Na realidade eu não sei para que isto serve."""
 
 
 def __funcname__():
@@ -20,11 +23,47 @@ def __funcname__():
 # TYPES
 ###############
 
-ParserInput = TypedDict("ParserInput", {"path": str, "buy": bool})
-PayInfo = TypedDict("PayInfo", {"type": str, "amount": str})
-TotalInfo = TypedDict(
-    "TotalInfo", {"products": float, "discount": float, "taxes": float}
-)
+class ParserInput(TypedDict):
+    """*Dicionário* do Python com tipos definidos, usado como input padrão para
+    qualquer *parser*.
+    """
+
+    path: str
+    """Caminho para o arquivo que deve ser processado."""
+
+    buy: bool
+    """Indica se o arquivo deve ser considerado uma nota de compra, caso
+    contrário, será uma nota de venda.
+    """
+
+
+class PayInfo(TypedDict):
+    """*Dicionário* do Python com tipos definidos, usado para armazenar dados de
+    pagamento.
+    """
+
+    type: str
+    """Indica as formas de pagamento usadas, separados por `;`."""
+
+    amount: str
+    """Indica os valores pagos em cada forma de pagamento, separados por `;`."""
+
+
+class TotalInfo(TypedDict):
+    """*Dicionário* do Python com tipos definidos, usado para armazenar dados dos
+    valores totais no documento.
+    """
+
+    products: float
+    """Valor total dos produtos ou serviços."""
+
+    discount: float
+    """Valor total dos descontos concedidos."""
+
+    taxes: float
+    """Valor total dos tributos cobrados."""
+
+
 FactParserData = TypedDict(
     "FactParserData",
     {
