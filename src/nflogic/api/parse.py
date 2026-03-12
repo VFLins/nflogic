@@ -142,48 +142,97 @@ class TransacParserData(TypedDict):
     """
 
     ValorUnitario: float
-    """Preço de uma unidade comercial (`TransacRowElem.UnidComercial`)."""
+    """Preço em reais de uma unidade comercial (`TransacParserData.UnidComercial`)."""
 
     BaseCalcPIS: float
-    """Base de cálculo usada para calcular o tributo do Programa de Integração Social
-    (PIS).
-    """
+    """Valor em que o tributo do Programa de Integração Social (PIS) incide."""
 
     ValorPIS: float
+    """Valor recolhido $V$ para o tributo do Programa de Integração Social (PIS).
+    A alíquota pode ser obitda com este valor dividido por sua base de cálculo $B_c$,
+    quando esta for diferente de zero:
+
+    $$Alíq. = \\frac{V}{B_c}$$
+
+    O mesmo serve para os demais tributos abaixo.
+    """
+
     BaseCalcCOFINS: float
+    """Valor em que o tributo da Contribuição para o Financiamento da Seguridade
+    Social (COFINS) incide.
+    """
+
     ValorCOFINS: float
+    """Valor recolhido para o tributo da Contribuição para o Financiamento da
+    Seguridade Social (COFINS).
+    """
+
     BaseCalcRetidoICMS: float
+    """Equivalente ao somatório das bases de cálculo anteriores do Imposto sobre
+    Circulação de Mercadorias e Prestação de Serviços (ICMS) incidentes nas etapas
+    anteriores da cadeia de produção.
+    """
+
     ValorRetidoICMS: float
+    """Valor do Imposto sobre Circulação de Mercadorias e Prestação de Serviços (ICMS)
+    pago anteriormente com base no `TransacParserData.BaseCalcRetidoICMS`.
+    """
+
     ValorSubstitutoICMS: float
+    """Valor estimado do Imposto sobre Circulação de Mercadorias e Prestação de
+    Serviços (ICMS) previsto antecipadamente no início da cadeia de distribuição.
+    """
+
     BaseCalcEfetivoICMS: float
+    """Valor real em que o Imposto sobre Circulação de Mercadorias e Prestação de
+    Serviços (ICMS) incide na etapa atual da cadeia de distribuição, mas apenas em
+    caso de venda para o consumidor final.
+    """
+
     ValorEfetivoICMS: float
+    """Valor do Imposto sobre Circulação de Mercadorias e Prestação de Serviços (ICMS)
+    recolhível com base no `TransacParserData.BaseCalcEfetivoICMS`.
+    """
 
 
 class KeyType(str):
+    """Tipo customizado de *String*, usado para validação de dados armazenados como
+    texto, mas representam um código único identificador de nota fiscal. Exemplos:
+    `FactParserData.ChaveNFe` e `TransacParserData.ChaveNFe`.
+    """
+
     def __init__(self) -> None:
         super().__init__()
 
 
 class ListOfNumbersType(str):
+    """Tipo customizado de *String*, usado para validação de dados armazenados como
+    texto, mas que podem ser convertidos em uma sequência de números. Exemplos:
+    `FactParserData.PagamentoTipo` e `FactParserData.PagamentoValor`.
+    """
     def __init__(self) -> None:
         super().__init__()
 
 
 class FloatCoercibleType(str):
+    """Tipo customizado de *String*, usado para validar dados armazenados neste
+    formato, mas que ainda podem ser convertidos em *Float*
+    """
+
     def __init__(self) -> None:
         super().__init__()
 
 
 class ParserInitError(Exception):
-    """Error during initialization of the parser."""
+    """Erro lançado durante a inicialização de um *parser*."""
 
 
 class ParserParseError(Exception):
-    """Error while parsing the xml document."""
+    """Erro lançado ao tentar coletar os dados de um documento."""
 
 
 class ParserValidationError(Exception):
-    """Error during validation of the data parsed from the xml document."""
+    """Erro lançado ao validar os dados coletados de um documento."""
 
 
 # DATA VALIDATION
