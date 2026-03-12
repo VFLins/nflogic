@@ -1,4 +1,4 @@
-from typing import TypedDict, get_type_hints
+from typing import TypedDict, Any, get_type_hints
 from collections import OrderedDict
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -242,6 +242,12 @@ class ParserValidationError(Exception):
 def convert_to_list_of_numbers(
     inp: list[float] | list[int] | float | int,
 ) -> ListOfNumbersType:
+    """Função de conversão.
+
+    :param inp: Uma *Lista de números* ou um número único
+
+    :return: *String* identificável como `ListOfNumbersType`.
+    """
     if type(inp) is list:
         float_in_inp = any(isinstance(item, (float, str)) for item in inp)
         if float_in_inp:
@@ -252,14 +258,25 @@ def convert_to_list_of_numbers(
 
 
 def convert_from_list_of_numbers(inp: ListOfNumbersType) -> list[float] | list[int]:
+    """Função de conversão.
+
+    :param inp: *String* identificável como `ListOfNumbersType`.
+
+    :return: Uma *Lista de números*
+    """
     nums_list = inp.replace("[", "").replace("]", "").split(";")
     if "." not in inp:
         return [int(i) for i in nums_list]
     return [float(i) for i in nums_list]
 
 
-def valid_int(val: any) -> bool:
-    """Return `True` if `val` is of type `int` or coercible, `False` otherwise."""
+def valid_int(val: Any) -> bool:
+    """Verifica se `val` pode ser convertido para um número inteiro.
+
+    :param val: Valor a ser verificado.
+
+    :return: Um valor *Booleano* com a resposta da verificação.
+    """
     try:
         _ = int(val)
         return True
@@ -268,7 +285,12 @@ def valid_int(val: any) -> bool:
 
 
 def valid_float(val: any) -> bool:
-    """Return `True` if `val` is of type `float` or coercible, `False` otherwise."""
+    """Verifica se `val` pode ser convertido para um número não inteiro.
+
+    :param val: Valor a ser verificado.
+
+    :return: Um valor *Booleano* com a resposta da verificação.
+    """
     try:
         _ = float(val)
         return True
@@ -277,9 +299,12 @@ def valid_float(val: any) -> bool:
 
 
 def valid_list_of_numbers(val: str) -> bool:
-    """
-    Return `True` if the string in `val` can be converted to a list of
-    numbers separated by semicolon, `False` otherwise.
+    """Verifica se `val` pode ser convertido para uma *String* identificável como
+    `ListOfNumbersType`.
+
+    :param val: Valor a ser verificado.
+
+    :return: Um valor *Booleano* com a resposta da verificação.
     """
     val = val.replace(" ", "")
     # check if string contains only integer/decimal numbers and semicolons
@@ -291,6 +316,13 @@ def valid_list_of_numbers(val: str) -> bool:
 
 
 def valid_key(val) -> bool:
+    """Verifica se `val` pode ser convertido para uma *String* identificável como
+    `KeyType`.
+
+    :param val: Valor a ser verificado.
+
+    :return: Um valor *Booleano* com a resposta da verificação.
+    """
     if (type(val) is str) and (len(val) == 44) and val.isdigit():
         return True
     return False
@@ -298,10 +330,25 @@ def valid_key(val) -> bool:
 
 class RowElem:
     """
-    Generic class for validating parsed data. It's children must:
-    1. Have annotated variable names with the corresponding data type
-    2. Run `super().__init__(**kwargs)` where kwargs are the parameters
-      specified in `self.__init__()`
+    Classe genérica que valida os dados recebidos durante a inicialização. Esta
+    validação não pode ser feita diretamente nesta classe, ela precisa que uma classe
+    herdeira especifique as variáveis e seus respectivos tipos, e depois execute o
+    `__init__()` da classe pai. Exemplo:
+
+    .. code-block:: python
+        class ExampleRow(RowElem):
+            def __init__(self, key: KeyType, numbers: ListOfNumbersType, generic):
+                super().__init__(key=key, numbers=numbers, generic=generic)
+
+    Neste exemplo, o parâmetro:
+    - `key` é validado por `is_key()`, por ter a anotação de tipo `KeyType`,
+    - `numbers` é validado por `is_list_of_numbers()` por ter anotação de tipo
+        `ListOfNumbersType`.
+    - `generic` não passa por nenhum tipo de validação, por não receber anotação de
+        tipo.
+
+    Veja o código de `RowElem._validate_and_assign()` para ver todos os tipos de
+    validação consideradas.
     """
 
     def __init__(self, **kwargs):
@@ -309,18 +356,18 @@ class RowElem:
             if name in self.__init__.__annotations__.keys():
                 self.__setattr__(name, value)
         self.values = self._validate_and_assign()
-
-    def _validate_and_assign(self):
+        """Dados inseridos neste `RowElem` devidamente validados e convertidos para o
+        formato esperado pelo banco de dados.
         """
-        Validate each piece of data by the it's annotated type and returns a
-        tuple. Relies on a `self.__init__()` with type annotated parameters.
 
-        Returns
-            A tuple of the data provided in `self.__init__()`
+    def _validate_and_assign(self) -> tuple:
+        """@public
+        Valida os dados recebidos de `RowElem.__init__()`, passado
 
-        Raises
-            ValueError if any piece of data do not conform to it's annotated
-            type requirements
+        :return: Uma *Tupla* com os dados validados para serem atribuídos à
+            `RowElem.values`.
+
+        :raises ValueError: Se qualquer dado fornecido não for válido.
         """
         types = self.__init__.__annotations__
         values = []
@@ -358,8 +405,8 @@ class RowElem:
 
 
 class FactRowElem(RowElem):
-    """
-    Validates and holds row data for a FactParser. See parent class for more details.
+    """Valida e converte dados para serem inseridos em tabelas *fato* do banco de
+    dados. Veja `RowElem` para mais detalhes.
     """
 
     def __init__(
@@ -385,9 +432,8 @@ class FactRowElem(RowElem):
 
 
 class TransacRowElem(RowElem):
-    """
-    Validates and holds row data for a TransacParser. See parent class for
-    more details.
+    """Valida e converte dados para serem inseridos em tabelas *transação* do banco de
+    dados. Veja `RowElem` para mais detalhes.
     """
 
     def __init__(
@@ -429,12 +475,23 @@ class TransacRowElem(RowElem):
 
 
 class BaseParser:
-    """Generic parsing functionality for any parser."""
 
     def __init__(self, parser_input: ParserInput):
-        self.INPUTS = parser_input
+        """Fornece funcionalidades básicas para *parsers*.
+
+        :param parser_input: Um objeto compatível com `ParserInput`.
+        """
+        self.INPUTS: ParserInput = parser_input
+        """Objeto fornecido no parâmetro `parser_input` ao instanciar esta classe."""
         self.data = []
+        """*Lista de subclassses de `RowElem`* contendo dados processados por este
+        *parser*, estará vazia enquanto nenhum dado tiver sido obtido.
+        """
+
         self.err = []
+        """*Lista de Exceções* recebidas. Todos os erros são levantados
+        silenciosamente e armazenados aqui por ordem de chegada.
+        """
 
         expected_classes = (dict, OrderedDict)
         if not isinstance(parser_input, expected_classes):
@@ -472,10 +529,14 @@ class BaseParser:
             return
 
     def erroed(self) -> bool:
+        """Indica se algum erro já foi levantado por este *parser*.
+
+        :return: Um valor *Booleano* com a resposta da verificação.
+        """
         return len(self.err) > 0
 
     def _get_metadata(self):
-        """Update the values of `self.xml`, `self.name` and `self.version`."""
+        """Atualiza os valores de `self.xml`, `self.name` e `self.version`."""
         self.xml = (BeautifulSoup(),)
         # use Path obj to avoid introduction of extra backslashes,
         # don't know why, but it happens on windows
@@ -494,7 +555,16 @@ class BaseParser:
             self.err.append(ExpatError("Parsing failed with every encoding attempt."))
 
     def _get_name(self, buyer: bool) -> str | None:
-        """'COMPRA BUYER NAME' if `buyer==True`, 'VENDA SELLER NAME' otherwise."""
+        """Retorna o nome usado para registrar dados deste parser no banco de dados ou
+        cache de erros.
+
+        :param buyer: Indica o nome que será extraído da nota e qual prefixo aparecerá
+            antes dele
+            - 'COMPRA [NOME_COMPRADOR]', caso verdadeiro, ou
+            - 'VENDA [NOME_VENDEDOR]' caso contrário.
+
+        :return: Uma *String* com o nome coletado, ou `None` caso não seja possível.
+        """
         try:
             metatag = "dest" if buyer else "emit"
             prefix = "COMPRA" if buyer else "VENDA"
@@ -507,9 +577,15 @@ class BaseParser:
             return None
 
     @staticmethod
-    def _get_nested_tag_text(obj: BeautifulSoup, *tags: str, default: any = None):
-        """Retrieve the `text` property under the nested `tags` from `obj`, while
-        handling errors. Return `default` if the value cannot be retrieved.
+    def _get_nested_tag_text(obj: BeautifulSoup, *tags: str, default: any = None) -> str:
+        """Tenta obter o texto contido imediatamente dentro do caminho de `tags` aninhadas
+        fornecido.
+
+        :param obj: Um objeto `BeautifulSoup`.
+        :param *tags: Caminho de tags a ser seguido para obter o texto.
+        :param default: Valor padrão que será obtido caso o texto não seja encontrado.
+
+        :return: Uma *String* com o texto coletado.
         """
         for tag in tags:
             try:
@@ -519,20 +595,21 @@ class BaseParser:
         return getattr(obj, "text", default)
 
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
+        """Nome usado para registrar dados deste parser no banco de dados ou cache de
+        erros. Será `None` quando não for possível obter um nome.
+        """
         return self._get_name(buyer=self.INPUTS["buy"])
 
     @property
     def doc_version(self) -> str:
-        """Return a `str` with the version number of the document."""
+        """Número de versão do documento."""
         tag = self.xml.find("nfeProc", attrs={"versao": True})
         return tag["versao"] if tag is not None else "Unable to fetch version."
 
     @property
     def doc_nfekey(self) -> KeyType | None:
-        """Return a `str` with the 'Chave NFe' of this document. This number is a
-        unique identifier of the document.
-        """
+        """Identificador único deste documento 'Chave NFe'."""
         # first try
         tag = self.xml.find("chNFe")
         if tag is not None:
@@ -551,14 +628,17 @@ class BaseParser:
         return None
 
     def _parsed(self) -> bool:
-        """Informs if `self.parse()` was ever called."""
+        """Informa se `.parse()` foi executado alguma vez.
+
+        :return: Um valor *Booleano* com a resposta da verificação.
+        """
         return self.erroed() or bool(len(self.data))
 
 
 class FactParser(BaseParser):
-    """
-    Classe de objeto que contém os dados de uma nota fiscal .xml em formato
-    de dicionário.
+    """*Parser* dedicado à extrair apenas metadados e informações de pagamento do
+    documento XML fornecido. Usado para preencher dados de tabelas *fato* no banco de
+    dados.
     """
 
     def _get_pay(self) -> PayInfo | None:
@@ -631,6 +711,9 @@ class FactParser(BaseParser):
             )
 
     def parse(self):
+        """Processa o documento e, caso tenha sucesso, vai popular `FactParser.data`,
+        caso contrário, os erros serão registrados em `FactParser.err`.
+        """
         if self._parsed():
             return
         rows = self._get_fact_rows()
@@ -639,6 +722,11 @@ class FactParser(BaseParser):
 
 
 class _TransacParser(BaseParser):
+    """@public *Parser* dedicado à extrair apenas metadados e informações de produtos
+    e serviços incluídos na operação comercial do documento XML fornecido. Usado para
+    preencher dados de tabelas *transação* no banco de dados.
+    """
+
     def _get_product_codes(self, products: list[dict]) -> list[dict[str, str]]:
         """
         Parses `products`' tax classification codes (NCM, CEST and CFOP), and
@@ -826,6 +914,9 @@ class _TransacParser(BaseParser):
             )
 
     def parse(self):
+        """Processa o documento e, caso tenha sucesso, vai popular `_TransacParser.data`,
+        caso contrário, os erros serão registrados em `_TransacParser.err`.
+        """
         if self._parsed():
             return
         rows = self._get_transac_rows()
@@ -834,7 +925,14 @@ class _TransacParser(BaseParser):
 
 
 class FullParser(FactParser, _TransacParser):
+    """*Parser* dedicado à extrair todos os dados do documento XML fornecido. Usado
+    para preencher dados de tabelas *fato* e *transação* no banco de dados.
+    """
+
     def parse(self):
+        """Processa o documento e, caso tenha sucesso, vai popular `FullParser.data`,
+        caso contrário, os erros serão registrados em `FullParser.err`.
+        """
         if self._parsed():
             return
         fact_rows = self._get_fact_rows()
