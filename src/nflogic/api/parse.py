@@ -2,6 +2,7 @@ from typing import TypedDict, Any, get_type_hints
 from collections import OrderedDict
 from datetime import datetime
 from bs4 import BeautifulSoup
+from bs4.element import ResultSet, Tag
 from pathlib import Path
 from copy import copy
 import inspect
@@ -22,6 +23,7 @@ def __funcname__():
 
 # TYPES
 ###############
+
 
 class ParserInput(TypedDict):
     """*Dicionário* do Python com tipos definidos, usado como input padrão para
@@ -67,7 +69,7 @@ class TotalInfo(TypedDict):
 class FactParserData(TypedDict):
     """Estrutura de dados que deve ser transferido de um *parser* para o banco de
     dados. Pode ser usado como referência documental para as tabelas *fato* produzidas
-    pelo `nflogic`.
+    pelo NF-Logic.
     """
 
     ChaveNFe: str
@@ -92,7 +94,12 @@ class FactParserData(TypedDict):
     """Valor total dos tributos cobrados."""
 
 
-class TransacParserData(TypedDict): 
+class TransacParserData(TypedDict):
+    """Estrutura de dados que deve ser transferido de um *parser* para o banco de
+    dados. Pode ser usado como referência documental para as tabelas *transação*
+    produzidas pelo NF-Logic.
+    """
+
     ChaveNFe: str
     """Número oficial de identificação da nota fiscal com a receita federal."""
 
@@ -210,6 +217,7 @@ class ListOfNumbersType(str):
     texto, mas que podem ser convertidos em uma sequência de números. Exemplos:
     `FactParserData.PagamentoTipo` e `FactParserData.PagamentoValor`.
     """
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -476,7 +484,11 @@ class TransacRowElem(RowElem):
 
 class BaseParser:
     """
-    .. note:: Erros são registrados silenciosamente em `FactParser.err`.
+    Oferece as funcionalidades básicas de um *parser*, mas como não implementa um
+    método `BaseParser.parse()`, não tem capacidade de processar nenhum documento.
+    Todos os *parsers* devem herdar seus métodos e atributos.
+
+    .. note:: Erros são registrados silenciosamente em `BaseParser.err`.
         Os métodos de *parsers* são levantados silenciosamente para não interromper
         execuções consecutivas, em que muitos arquivos precisam ser processados.
         Embora os métodos indiquem "Erros levantados", estes erros são silenciosos e
@@ -584,7 +596,9 @@ class BaseParser:
             return None
 
     @staticmethod
-    def _get_nested_tag_text(obj: BeautifulSoup, *tags: str, default: any = None) -> str:
+    def _get_nested_tag_text(
+        obj: BeautifulSoup, *tags: str, default: any = None
+    ) -> str:
         """Tenta obter o texto contido imediatamente dentro do caminho de `tags` aninhadas
         fornecido.
 
@@ -647,11 +661,7 @@ class FactParser(BaseParser):
     documento XML fornecido. Usado para preencher dados de tabelas *fato* no banco de
     dados.
 
-    .. note:: Erros são registrados silenciosamente em `FactParser.err`.
-        Os métodos de *parsers* são levantados silenciosamente para não interromper
-        execuções consecutivas, em que muitos arquivos precisam ser processados.
-        Embora os métodos indiquem "Erros levantados", estes erros são silenciosos e
-        não aparecerão no *stdout* durante a execução deste *parser*.
+    Veja `BaseParser` para mais informações.
     """
 
     def _get_pay(self) -> PayInfo | None:
@@ -748,21 +758,25 @@ class _TransacParser(BaseParser):
     """@public *Parser* dedicado à extrair apenas metadados e informações de produtos
     e serviços incluídos na operação comercial do documento XML fornecido. Usado para
     preencher dados de tabelas *transação* no banco de dados.
+
+    Veja `BaseParser` para mais informações.
     """
 
-    def _get_product_codes(self, products: list[dict]) -> list[dict[str, str]]:
-        """
-        Parses `products`' tax classification codes (NCM, CEST and CFOP), and
-        other codes used for identification (CODE and EAN), with keys:
+    def _get_product_codes(self, products: ResultSet[Tag]) -> list[dict[str, str]]:
+        """Coleta códigos que identificam e classificam cada produto desta nota fiscal.
 
-        - prod: Product identifier on seller-side system;
-        - ean: Barcode displayed in product's package;
+        - prod: Número identificador do produto no sistema do vendedor;
+        - ean: Código de barras do produto;
         - ncm: 'Nomenclatura Comum do Mercosul';
         - cest: 'Código Especificador da Substituição Tributária';
         - cfop: 'Código Fiscal de Operações e Prestações'.
 
-        :param products: List of dictionaries containig data from each product.
-        :return: List of code values for each `product` in the provided order.
+        :param products: *Lista de bs4.BeautifulSoup*, cada uma com um segmento de
+            dados de um produto.
+
+        :return: *Lista dicionários* contendo os dados informados acima, ou `None` caso
+            não seja possível.
+        :raises ParserParseError: Se não for possível obter todos os dados.
         """
         try:
             return [
@@ -781,12 +795,15 @@ class _TransacParser(BaseParser):
                 ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
             )
 
-    def _get_product_desc(self, products: list[BeautifulSoup]) -> list[str]:
-        """
-        Parses `products`' description text.
+    def _get_product_desc(self, products: ResultSet[Tag]) -> list[str] | None:
+        """Coleta os textos de descrição de produto desta nota fiscal.
 
-        :param products: List of dictionaries containig data from each product.
-        :return: List of product names.
+        :param products: *Lista de bs4.BeautifulSoup*, cada uma com um segmento de
+            dados de um produto.
+
+        :return: *Lista strings* contendo os dados informados acima, ou `None` caso
+            não seja possível.
+        :raises ParserParseError: Se não for possível obter todos os dados.
         """
         try:
             return [product.find("xProd").text for product in products]
@@ -795,18 +812,22 @@ class _TransacParser(BaseParser):
                 ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
             )
 
-    def _get_product_amount(self, products: list[BeautifulSoup]) -> list[dict[str:any]]:
-        """
-        Parses `products`' prices data (e.g. Number of items sold or taxed),
-        with keys:
+    def _get_product_amount(
+        self, products: ResultSet[Tag]
+    ) -> list[dict[str, str | float]] | None:
+        """Coleta dados de quantidade dos produtos ou serviços nesta nota fiscal.
 
-        - qcom: Number of items;
-        - qtrib: Amount of items or subitems considered for taxation;
-        - undcom: Identifier of _qcom_ items' packaging (e.g. box, blister, pack);
-        - undtrib: Identifier of _qtrib_ items' packaging.
+        - qcom: Quantidade comercializada;
+        - qtrib: Quantidade considerada na tributação;
+        - undcom: Identificador do tipo de empactoamento em *qcom* (ex.: CX, UN, DZ);
+        - undtrib: Identificador do tipo de empacotamento em *qtrib*.
 
-        :param products: List of dictionaries containig data from each product.
-        :return: List of pricing data of each item in `products`.
+        :param products: *Lista de bs4.BeautifulSoup*, cada uma com um segmento de
+            dados de um produto.
+
+        :return: *Lista de dicionários* contendo os dados informados acima, ou `None`
+            caso não seja possível.
+        :raises ParserParseError: Se não for possível obter todos os dados.
         """
         try:
             return [
@@ -823,26 +844,30 @@ class _TransacParser(BaseParser):
                 ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
             )
 
-    def _get_product_tax_info(self, products: list[BeautifulSoup]):
-        """
-        Parses `products` for taxation information besides amount of items
-        (see _get_product_amount()) and price (e.g. unitary price, cost of any
-        applicable tax), with keys:
+    def _get_product_tax_info(
+        self, products: ResultSet[Tag]
+    ) -> list[dict[str, float]] | None:
+        """Coleta dados fiscais de produtos ou serviços presentes nesta nota fiscal,
+        inclui também o valor do produto.
 
-        - vund: Price of one item of _qcom_;
-        - bpis: Amount on which the 'PIS' tax calculation is based;
-        - vpis: Amount collected for 'PIS' tax;
-        - bcofins: Amount on which the 'COFINS' tax calculation is based;
-        - vcofins: Amount collected for 'COFINS' tax;
-        - bricms: Amount on which 'ICMS' tax calculation was based previously in the
-          production chain;
-        - vricms: Amount previously collected for 'ICMS' tax in the production chain;
-        - vsicms: Amount collected for 'ICMS' tax by this seller;
-        - bicms: Amount on which the 'ICMS' tax calculation is based;
-        - vicms: Total amount collected for 'ICMS' tax.
+        - vund: Preço de cada unidade comercial *qcom* em
+            `_TransacParser._get_product_amount()`;
+        - bpis: Base de cálculo do 'PIS';
+        - vpis: Valor recolhido do 'PIS';
+        - bcofins: Base de cálculo do 'COFINS';
+        - vcofins: Valor recolhido de 'COFINS';
+        - bricms: Base de cálculo do 'ICMS' retido;
+        - vricms: Valor recolhido do 'ICMS' retido;
+        - vsicms: Valor recolhido do 'ICMS' por este vendedor;
+        - bicms: Base de cálculo total prevista para o 'ICMS' deste produto;
+        - vicms: Valor recolhido total prevista para o 'ICMS' deste produto.
 
-        :param products: List of dictionaries containig data from each product.
-        :return: List of taxation data of each item in `products`.
+        :param products: *Lista de bs4.BeautifulSoup*, cada uma com um segmento de
+            dados de um produto.
+
+        :return: *Lista de dicionários* contendo os dados informados acima, ou `None`
+            caso não seja possível.
+        :raises ParserParseError: Se não for possível obter todos os dados.
         """
         try:
             return [
@@ -888,6 +913,12 @@ class _TransacParser(BaseParser):
             )
 
     def _get_transac_rows(self):
+        """Função ajudante que coleta os dados relevantes para a tabela *fato*.
+
+        :return: Um `FactRowElem` com os dados coletados, ou `None` caso não seja
+            possível.
+        :raises ParserParseError: Quando a coleta de dados não é possível
+        """
         with open(self.INPUTS["path"]) as xmldoc:
             soup = BeautifulSoup(xmldoc.read(), features="xml")
         products = soup("det")
@@ -948,8 +979,10 @@ class _TransacParser(BaseParser):
 
 
 class FullParser(FactParser, _TransacParser):
-    """*Parser* dedicado à extrair todos os dados do documento XML fornecido. Usado
-    para preencher dados de tabelas *fato* e *transação* no banco de dados.
+    """*Parser* dedicado à extrair todos os dados do documento fornecido. Usado para
+    preencher dados de tabelas *fato* e *transação* no banco de dados.
+
+    Veja `BaseParser` e `_TransacParser` para mais informações.
     """
 
     def parse(self):
