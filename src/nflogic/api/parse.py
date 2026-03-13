@@ -244,7 +244,7 @@ def convert_to_list_of_numbers(
 ) -> ListOfNumbersType:
     """Função de conversão.
 
-    :param inp: Uma *Lista de números* ou um número único
+    :param inp: Uma *Lista de números* ou um *Número* único
 
     :return: *String* identificável como `ListOfNumbersType`.
     """
@@ -475,6 +475,13 @@ class TransacRowElem(RowElem):
 
 
 class BaseParser:
+    """
+    .. note:: Erros são registrados silenciosamente em `FactParser.err`.
+        Os métodos de *parsers* são levantados silenciosamente para não interromper
+        execuções consecutivas, em que muitos arquivos precisam ser processados.
+        Embora os métodos indiquem "Erros levantados", estes erros são silenciosos e
+        não aparecerão no *stdout* durante a execução deste *parser*.
+    """
 
     def __init__(self, parser_input: ParserInput):
         """Fornece funcionalidades básicas para *parsers*.
@@ -639,10 +646,16 @@ class FactParser(BaseParser):
     """*Parser* dedicado à extrair apenas metadados e informações de pagamento do
     documento XML fornecido. Usado para preencher dados de tabelas *fato* no banco de
     dados.
+
+    .. note:: Erros são registrados silenciosamente em `FactParser.err`.
+        Os métodos de *parsers* são levantados silenciosamente para não interromper
+        execuções consecutivas, em que muitos arquivos precisam ser processados.
+        Embora os métodos indiquem "Erros levantados", estes erros são silenciosos e
+        não aparecerão no *stdout* durante a execução deste *parser*.
     """
 
     def _get_pay(self) -> PayInfo | None:
-        """return the payment section of `self.xml` or `None` if failed."""
+        """Retorna dados de pagamento do documento, ou `None`, se não for possível."""
         try:
             pay = self.xml.find("pag")("detPag")
             if not pay:
@@ -657,6 +670,7 @@ class FactParser(BaseParser):
             self.err.append(f"Parsing failed at {__funcname__()}: {str(err)}")
 
     def _get_dt(self) -> datetime | None:
+        """Retorna a data de emissão do documento, ou `None`, se não for possível."""
         try:
             dt = getattr(self.xml.find("dhEmi"), "text", None)
             return datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S%z")
@@ -666,6 +680,9 @@ class FactParser(BaseParser):
             )
 
     def _get_total(self) -> TotalInfo | None:
+        """Retorna os valores relevantes da operação econômica relevante, ou `None`, se
+        não for possível.
+        """
         tagname = "ICMSTot"
         try:
             total = self.xml.find(tagname)
@@ -681,7 +698,13 @@ class FactParser(BaseParser):
                 ParserParseError(f"Parsing failed at {__funcname__()}: {str(err)}")
             )
 
-    def _get_fact_rows(self):
+    def _get_fact_rows(self) -> FactRowElem | None:
+        """Função ajudante que coleta os dados relevantes para a tabela *fato*.
+
+        :return: Um `FactRowElem` com os dados coletados, ou `None` caso não seja
+            possível.
+        :raises ParserParseError: Quando a coleta de dados não é possível
+        """
         key = self.doc_nfekey
         dt = self._get_dt()
         pay = self._get_pay()
