@@ -71,6 +71,12 @@ instance/
 # Sphinx documentation
 docs/_build/
 
+# Pdoc documentation
+docs/search.js
+docs/index.html
+docs/nflogic.html
+docs/nflogic/**
+
 # PyBuilder
 .pybuilder/
 target/

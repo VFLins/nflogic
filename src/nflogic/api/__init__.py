@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import pandas as pd
-from nflogic import cache, parse
+from . import cache, parse
 
 # CONSTANTS
 ###############
@@ -13,18 +13,23 @@ SCRIPT_DIR = os.path.split(SCRIPT_PATH)[0]
 """@private Directory where nflogic's script files are located."""
 
 CACHE_DIR = os.path.join(SCRIPT_DIR, "cache")
-"""Directory where cache files are located, do not change."""
+"""Diretório onde os arquivos de cache são armazenados, não alterar."""
 
 DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
-"""Path to nflogic's database file, do not change."""
+"""Caminho para o arquivo do banco de dados, não alterar."""
 
 
 # FEATURES
 ###############
 
 
-def xml_files_in_dir(dir_path: str):
-    """Return full path of every file with .xml extension in `dir_path`."""
+def xml_files_in_dir(dir_path: str) -> list[str]:
+    """Lista os arquivos XML no diretório fornecido.
+
+    :param dir_path: Diretório onde procurar pelos arquivos.
+    :return: Uma lista com os caminhos completos para todos os arquivos com a extensão
+        .xml em `dir_path`.
+    """
     return [
         os.path.join(dir_path, filename)
         for filename in os.listdir(dir_path)
@@ -34,13 +39,17 @@ def xml_files_in_dir(dir_path: str):
 
 def rebuild_errors(cachename: str) -> pd.DataFrame:
     """
-    Creates a data frame with all the errors rebuilt from the given cache.
+    Cria um *data frame* com os erros recuperados de um *cache*.
 
-    :param cachename: name of the cache to retrieve errors from.
-    :return: `pandas.DataFrame` with column names "Inputs", "ErrorType" and
-      "ErrorMessage"
-    :raise: `KeyError` if `cachename` doesn't exist, use
-      `nflogic.cache.get_cachenames()` to check available cache names.
+    :param cachename: Nome do arquivo de cache de onde os erros serão obtidos.
+    :return: `pandas.DataFrame`
+    - Colunas:
+        - **Inputs** `.parse.ParserInput` usado para inicialização do *parser*.
+        - **ErrorType** Lista de erros obtidos por tipo, último erro levantado no final.
+        - **ErrorMessage** Lista de mensagens de erro, ordenada junto com ErrorType.
+        com os respectivos tipos [`.parse.ParserInput`, `list`, `list`].
+    :raises KeyError: Se `cachename` não existir, use `.cache.get_cachenames()` para
+        verificar os nomes possíveis.
     """
     if cachename not in cache.get_cachenames():
         raise KeyError("Not valid cachename.")
@@ -70,14 +79,21 @@ def rebuild_errors(cachename: str) -> pd.DataFrame:
     return errors_df
 
 
-def summary_err_types(errdf: pd.DataFrame):
+def summary_err_types(errdf: pd.DataFrame) -> pd.DataFrame:
     """
-    Returns a summary of error types for a dataframe returned by `rebuild_errors()`.
+    Transforma os dados em `errdf` agrupando-os por tipo, obtenha um *data frame*
+    compatível usando `rebuild_errors()`.
 
-    :param errdf: Pandas dataframe where:
-        - `errdf.columns == ["Inputs", "ErrorType", "ErrorMessage"]`
-        - `errdf.dtypes == [dict, list, list]`
+    Os tipos de erros são agregados com base na etapa da *pipeline* de processamento do
+    arquivo, sendo "InitFail" para erros levantados durante a inicialização do
+    *parser*, "ParserFail" para erros levantados ao ler o documento, e "ValidationFail"
+    para erros verificando os dados obtidos.
+
+    :param errdf: Um *data frame* do `pandas`
     :return: `pandas.DataFrame`
+    - Índice: ["InitFail", "ParseFail", "ValidationFail"]
+    - Colunas:
+        - **Count** Contagem de erros encontrados para cada tipo no índice.
     """
     errdf["InitFail"] = tuple(
         map(lambda x: parse.ParserInitError in x, errdf["ErrorType"])
@@ -92,7 +108,7 @@ def summary_err_types(errdf: pd.DataFrame):
         ["InitFail"]
     ].count()
     summary.columns = ["Count"]
-    return summary
+    return pd.DataFrame(summary)
 
 
 def parse_dir(
@@ -103,14 +119,15 @@ def parse_dir(
     con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_PATH),
 ):
     """
-    Tries to parse all xml files present in `path`.
+    Tenta processar todos os arquivos XML em `dir_path`.
 
-    :param dir_path: path to the directory that contains the xml files
-    :param buy: should all files be processed as buying notes? `False` if they are
-      sales notes
-    :param ignore_init_errors: wether to ignore files that could not be parsed by
-      `BeautifulSoup` before or not
-    :con: A `sqlite3.Connection` object, indicating which database to connect.
+    :param dir_path: Caminho para a pasta com os arquivos desejados.
+    :param buy: Booleano indicando se as notas fiscais nesta pasta devem ser
+        processadas como notas de venda.
+    :param ignore_init_errors: Booleano indicando se os arquivos que falharam em outras
+        execuções deve ser ignorados.
+    :param con: Um objeto `sqlite3.Connection`, entregando a conexão para o banco de
+        dados onde os dados coletados serão armazenados.
     """
     # TODO: Open a database connection at the beginning and close at the end of each run
     try:
@@ -143,12 +160,15 @@ def parse_cache(
     full_parse: bool = False,
     con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_PATH),
 ):
-    """Tries to parse all documents listed in a cache file.
+    """Tenta processar todos os arquivos listados em um cache de arquivos que falharam
+    anteriormente.
 
-    :param cachename: Name of the cache file.
-    :param full_parse: If `True`, process data for both fact and transaction tables,
-      otherwise will process data only for fact table.
-    :con: A `sqlite3.Connection` object, indicating which database to connect.
+    :param cachename: Nome do arquivo de *cache*.
+    :param full_parse: Booleano indicando se deve tentar processar todos os dados do
+        arquivo, se `False`, deve coletar apenas as informações de pagamento e ignorar
+        os produtos e serviços.
+    :param con: Um objeto `sqlite3.Connection`, entregando a conexão para o banco de
+        dados onde os dados coletados serão armazenados.
     """
     try:
         fails_cache = cache.CacheHandler(cachename, full_parse)

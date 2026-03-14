@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, tzinfo
 import os
 import copy
 from tempfile import TemporaryFile
-from nflogic.parse import (
+from nflogic.api.parse import (
     ParserInitError,
     valid_int,
     valid_float,
@@ -21,7 +21,6 @@ TEST_XML_V4 = os.path.join(SCRIPT_DIR, "test_xml_v4.xml")
 
 
 class tzBrazilEast(tzinfo):
-
     def utcoffset(self, dt: datetime | None = None) -> timedelta:
         return timedelta(hours=-3) + self.dst(dt)
 

@@ -1,31 +1,249 @@
-nav.pdoc {
-  background-color: #274a63;
+/*
+GLOBAL VARS
+*/
+
+.pdoc {
+  --accent: #d1dce5;
+  --code: #eee;
+  --def: #aa5d1f;
+  --name: #134ba6;
 }
 
-nav.pdoc > div > ul > li > a {
+
+/*
+NAV ELEMENTS
+*/
+
+/* background */
+nav.pdoc {
+  background-color: #274a63;
+  padding: 0 var(--pad) 0 var(--pad);
+  box-shadow: none;
+}
+
+/* headings */
+nav h2 {
   color: #fbd279;
+}
+
+/* clickable items */
+nav.pdoc > div > ul > li > a {
+  color: #eee;
   font-weight: bold;
+  font-family: monospace;
 }
 
 nav.pdoc li:hover {
-  background-color: #3c6e91;
+  background-color: #274a63;
 }
 
+nav.pdoc a {
+  color: #eee;
+  font-family: monospace;
+  margin-bottom: 12px;
+  line-height: 1.15;
+  padding-right: var(--pad);
+}
+
+nav.pdoc a:hover {
+  color: #fcd379;
+  font-family: monospace;
+}
+
+/* clickable items: attribution */
+nav.pdoc a.attribution {
+  font-family: system-ui;
+}
+
+nav.pdoc a.attribution:hover {
+  color: #eee;
+}
+
+/* clickable items: decorations */
+nav.pdoc .class:before,
+nav.pdoc .function:after {
+  color: #fef5b0;
+}
+
+/* modules button */
+nav.pdoc .module-list-button {
+  color: #eee;
+  border-color: #eee;
+}
+
+nav.pdoc .module-list-button:hover {
+  color: #fef5b0;
+  border-color: #fef5b0;
+}
+
+/* search bar */
+input[type="search"] {
+  margin: 15px 0px;
+}
+
+
+/*
+BODY ELEMENTS
+*/
+
+/* background */
+:root {
+  --pdoc-background: #eee;
+}
+
+/* class: linkables */
 .pdoc .attr {
   border-radius: 10px;
+  font-family: monospace;
 }
 
+/* params: values */
 .pdoc-code .kc {
   color: var(--name);
 }
 
-.pdoc-code .nb {
+/* params: types */
+.pdoc-code .nb,
+.pdoc-code .bp {
   color: #aa5d1f;
   font-style: italic;
 }
 
-.pdoc {
-  --accent: #e7f1f7;
-  --def: #aa5d1f;
-  --name: #134ba6;
+/* admonitions */
+.pdoc .alert {
+  border-radius: 8px;
+  border: 2px solid transparent;
+  margin-right: 15px;
+  margin-left: 15px;
+}
+
+
+/*
+MOBILE ELEMENTS
+*/
+
+@media (max-width: 769px) {
+  #navtoggle {
+    border: solid 2px #eee;
+    color: #eee;
+    background-color: #274a63;
+  }
+}
+
+
+/*
+CODE BLOCKS
+*/
+
+.pdoc-code.codehilite {
+  background-color: transparent;
+}
+
+.pdoc pre {
+  border: 2px solid lightgray;
+  background-color: #e5e5e5;
+  padding: 1.3em 1em 1.1em 1em;
+  border-radius: 8px;
+}
+
+/* docstrings */
+.pdoc-code .sd {
+  color: #134ba6;
+}
+
+/* functions and class methods */
+.pdoc-code .nc,
+.pdoc-code .fm,
+.pdoc-code .nf {
+  color: #134ba6;
+  font-weight: bold;
+}
+
+/* python keywords and standard functions */
+.pdoc-code .ow,
+.pdoc-code .nb,
+.pdoc-code .k,
+.pdoc-code .sa,
+.pdoc-code .si,
+.pdoc-code .p,
+.pdoc-code .o,
+.pdoc-code .kn {
+  color: #aa5d1f;
+}
+
+/* python data */
+.pdoc-code .mi,
+.pdoc-code .nn,
+.pdoc-code .s2 {
+  color: #134ba6;
+}
+
+/* comments */
+.pdoc-code .c1 {
+  color: #116969;
+}
+
+
+/*
+TRANSLATED ELEMS
+*/
+
+.view-source-button::before {
+  content: "Ver código";
+}
+
+/* parameters */
+h6#parameters {
+  visibility: hidden;
+  position: relative;
+}
+
+h6#parameters::after {
+  content: "Parâmetros";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* returns */
+h6#returns {
+  visibility: hidden;
+  position: relative;
+}
+
+h6#returns::after {
+  content: "Retorna";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* raises */
+h6#raises {
+  visibility: hidden;
+  position: relative;
+}
+
+h6#raises::after {
+  content: "Erros levantados";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* inherited members */
+div.inherited h5 {
+  visibility: hidden;
+  position: relative;
+}
+
+div.inherited h5::after {
+  content: "Conteúdo herdado";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
 }
