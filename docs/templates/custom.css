@@ -135,9 +135,13 @@ MOBILE ELEMENTS
 CODE BLOCKS
 */
 
+.pdoc-code.codehilite {
+  background-color: transparent;
+}
+
 .pdoc pre {
-  border: 2px solid darkgray;
-  background-color: lightgray;
+  border: 2px solid lightgray;
+  background-color: #e5e5e5;
   padding: 1.3em 1em 1.1em 1em;
   border-radius: 8px;
 }
@@ -186,4 +190,60 @@ TRANSLATED ELEMS
 
 .view-source-button::before {
   content: "Ver código";
+}
+
+/* parameters */
+h6#parameters {
+  visibility: hidden;
+  position: relative;
+}
+
+h6#parameters::after {
+  content: "Parâmetros";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* returns */
+h6#returns {
+  visibility: hidden;
+  position: relative;
+}
+
+h6#returns::after {
+  content: "Retorna";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* raises */
+h6#raises {
+  visibility: hidden;
+  position: relative;
+}
+
+h6#raises::after {
+  content: "Erros levantados";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* inherited members */
+div.inherited h5 {
+  visibility: hidden;
+  position: relative;
+}
+
+div.inherited h5::after {
+  content: "Conteúdo herdado";
+  visibility: visible;
+  position: absolute;
+  left: 0;
+  top: 0;
 }
