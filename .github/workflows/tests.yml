@@ -66,7 +66,7 @@ jobs:
         fi
         # write to .github/coverage.json
         mkdir -p .github
-        echo "{\"schemaVersion\": 1, \"label\": \"coverage\", \"message\": \"${PERCENT}%\", \"color\": \"${COLOR}\"}" > .github/coverage.json
+        echo "{\"schemaVersion\": 1, \"label\": \"cobertura de testes\", \"message\": \"${PERCENT}%\", \"color\": \"${COLOR}\"}" > .github/coverage.json
     - name: Commit and push badge data
       if: matrix.python-version == '3.14'
       run: |
