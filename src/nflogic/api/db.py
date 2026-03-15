@@ -42,8 +42,6 @@ def fmt_tablename(name: str):
 def fact_row_exists(
     row: FactRowElem,
     tablename: str,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
     db_path: str | Path = DB_PATH,
 ) -> bool:
     """Verifica se os dados de uma `FactRowElem` já está presente em uma tabela no
@@ -58,12 +56,8 @@ def fact_row_exists(
         consultados, o valor da coluna "ChaveNFe" deve estar definido adequadamente.
     :param tablename: Nome da tabela onde procurar por uma linha idêntica. Não é
         tratado por `fmt_tablename` internamente.
-    #:param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-    #    consulta será realizada.
     :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
         realizada.
-    #:param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-    #    fechada ao final desta consulta.
 
     :return: Valor *booleano* indicando se esta linha já está presente no banco de
         dados.
@@ -88,8 +82,6 @@ def transac_row_exists(
     row: TransacRowElem,
     parent_tablename: str,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ) -> bool:
     """Verifica se os dados de `nflogic.api.parse.TransacRowElem` já está presente em
     uma tabela no banco de dados.
@@ -100,10 +92,6 @@ def transac_row_exists(
         relevante no banco de dados. Não é tratado internamente por `fmt_tablename`.
     :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
         realizada.
-    #:param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-    #    consulta será realizada.
-    #:param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-    #    fechada ao final desta consulta.
 
     :return: Valor *booleano* indicando se esta linha já está presente no banco de
         dados.
@@ -152,8 +140,6 @@ def transac_row_exists(
 def all_rows_in_db(
     parser: FactParser | FullParser,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ) -> bool:
     """Verifica se todas as linhas de dados de um **parser** já foram adicionadas ao
     banco de dados.
@@ -163,10 +149,6 @@ def all_rows_in_db(
         `.parse.FullParser.parse()`.
     :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
         realizada.
-    #:param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-    #    consulta será realizada.
-    #:param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-    #    fechada ao final desta consulta.
 
     :return: Valor *booleano* indicando se todas as linhas já estão presentes, também
         pode retornar `True` se o **parser** não tiver nenhuma linha de dados.
@@ -191,8 +173,6 @@ def all_rows_in_db(
 def processed_keys(
     tablename: str,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ) -> list[str]:
     """Cria uma lista com todas as chaves já registradas em uma tabela.
 
@@ -200,10 +180,6 @@ def processed_keys(
         `fmt_tablename` internamente.
     :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
         realizada.
-    #:param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-    #    consulta será realizada.
-    #:param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-    #    fechada ao final desta consulta.
 
     :return: Uma *lista* de todas as "ChaveNFe" correspondentes como *strings*.
     :raises sqlite3.OperationalError: Se a tabela não existe.
@@ -226,8 +202,6 @@ def processed_keys(
 def create_fact_table(
     tablename: str,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ):
     """Cria uma tabela *fato* com o nome fornecido formatado por `fmt_tablename()`.
     Não faz nada se a tabela já existir.
@@ -239,10 +213,6 @@ def create_fact_table(
     :param tablename: Nome da tabela que deseja criar.
     :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
         realizada.
-    #:param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-    #    consulta será realizada.
-    #:param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-    #    fechada ao final desta consulta.
     """
     con = sqlite3.connect(db_path)
     dbcur = con.cursor()
@@ -267,8 +237,6 @@ def create_fact_table(
 def create_transac_table(
     parent_tablename: str,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ):
     """Cria uma tabela *transação* com o nome fornecido formatado por
     `fmt_tablename()`. Não faz nada se a tabela já existir.
@@ -321,8 +289,6 @@ def insert_transac_row(
     row: TransacRowElem,
     parent_tablename: str,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ):
     """Insere os dados fornecidos à uma tabela *transação* no banco de dados.
 
@@ -375,8 +341,6 @@ def insert_fact_row(
     row: FactRowElem,
     tablename: str,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ):
     """Insere os dados fornecidos à uma tabela *fato* no banco de dados.
 
@@ -413,8 +377,6 @@ def insert_fact_row(
 def insert_rows(
     parser: FactParser | FullParser,
     db_path: str | Path = DB_PATH,
-    #con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    #close: bool = False,
 ):
     """
     Insere todos os dados de um `.parse.FactParser` ou `.parse.FullParser` no banco de
