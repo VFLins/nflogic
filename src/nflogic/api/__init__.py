@@ -1,7 +1,8 @@
 import os
 import sqlite3
 import pandas as pd
-from . import cache, parse
+from pathlib import Path
+from . import cache, parse, db
 
 # CONSTANTS
 ###############
@@ -14,9 +15,6 @@ SCRIPT_DIR = os.path.split(SCRIPT_PATH)[0]
 
 CACHE_DIR = os.path.join(SCRIPT_DIR, "cache")
 """Diretório onde os arquivos de cache são armazenados, não alterar."""
-
-DB_PATH = os.path.join(SCRIPT_DIR, "data", "main.sqlite")
-"""Caminho para o arquivo do banco de dados, não alterar."""
 
 
 # FEATURES
@@ -116,18 +114,17 @@ def parse_dir(
     buy: bool,
     full_parse: bool = False,
     ignore_cached_errors: bool = True,
-    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_PATH),
+    db_path: str | Path = db.DB_PATH
 ):
-    """
-    Tenta processar todos os arquivos XML em `dir_path`.
+    """Tenta processar todos os arquivos XML em `dir_path`.
 
     :param dir_path: Caminho para a pasta com os arquivos desejados.
     :param buy: Booleano indicando se as notas fiscais nesta pasta devem ser
         processadas como notas de venda.
     :param ignore_init_errors: Booleano indicando se os arquivos que falharam em outras
         execuções deve ser ignorados.
-    :param con: Um objeto `sqlite3.Connection`, entregando a conexão para o banco de
-        dados onde os dados coletados serão armazenados.
+    :param db_path: Caminho para o arquivo de banco de dados onde os dados serão
+        registrados.
     """
     # TODO: Open a database connection at the beginning and close at the end of each run
     try:
@@ -138,7 +135,7 @@ def parse_dir(
             ignore_fails=ignore_cached_errors,
             full_parse=full_parse,
         )
-        man = cache.ParserManipulator(full_parse=full_parse, con=con)
+        man = cache.ParserManipulator(full_parse=full_parse, db_path=db_path)
         for parser_input in new_parser_inputs:
             man.add_parser(parser_input)
             print(
@@ -158,7 +155,7 @@ def parse_dir(
 def parse_cache(
     cachename: str,
     full_parse: bool = False,
-    con: sqlite3.Connection = cache.db.sqlite3.connect(cache.db.DB_PATH),
+    db_path: str | Path = db.DB_PATH
 ):
     """Tenta processar todos os arquivos listados em um cache de arquivos que falharam
     anteriormente.
@@ -167,12 +164,12 @@ def parse_cache(
     :param full_parse: Booleano indicando se deve tentar processar todos os dados do
         arquivo, se `False`, deve coletar apenas as informações de pagamento e ignorar
         os produtos e serviços.
-    :param con: Um objeto `sqlite3.Connection`, entregando a conexão para o banco de
-        dados onde os dados coletados serão armazenados.
+    :param db_path: Caminho para o arquivo de banco de dados onde os dados serão
+        registrados.
     """
     try:
         fails_cache = cache.CacheHandler(cachename, full_parse)
-        man = cache.ParserManipulator(full_parse, con=con)
+        man = cache.ParserManipulator(full_parse, db_path=db_path)
         for parser_input in fails_cache.data:
             man.add_parser(parser_input)
             print(

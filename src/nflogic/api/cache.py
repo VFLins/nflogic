@@ -167,11 +167,12 @@ class KeyNotFoundError(Exception):
 
 
 class CacheHandler:
-    def __init__(self, cachename: str, full_parse: bool = False) -> None:
+    def __init__(self, cachename: str | None, full_parse: bool = False) -> None:
         """Lida com registros do trabalho de *parsers* no cache, guardando os inputs
         para evitar que arquivos sejam processados sem necessidade.
 
-        :param cachename: Nome do arquivo de cache sem extensão.
+        :param cachename: Nome do arquivo de cache sem extensão. Se `cachename=None`,
+            usará `"COULD_NOT_GET_NAME"`.
         :param full_parse: Valor *booleano* que sinaliza que o *parser* usado é
             `.parse.FullParser` quando verdadeiro, ou `.parse.FactParser` caso
             contrário.
@@ -305,7 +306,7 @@ class ParserManipulator:
         self,
         full_parse: bool = True,
         ignore_cached_errors: bool = True,
-        con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
+        db_path: str | Path = db.DB_PATH,
     ):
         """Resolve o *workflow* de coleta de dados e registro no cache de múltiplos parsers.
 
@@ -313,8 +314,8 @@ class ParserManipulator:
           or just the payment info.
         :param ignore_cached_errors: Wether documents that failed to process before
           should be ignored.
-        :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde as
-            consultas serão realizadas.
+        :param  db_path: Caminho para o arquivo de banco de dados onde a consulta será
+            realizada.
         """
         self.full_parse: bool = full_parse
         """Valor *booleano* indicando o tipo de *parser* produzido por este
@@ -337,27 +338,23 @@ class ParserManipulator:
         que foram processados com sucesso desta vez.
         """
 
-        self.con: db.sqlite3.Connection = con
-        """Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-            consulta será realizada.
-        """
+        self.db_path: str | Path = db_path
+        """Caminho para o arquivo de banco de dados onde a consulta será realizada."""
 
-    def add_parser(self, parser_input: ParserInput, close: bool = False):
+    def add_parser(self, parser_input: ParserInput):
         """Cria, testa e registra os dados de um *parser*.
 
         :param parser_input: Parâmetros usados para criar o *parser*.
-        :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-            fechada ao final desta consulta.
         """
         parser = self._test_return_parser(parser_input)
         self.n_parsed = self.n_parsed + 1
         if parser.erroed():
             self._handle_cache_registry(parser=parser)
-        if db.all_rows_in_db(parser, con=self.con, close=False):
+        if db.all_rows_in_db(parser, db_path=self.db_path):
             self.n_skipped = self.n_skipped + 1
             _save_successfull_fileparse(parser)
             return
-        self._handle_parser_success(parser=parser, con=self.con, close=close)
+        self._handle_parser_success(parser=parser)
 
     def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
         """Produz um *parser* com base no valor atual de
@@ -429,7 +426,7 @@ class ParserManipulator:
             parse_cache.add(parser.INPUTS)
 
     def _get_cache_handlers(
-        self, parser: FactParser | FullParser | None
+        self, parser: FactParser | FullParser
     ) -> tuple[CacheHandler, CacheHandler]:
         """Retorna dois `CacheHandler` de erros para o *parser*, o primeiro para erros
         de inicialização, e o segundo para outros tipos de erros.
@@ -446,20 +443,14 @@ class ParserManipulator:
     def _handle_parser_success(
         self,
         parser: FactParser | FullParser,
-        con: db.sqlite3.Connection = db.sqlite3.connect(db.DB_PATH),
-        close: bool = False,
     ):
         """Registra os dados do *parser* no banco de dados e lida com registros nos
         arquivos de cache relevantes.
 
         :param parser: Um `.parse.FactParser` se `ParserManipulator.full_parse = False`, ou
             um `.parse.FullParser` caso contrário.
-        :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-            consulta será realizada.
-        :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-            fechada ao final desta consulta.
         """
-        db.insert_rows(parser=parser, con=con, close=close)
+        db.insert_rows(parser=parser, db_path=self.db_path)
         _save_successfull_fileparse(parser)
         self._remove_successful_parser_from_cache(parser)
 
