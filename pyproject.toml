@@ -24,6 +24,7 @@ dependencies = [
     "pandas~=3.0.0",
     "lxml~=6.0",
     "typer~=0.17",
+    "aiosqlite~=0.22",
 ]
 
 [project.optional-dependencies]

@@ -1,4 +1,5 @@
-import sqlite3
+# import sqlite3
+import aiosqlite
 from pathlib import Path
 import re
 import os
@@ -39,7 +40,7 @@ def fmt_tablename(name: str):
 ###############
 
 
-def fact_row_exists(
+async def fact_row_exists(
     row: FactRowElem,
     tablename: str,
     db_path: str | Path = DB_PATH,
@@ -63,22 +64,22 @@ def fact_row_exists(
         dados.
     :raises ValueError: Se os dados em **row** estão ausentes ou inválidos.
     """
-    con = sqlite3.connect(db_path)
-    dbcur = con.cursor()
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur.execute(
+        cur = await con.execute(
             f"SELECT count(*) FROM {tablename} WHERE ChaveNFe=?;",
             [row.values[0]],
         )
-        res = dbcur.fetchone()[0]
+        res = await dbcur.fetchone()[0]
     except sqlite3.OperationalError:
         return False
     finally:
+        cur.close()
         con.close()
     return bool(res)
 
 
-def transac_row_exists(
+async def transac_row_exists(
     row: TransacRowElem,
     parent_tablename: str,
     db_path: str | Path = DB_PATH,
@@ -98,10 +99,9 @@ def transac_row_exists(
     :raises ValueError: Se os dados em **row** estão ausentes ou inválidos.
     """
     child_tablename = f"ITENS_{parent_tablename}"
-    con = sqlite3.connect(db_path)
-    dbcur = con.cursor()
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur.execute(
+        cur = await con.execute(
             f"""
             SELECT count(*) FROM {child_tablename}
             WHERE
@@ -129,15 +129,16 @@ def transac_row_exists(
             """,
             row.values,
         )
-        res = dbcur.fetchone()[0]
+        res = cur.fetchone()[0]
     except sqlite3.OperationalError:
         return False
     finally:
+        cur.close()
         con.close()
     return bool(res)
 
 
-def all_rows_in_db(
+async def all_rows_in_db(
     parser: FactParser | FullParser,
     db_path: str | Path = DB_PATH,
 ) -> bool:
@@ -162,15 +163,15 @@ def all_rows_in_db(
     tablename = fmt_tablename(parser.name)
     for row in parser.data:
         if type(row) is FactRowElem:
-            if not fact_row_exists(row=row, tablename=tablename, db_path=db_path):
+            if not await fact_row_exists(row=row, tablename=tablename, db_path=db_path):
                 return False
         if type(row) is TransacRowElem:
-            if not transac_row_exists(row=row, parent_tablename=tablename, db_path=db_path):
+            if not await transac_row_exists(row=row, parent_tablename=tablename, db_path=db_path):
                 return False
     return True
 
 
-def processed_keys(
+async def processed_keys(
     tablename: str,
     db_path: str | Path = DB_PATH,
 ) -> list[str]:
@@ -187,19 +188,19 @@ def processed_keys(
     tablename = fmt_tablename(tablename)
     con = sqlite3.connect(db_path)
     try:
-        dbcur = con.cursor()
-        dbcur.execute(f"SELECT ChaveNFe FROM {tablename}")
-        output = dbcur.fetchall()
+        cur = await con.execute(f"SELECT ChaveNFe FROM {tablename}")
+        res = await cur.fetchall()
     finally:
+        cur.close()
         con.close()
-    return [elem[0] for elem in output]
+    return [elem[0] for elem in res]
 
 
 # CREATE/INSERT DATA
 ###############
 
 
-def create_fact_table(
+async def create_fact_table(
     tablename: str,
     db_path: str | Path = DB_PATH,
 ):
@@ -214,10 +215,9 @@ def create_fact_table(
     :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
         realizada.
     """
-    con = sqlite3.connect(db_path)
-    dbcur = con.cursor()
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur.execute(f"""
+        cur = await con.execute(f"""
             CREATE TABLE IF NOT EXISTS {fmt_tablename(tablename)} (
                 Id INTEGER PRIMARY KEY,
                 ChaveNFe TEXT NOT NULL UNIQUE,
@@ -229,12 +229,13 @@ def create_fact_table(
                 TotalTributos REAL
             );
             """)
-        con.commit()
+        cur.commit()
     finally:
+        cur.close()
         con.close()
 
 
-def create_transac_table(
+async def create_transac_table(
     parent_tablename: str,
     db_path: str | Path = DB_PATH,
 ):
@@ -250,10 +251,9 @@ def create_transac_table(
         realizada.
     """
     child_tablename = f"ITENS_{fmt_tablename(parent_tablename)}"
-    con = sqlite3.connect(db_path)
-    dbcur = con.cursor()
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur.execute(f"""
+        cur = await con.execute(f"""
             CREATE TABLE IF NOT EXISTS {child_tablename} (
                 Id INTEGER PRIMARY KEY,
                 ChaveNFe TEXT NOT NULL,
@@ -282,10 +282,11 @@ def create_transac_table(
             """)
         con.commit()
     finally:
+        cur.close()
         con.close()
 
 
-def insert_transac_row(
+async def insert_transac_row(
     row: TransacRowElem,
     parent_tablename: str,
     db_path: str | Path = DB_PATH,
@@ -302,11 +303,10 @@ def insert_transac_row(
     :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     child_tablename = f"ITENS_{parent_tablename}"
-    create_transac_table(parent_tablename=parent_tablename, db_path=db_path)
-    con = sqlite3.connect(db_path)
+    await create_transac_table(parent_tablename=parent_tablename, db_path=db_path)
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur = con.cursor()
-        dbcur.execute(
+        cur = await con.execute(
             f"""INSERT INTO {child_tablename} (
                     ChaveNFe,
                     CodProduto,
@@ -334,10 +334,11 @@ def insert_transac_row(
         )
         con.commit()
     finally:
+        cur.close()
         con.close()
 
 
-def insert_fact_row(
+async def insert_fact_row(
     row: FactRowElem,
     tablename: str,
     db_path: str | Path = DB_PATH,
@@ -353,11 +354,10 @@ def insert_fact_row(
     :raises ValueError: Se algum dado necessário estiver ausente.
     :raises sqlite3.OperationalError: Se a tabela não existe.
     """
-    create_fact_table(tablename, db_path=db_path)
-    con = sqlite3.connect(db_path)
-    dbcur = con.cursor()
+    await create_fact_table(tablename, db_path=db_path)
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur.execute(
+        cur = await con.execute(
             f"""INSERT INTO {fmt_tablename(tablename)} (
                 ChaveNFe,
                 DataHoraEmi,
@@ -371,10 +371,11 @@ def insert_fact_row(
         )
         con.commit()
     finally:
+        cur.close()
         con.close()
 
 
-def insert_rows(
+async def insert_rows(
     parser: FactParser | FullParser,
     db_path: str | Path = DB_PATH,
 ):
@@ -397,8 +398,8 @@ def insert_rows(
     tablename = fmt_tablename(parser.name)
     for row in parser.data:
         if type(row) is FactRowElem:
-            if not fact_row_exists(row=row, tablename=tablename, db_path=db_path):
-                insert_fact_row(row=row, tablename=tablename, db_path=db_path)
+            if not await fact_row_exists(row=row, tablename=tablename, db_path=db_path):
+                await insert_fact_row(row=row, tablename=tablename, db_path=db_path)
         if type(row) is TransacRowElem:
-            if not transac_row_exists(row=row, parent_tablename=tablename, db_path=db_path):
-                insert_transac_row(row=row, parent_tablename=tablename, db_path=db_path)
+            if not await transac_row_exists(row=row, parent_tablename=tablename, db_path=db_path):
+                await insert_transac_row(row=row, parent_tablename=tablename, db_path=db_path)
