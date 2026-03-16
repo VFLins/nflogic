@@ -1,5 +1,7 @@
 import pickle
 import logging
+import asyncio
+from typing import Generator
 from pathlib import Path
 import os
 
@@ -82,7 +84,7 @@ def get_not_processed_inputs(
     buy: bool,
     ignore_fails: bool,
     full_parse: bool,
-) -> list[ParserInput]:
+) -> Generator[ParserInput, None, None]:
     """Cria um gerador de `.parse.ParserInput` que ainda não foram processados e
     registrados com sucesso no banco de dados.
 
@@ -110,8 +112,9 @@ def get_not_processed_inputs(
 
 
 def _save_successfull_fileparse(parser: FactParser | FullParser):
-    """Registrar este *parser* no cache de processamentos realizados com sucesso.
-    Se o *parser* tiver algum erro, não será registrado no cache.
+    """Registra este *parser* no cache de processamentos realizados com sucesso.
+    Não fará nada se ele tiver algum erro ou se ainda não tiver processado o seu
+    documento.
 
     :param parser: Objeto .parse.FactParser ou .parse.FullParser com dados já
         processados através de .parse.FactParser.parse() ou .parse.FullParser.parse().
@@ -350,7 +353,8 @@ class ParserManipulator:
         self.n_parsed = self.n_parsed + 1
         if parser.erroed():
             self._handle_cache_registry(parser=parser)
-        if db.all_rows_in_db(parser, db_path=self.db_path):
+        rows_in_db = db.all_rows_in_db(parser, db_path=self.db_path)
+        if asyncio.to_thread(rows_in_db):
             self.n_skipped = self.n_skipped + 1
             _save_successfull_fileparse(parser)
             return
@@ -450,7 +454,7 @@ class ParserManipulator:
         :param parser: Um `.parse.FactParser` se `ParserManipulator.full_parse = False`, ou
             um `.parse.FullParser` caso contrário.
         """
-        db.insert_rows(parser=parser, db_path=self.db_path)
+        asyncio.run(db.insert_rows(parser=parser, db_path=self.db_path))
         _save_successfull_fileparse(parser)
         self._remove_successful_parser_from_cache(parser)
 
