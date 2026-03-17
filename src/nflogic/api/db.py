@@ -70,8 +70,8 @@ async def fact_row_exists(
             f"SELECT count(*) FROM {tablename} WHERE ChaveNFe=?;",
             [row.values[0]],
         )
-        res = await dbcur.fetchone()[0]
-    except sqlite3.OperationalError:
+        res = await cur.fetchone()[0]
+    except aiosqlite.OperationalError:
         return False
     finally:
         cur.close()
@@ -130,7 +130,7 @@ async def transac_row_exists(
             row.values,
         )
         res = cur.fetchone()[0]
-    except sqlite3.OperationalError:
+    except aiosqlite.OperationalError:
         return False
     finally:
         cur.close()
