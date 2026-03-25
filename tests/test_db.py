@@ -46,6 +46,13 @@ def get_factparser() -> FactParser:
     return parser
 
 
+@pytest.fixture(scope="function")
+def get_failed_factparser() -> FactParser:
+    parser = FactParser(TEST_PARSER_INPUTS["v4_buy"])
+    parser.parse()
+    return parser
+
+
 @pytest.mark.parametrize(
     "name,expect",
     [
@@ -81,25 +88,33 @@ async def test_processed_keys(temporary_db_path: Path, get_factparser: FactParse
     db_path = temporary_db_path
     parser = get_factparser
     if parser.name is None:
-        raise AssertionError("Fetched a parser that could not parse it's name.")
+        raise ValueError("Fetched a parser that could not parse it's name.")
     tablename = fmt_tablename(parser.name)
     try:
         con = await aiosqlite.connect(db_path)
         cur = await con.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        insert_fact_row(row=parser.data[0], tablename=tablename, db_path=db_path)
-        keys = processed_keys(tablename=tablename, db_path=db_path)
+        await insert_fact_row(row=parser.data[0], tablename=tablename, db_path=db_path)
+        keys = await processed_keys(tablename=tablename, db_path=db_path)
         assert keys == ["26240811122233344455550010045645641789789784"]
     finally:
         await cur.close()
         await con.close()
+        db_path.unlink()
 
 
-def not_test_insert_fact_row_fail():
+@pytest.mark.asyncio
+async def not_test_insert_fact_row_fail(
+    temporary_db_path: Path,
+    get_failed_factparser: FactParser,
+):
     """Test fail cases of insert_fact_row() fail."""
-    with sqlite3.connect(":memory:") as con:
-        parser = FactParser(TEST_PARSER_INPUTS["v4_buy"])
-        parser.parse()
+    db_path = temporary_db_path
+    try:
+        parser = get_failed_factparser
         with pytest.raises(ValueError):
-            insert_fact_row(
-                row=parser.data[0], tablename=parser.name, con=con, close=False
+            await insert_fact_row(
+                row=parser.data[0], tablename=parser.name, db_path=db_path
             )
+    finally:
+        db_path.unlink()
+

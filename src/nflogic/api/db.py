@@ -74,8 +74,8 @@ async def fact_row_exists(
     except aiosqlite.OperationalError:
         return False
     finally:
-        cur.close()
-        con.close()
+        await cur.close()
+        await con.close()
     return bool(res)
 
 
@@ -133,8 +133,8 @@ async def transac_row_exists(
     except aiosqlite.OperationalError:
         return False
     finally:
-        cur.close()
-        con.close()
+        await cur.close()
+        await con.close()
     return bool(res)
 
 
@@ -186,13 +186,13 @@ async def processed_keys(
     :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     tablename = fmt_tablename(tablename)
-    con = sqlite3.connect(db_path)
+    con = await aiosqlite.connect(db_path)
     try:
         cur = await con.execute(f"SELECT ChaveNFe FROM {tablename}")
         res = await cur.fetchall()
     finally:
-        cur.close()
-        con.close()
+        await cur.close()
+        await con.close()
     return [elem[0] for elem in res]
 
 
@@ -229,10 +229,10 @@ async def create_fact_table(
                 TotalTributos REAL
             );
             """)
-        cur.commit()
+        await con.commit()
     finally:
-        cur.close()
-        con.close()
+        await cur.close()
+        await con.close()
 
 
 async def create_transac_table(
@@ -280,10 +280,10 @@ async def create_transac_table(
                 FOREIGN KEY (ChaveNFe) REFERENCES {parent_tablename}(ChaveNFe)
             );
             """)
-        con.commit()
+        await con.commit()
     finally:
-        cur.close()
-        con.close()
+        await cur.close()
+        await con.close()
 
 
 async def insert_transac_row(
@@ -332,10 +332,10 @@ async def insert_transac_row(
                 ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
             row.values,
         )
-        con.commit()
+        await con.commit()
     finally:
-        cur.close()
-        con.close()
+        await cur.close()
+        await con.close()
 
 
 async def insert_fact_row(
@@ -369,10 +369,10 @@ async def insert_fact_row(
             ) VALUES (?,?,?,?,?,?,?);""",
             row.values,
         )
-        con.commit()
+        await con.commit()
     finally:
-        cur.close()
-        con.close()
+        await cur.close()
+        await con.close()
 
 
 async def insert_rows(
