@@ -70,8 +70,8 @@ def test_fmt_tablename(name: str, expect: str):
 @pytest.mark.asyncio
 async def test_create_fact_table(temporary_db_path: Path):
     db_path = temporary_db_path
-    create_fact_table(tablename="Nome da Empresa", db_path=db_path)
-    create_fact_table(tablename="Empresa com número 345", db_path=db_path)
+    await create_fact_table(tablename="Nome da Empresa", db_path=db_path)
+    await create_fact_table(tablename="Empresa com número 345", db_path=db_path)
     con = await aiosqlite.connect(db_path)
     cur = await con.execute("SELECT name FROM sqlite_master WHERE type='table';")
     try:
