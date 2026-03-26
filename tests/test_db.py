@@ -1,6 +1,5 @@
 import pytest
 import asyncio
-# import sqlite3
 import aiosqlite
 from pathlib import Path
 import os
@@ -36,7 +35,9 @@ class tzBrazilEast(tzinfo):
 
 @pytest.fixture(scope="function")
 def temporary_db_path() -> Path:
-    return Path(DB_DIR, "temporary_test_db.sqlite")
+    dirpath = Path(DB_DIR, "temporary_test_db.sqlite")
+    yield dirpath
+    dirpath.unlink()
 
 
 @pytest.fixture(scope="function")
@@ -75,11 +76,13 @@ async def test_create_fact_table(temporary_db_path: Path):
     con = await aiosqlite.connect(db_path)
     cur = await con.execute("SELECT name FROM sqlite_master WHERE type='table';")
     try:
-        assert await cur.fetchall() == [("NOME_DA_EMPRESA",), ("EMPRESA_COM_NÚMERO_345",)]
+        assert await cur.fetchall() == [
+            ("NOME_DA_EMPRESA",),
+            ("EMPRESA_COM_NÚMERO_345",),
+        ]
     finally:
         await cur.close()
         await con.close()
-        db_path.unlink()
 
 
 @pytest.mark.asyncio
@@ -99,7 +102,6 @@ async def test_processed_keys(temporary_db_path: Path, get_factparser: FactParse
     finally:
         await cur.close()
         await con.close()
-        db_path.unlink()
 
 
 @pytest.mark.asyncio
@@ -109,12 +111,10 @@ async def not_test_insert_fact_row_fail(
 ):
     """Test fail cases of insert_fact_row() fail."""
     db_path = temporary_db_path
-    try:
-        parser = get_failed_factparser
-        with pytest.raises(ValueError):
-            await insert_fact_row(
-                row=parser.data[0], tablename=parser.name, db_path=db_path
-            )
-    finally:
-        db_path.unlink()
-
+    parser = get_failed_factparser
+    if parser.name is None:
+        raise ValueError("Fetched a parser that could not parse it's name.")
+    with pytest.raises(ValueError):
+        await insert_fact_row(
+            row=parser.data[0], tablename=parser.name, db_path=db_path
+        )
