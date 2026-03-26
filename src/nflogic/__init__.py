@@ -206,7 +206,6 @@ from nflogic.api import (
     db,
     cache,
     parse,
-    DB_PATH,
     CACHE_DIR,
     rebuild_errors,
     summary_err_types,

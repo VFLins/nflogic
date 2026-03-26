@@ -1,4 +1,6 @@
-import sqlite3
+# import sqlite3
+import aiosqlite
+from pathlib import Path
 import re
 import os
 
@@ -38,11 +40,10 @@ def fmt_tablename(name: str):
 ###############
 
 
-def fact_row_exists(
+async def fact_row_exists(
     row: FactRowElem,
     tablename: str,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
+    db_path: str | Path = DB_PATH,
 ) -> bool:
     """Verifica se os dados de uma `FactRowElem` já está presente em uma tabela no
     banco de dados.
@@ -56,35 +57,32 @@ def fact_row_exists(
         consultados, o valor da coluna "ChaveNFe" deve estar definido adequadamente.
     :param tablename: Nome da tabela onde procurar por uma linha idêntica. Não é
         tratado por `fmt_tablename` internamente.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
 
     :return: Valor *booleano* indicando se esta linha já está presente no banco de
         dados.
     :raises ValueError: Se os dados em **row** estão ausentes ou inválidos.
     """
-    dbcur = con.cursor()
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur.execute(
+        cur = await con.execute(
             f"SELECT count(*) FROM {tablename} WHERE ChaveNFe=?;",
             [row.values[0]],
         )
-    except sqlite3.OperationalError:
+        res = await cur.fetchone()[0]
+    except aiosqlite.OperationalError:
         return False
     finally:
-        if close:
-            con.close()
-    res = dbcur.fetchone()[0]
+        await cur.close()
+        await con.close()
     return bool(res)
 
 
-def transac_row_exists(
+async def transac_row_exists(
     row: TransacRowElem,
     parent_tablename: str,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
+    db_path: str | Path = DB_PATH,
 ) -> bool:
     """Verifica se os dados de `nflogic.api.parse.TransacRowElem` já está presente em
     uma tabela no banco de dados.
@@ -93,19 +91,17 @@ def transac_row_exists(
         consultados, o valor da coluna 'ChaveNFe' deve estar definido adequadamente.
     :param parent_tablename: Nome da tabela *fato* relacionada à tabela *transação*
         relevante no banco de dados. Não é tratado internamente por `fmt_tablename`.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
 
     :return: Valor *booleano* indicando se esta linha já está presente no banco de
         dados.
     :raises ValueError: Se os dados em **row** estão ausentes ou inválidos.
     """
     child_tablename = f"ITENS_{parent_tablename}"
-    dbcur = con.cursor()
+    con = await aiosqlite.connect(db_path)
     try:
-        dbcur.execute(
+        cur = await con.execute(
             f"""
             SELECT count(*) FROM {child_tablename}
             WHERE
@@ -133,19 +129,18 @@ def transac_row_exists(
             """,
             row.values,
         )
-    except sqlite3.OperationalError:
+        res = cur.fetchone()[0]
+    except aiosqlite.OperationalError:
         return False
     finally:
-        if close:
-            con.close()
-    res = dbcur.fetchone()[0]
+        await cur.close()
+        await con.close()
     return bool(res)
 
 
-def all_rows_in_db(
+async def all_rows_in_db(
     parser: FactParser | FullParser,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
+    db_path: str | Path = DB_PATH,
 ) -> bool:
     """Verifica se todas as linhas de dados de um **parser** já foram adicionadas ao
     banco de dados.
@@ -153,61 +148,62 @@ def all_rows_in_db(
     :param parser: Objeto `.parse.FactParser` ou `.parse.FullParser` com dados já
         processados através de `.parse.FactParser.parse()` ou
         `.parse.FullParser.parse()`.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
 
     :return: Valor *booleano* indicando se todas as linhas já estão presentes, também
         pode retornar `True` se o **parser** não tiver nenhuma linha de dados.
     :raise sqlite3.OperationalError: Se a tabela não existir.
+    :raise ValueError: Se o *parser* não tiver um atributo `name` válido.
     """
     if len(parser.data) == 0:
         return True
+    if parser.name is None:
+        raise ValueError("`parser.name` must be defined before checking for it's rows.")
     tablename = fmt_tablename(parser.name)
     for row in parser.data:
         if type(row) is FactRowElem:
-            if not fact_row_exists(row=row, tablename=tablename, con=con):
+            if not await fact_row_exists(row=row, tablename=tablename, db_path=db_path):
                 return False
         if type(row) is TransacRowElem:
-            if not transac_row_exists(row=row, parent_tablename=tablename, con=con):
+            if not await transac_row_exists(row=row, parent_tablename=tablename, db_path=db_path):
                 return False
-    if close:
-        con.close()
     return True
 
 
-def processed_keys(
+async def processed_keys(
     tablename: str,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
+    db_path: str | Path = DB_PATH,
 ) -> list[str]:
     """Cria uma lista com todas as chaves já registradas em uma tabela.
 
     :param tablename: Nome da tabela onde procurar por uma linha idêntica. Tratado por
         `fmt_tablename` internamente.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
 
     :return: Uma *lista* de todas as "ChaveNFe" correspondentes como *strings*.
     :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     tablename = fmt_tablename(tablename)
-    dbcur = con.cursor()
-    dbcur.execute(f"SELECT ChaveNFe FROM {tablename}")
-    output = dbcur.fetchall()
-    if close:
-        con.close()
-    return [elem[0] for elem in output]
+    con = await aiosqlite.connect(db_path)
+    try:
+        cur = await con.execute(f"SELECT ChaveNFe FROM {tablename}")
+        res = await cur.fetchall()
+    finally:
+        await cur.close()
+        await con.close()
+    return [elem[0] for elem in res]
 
 
 # CREATE/INSERT DATA
 ###############
 
 
-def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = False):
+async def create_fact_table(
+    tablename: str,
+    db_path: str | Path = DB_PATH,
+):
     """Cria uma tabela *fato* com o nome fornecido formatado por `fmt_tablename()`.
     Não faz nada se a tabela já existir.
 
@@ -216,31 +212,32 @@ def create_fact_table(tablename: str, con: sqlite3.Connection, close: bool = Fal
         publicamente na API.
 
     :param tablename: Nome da tabela que deseja criar.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
     """
-    dbcur = con.cursor()
-    dbcur.execute(f"""
-        CREATE TABLE IF NOT EXISTS {fmt_tablename(tablename)} (
-            Id INTEGER PRIMARY KEY,
-            ChaveNFe TEXT NOT NULL UNIQUE,
-            DataHoraEmi TEXT,
-            PagamentoTipo TEXT,
-            PagamentoValor TEXT,
-            TotalProdutos REAL,
-            TotalDesconto REAL,
-            TotalTributos REAL
-        );
-        """)
-    con.commit()
-    if close:
-        con.close()
+    con = await aiosqlite.connect(db_path)
+    try:
+        cur = await con.execute(f"""
+            CREATE TABLE IF NOT EXISTS {fmt_tablename(tablename)} (
+                Id INTEGER PRIMARY KEY,
+                ChaveNFe TEXT NOT NULL UNIQUE,
+                DataHoraEmi TEXT,
+                PagamentoTipo TEXT,
+                PagamentoValor TEXT,
+                TotalProdutos REAL,
+                TotalDesconto REAL,
+                TotalTributos REAL
+            );
+            """)
+        await con.commit()
+    finally:
+        await cur.close()
+        await con.close()
 
 
-def create_transac_table(
-    con: sqlite3.Connection, parent_tablename: str, close: bool = False
+async def create_transac_table(
+    parent_tablename: str,
+    db_path: str | Path = DB_PATH,
 ):
     """Cria uma tabela *transação* com o nome fornecido formatado por
     `fmt_tablename()`. Não faz nada se a tabela já existir.
@@ -250,142 +247,137 @@ def create_transac_table(
         publicamente na API.
 
     :param tablename: Nome da tabela que deseja criar.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
     """
     child_tablename = f"ITENS_{fmt_tablename(parent_tablename)}"
-    dbcur = con.cursor()
-    dbcur.execute(f"""
-        CREATE TABLE IF NOT EXISTS {child_tablename} (
-            Id INTEGER PRIMARY KEY,
-            ChaveNFe TEXT NOT NULL,
-            CodProduto TEXT,
-            CodBarras TEXT,
-            CodNCM TEXT,
-            CodCEST TEXT,
-            CodCFOP TEXT,
-            QuantComercial REAL,
-            QuantTributavel REAL,
-            UnidComercial TEXT,
-            UnidTributavel TEXT,
-            DescricaoProd TEXT,
-            ValorUnitario REAL,
-            BaseCalcPIS REAL,
-            ValorPIS REAL,
-            BaseCalcCOFINS REAL,
-            ValorCOFINS REAL,
-            BaseCalcRetidoICMS REAL,
-            ValorRetidoICMS REAL,
-            ValorSubstitutoICMS REAL,
-            BaseCalcEfetivoICMS REAL,
-            ValorEfetivoICMS REAL,
-            FOREIGN KEY (ChaveNFe) REFERENCES {parent_tablename}(ChaveNFe)
-        );
-        """)
-    con.commit()
-    if close:
-        con.close()
+    con = await aiosqlite.connect(db_path)
+    try:
+        cur = await con.execute(f"""
+            CREATE TABLE IF NOT EXISTS {child_tablename} (
+                Id INTEGER PRIMARY KEY,
+                ChaveNFe TEXT NOT NULL,
+                CodProduto TEXT,
+                CodBarras TEXT,
+                CodNCM TEXT,
+                CodCEST TEXT,
+                CodCFOP TEXT,
+                QuantComercial REAL,
+                QuantTributavel REAL,
+                UnidComercial TEXT,
+                UnidTributavel TEXT,
+                DescricaoProd TEXT,
+                ValorUnitario REAL,
+                BaseCalcPIS REAL,
+                ValorPIS REAL,
+                BaseCalcCOFINS REAL,
+                ValorCOFINS REAL,
+                BaseCalcRetidoICMS REAL,
+                ValorRetidoICMS REAL,
+                ValorSubstitutoICMS REAL,
+                BaseCalcEfetivoICMS REAL,
+                ValorEfetivoICMS REAL,
+                FOREIGN KEY (ChaveNFe) REFERENCES {parent_tablename}(ChaveNFe)
+            );
+            """)
+        await con.commit()
+    finally:
+        await cur.close()
+        await con.close()
 
 
-def insert_transac_row(
+async def insert_transac_row(
     row: TransacRowElem,
     parent_tablename: str,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
+    db_path: str | Path = DB_PATH,
 ):
     """Insere os dados fornecidos à uma tabela *transação* no banco de dados.
 
     :param row: Objeto `.parse.TransacRowElem` com os dados que devem ser inseridos.
     :param parent_tablename: Nome da tabela *fato* relacionada à tabela *transação*
         relevante no banco de dados. Não é tratado internamente por `fmt_tablename`.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
 
     :raises ValueError: Se algum dado necessário estiver ausente.
     :raises sqlite3.OperationalError: Se a tabela não existe.
     """
     child_tablename = f"ITENS_{parent_tablename}"
-    create_transac_table(con, parent_tablename=parent_tablename)
+    await create_transac_table(parent_tablename=parent_tablename, db_path=db_path)
+    con = await aiosqlite.connect(db_path)
+    try:
+        cur = await con.execute(
+            f"""INSERT INTO {child_tablename} (
+                    ChaveNFe,
+                    CodProduto,
+                    CodBarras,
+                    CodNCM,
+                    CodCEST,
+                    CodCFOP,
+                    QuantComercial,
+                    QuantTributavel,
+                    UnidComercial,
+                    UnidTributavel,
+                    DescricaoProd,
+                    ValorUnitario,
+                    BaseCalcPIS,
+                    ValorPIS,
+                    BaseCalcCOFINS,
+                    ValorCOFINS,
+                    BaseCalcRetidoICMS,
+                    ValorRetidoICMS,
+                    ValorSubstitutoICMS,
+                    BaseCalcEfetivoICMS,
+                    ValorEfetivoICMS
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
+            row.values,
+        )
+        await con.commit()
+    finally:
+        await cur.close()
+        await con.close()
 
-    dbcur = con.cursor()
-    dbcur.execute(
-        f"""INSERT INTO {child_tablename} (
-                ChaveNFe,
-                CodProduto,
-                CodBarras,
-                CodNCM,
-                CodCEST,
-                CodCFOP,
-                QuantComercial,
-                QuantTributavel,
-                UnidComercial,
-                UnidTributavel,
-                DescricaoProd,
-                ValorUnitario,
-                BaseCalcPIS,
-                ValorPIS,
-                BaseCalcCOFINS,
-                ValorCOFINS,
-                BaseCalcRetidoICMS,
-                ValorRetidoICMS,
-                ValorSubstitutoICMS,
-                BaseCalcEfetivoICMS,
-                ValorEfetivoICMS
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""",
-        row.values,
-    )
-    con.commit()
-    if close:
-        con.close()
 
-
-def insert_fact_row(
+async def insert_fact_row(
     row: FactRowElem,
     tablename: str,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
+    db_path: str | Path = DB_PATH,
 ):
     """Insere os dados fornecidos à uma tabela *fato* no banco de dados.
 
     :param row: Objeto `.parse.TransacRowElem` com os dados que devem ser inseridos.
     :param tablename: Nome da tabela *fato* que receberá os dados. Tratado internamente
         por `fmt_tablename`.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
 
     :raises ValueError: Se algum dado necessário estiver ausente.
     :raises sqlite3.OperationalError: Se a tabela não existe.
     """
-    create_fact_table(tablename, con=con)
+    await create_fact_table(tablename, db_path=db_path)
+    con = await aiosqlite.connect(db_path)
+    try:
+        cur = await con.execute(
+            f"""INSERT INTO {fmt_tablename(tablename)} (
+                ChaveNFe,
+                DataHoraEmi,
+                PagamentoTipo,
+                PagamentoValor,
+                TotalProdutos,
+                TotalDesconto,
+                TotalTributos
+            ) VALUES (?,?,?,?,?,?,?);""",
+            row.values,
+        )
+        await con.commit()
+    finally:
+        await cur.close()
+        await con.close()
 
-    dbcur = con.cursor()
-    dbcur.execute(
-        f"""INSERT INTO {fmt_tablename(tablename)} (
-            ChaveNFe,
-            DataHoraEmi,
-            PagamentoTipo,
-            PagamentoValor,
-            TotalProdutos,
-            TotalDesconto,
-            TotalTributos
-        ) VALUES (?,?,?,?,?,?,?);""",
-        row.values,
-    )
-    con.commit()
-    if close:
-        con.close()
 
-
-def insert_rows(
+async def insert_rows(
     parser: FactParser | FullParser,
-    con: sqlite3.Connection = sqlite3.connect(DB_PATH),
-    close: bool = False,
+    db_path: str | Path = DB_PATH,
 ):
     """
     Insere todos os dados de um `.parse.FactParser` ou `.parse.FullParser` no banco de
@@ -394,23 +386,20 @@ def insert_rows(
     :param parser: Objeto `.parse.FactParser` ou `.parse.FullParser` com dados já
         processados através de `.parse.FactParser.parse()` ou
         `.parse.FullParser.parse()`.
-    :param con: Objeto `sqlite3.Connection` conectado ao banco de dados onde a
-        consulta será realizada.
-    :param close: Valor booleano indicando se a conexão com o banco de dados deve ser
-        fechada ao final desta consulta.
+    :param db_path: Caminho para o arquivo de banco de dados onde a consulta será
+        realizada.
 
-    :raises ValueError: Se uma linha de dados não tiver todos os dados necessários.
-    :raises sqlite3.OperationalError: Se a tabela não existe.
+    :raise ValueError: Se uma linha de dados não tiver todos os dados necessários.
+    :raise ValueError: Se o *parser* não tiver um atributo `name` válido.
+    :raise sqlite3.OperationalError: Se a tabela não existe.
     """
+    if parser.name is None:
+        raise ValueError("`parser.name` must be defined before checking for it's rows.")
     tablename = fmt_tablename(parser.name)
     for row in parser.data:
         if type(row) is FactRowElem:
-            if not fact_row_exists(row=row, tablename=tablename, con=con):
-                insert_fact_row(row=row, tablename=tablename, con=con, close=False)
+            if not await fact_row_exists(row=row, tablename=tablename, db_path=db_path):
+                await insert_fact_row(row=row, tablename=tablename, db_path=db_path)
         if type(row) is TransacRowElem:
-            if not transac_row_exists(row=row, parent_tablename=tablename, con=con):
-                insert_transac_row(
-                    row=row, parent_tablename=tablename, con=con, close=False
-                )
-    if close:
-        con.close()
+            if not await transac_row_exists(row=row, parent_tablename=tablename, db_path=db_path):
+                await insert_transac_row(row=row, parent_tablename=tablename, db_path=db_path)

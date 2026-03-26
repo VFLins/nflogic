@@ -1,11 +1,13 @@
 import pytest
-import sqlite3
+import asyncio
+import aiosqlite
 from pathlib import Path
 import os
 from datetime import datetime, timedelta, tzinfo
 
 from nflogic.api.parse import FactParser, FactRowElem
 from nflogic.api.db import (
+    DB_DIR,
     fmt_tablename,
     create_fact_table,
     insert_fact_row,
@@ -31,6 +33,27 @@ class tzBrazilEast(tzinfo):
         return "Brazil/East"
 
 
+@pytest.fixture(scope="function")
+def temporary_db_path() -> Path:
+    dirpath = Path(DB_DIR, "temporary_test_db.sqlite")
+    yield dirpath
+    dirpath.unlink()
+
+
+@pytest.fixture(scope="function")
+def get_factparser() -> FactParser:
+    parser = FactParser(TEST_PARSER_INPUTS["v4_sell"])
+    parser.parse()
+    return parser
+
+
+@pytest.fixture(scope="function")
+def get_failed_factparser() -> FactParser:
+    parser = FactParser(TEST_PARSER_INPUTS["v4_buy"])
+    parser.parse()
+    return parser
+
+
 @pytest.mark.parametrize(
     "name,expect",
     [
@@ -45,32 +68,53 @@ def test_fmt_tablename(name: str, expect: str):
     assert fmt_tablename(name) == expect
 
 
-def test_create_fact_table():
-    with sqlite3.connect(":memory:") as con:
-        create_fact_table(tablename="Nome da Empresa", con=con, close=False)
-        create_fact_table(tablename="Empresa com número 345", con=con, close=False)
-        cursor = con.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        assert cursor.fetchall() == [("NOME_DA_EMPRESA",), ("EMPRESA_COM_NÚMERO_345",)]
+@pytest.mark.asyncio
+async def test_create_fact_table(temporary_db_path: Path):
+    db_path = temporary_db_path
+    await create_fact_table(tablename="Nome da Empresa", db_path=db_path)
+    await create_fact_table(tablename="Empresa com número 345", db_path=db_path)
+    con = await aiosqlite.connect(db_path)
+    cur = await con.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    try:
+        assert await cur.fetchall() == [
+            ("NOME_DA_EMPRESA",),
+            ("EMPRESA_COM_NÚMERO_345",),
+        ]
+    finally:
+        await cur.close()
+        await con.close()
 
 
-def test_processed_keys():
+@pytest.mark.asyncio
+async def test_processed_keys(temporary_db_path: Path, get_factparser: FactParser):
     """Test processed_keys() function."""
-    with sqlite3.connect(":memory:") as con:
-        parser = FactParser(TEST_PARSER_INPUTS["v4_sell"])
-        parser.parse()
-        tablename = fmt_tablename(parser.name)
-        insert_fact_row(row=parser.data[0], tablename=tablename, con=con, close=False)
-        keys = processed_keys(tablename=tablename, con=con, close=False)
+    db_path = temporary_db_path
+    parser = get_factparser
+    if parser.name is None:
+        raise ValueError("Fetched a parser that could not parse it's name.")
+    tablename = fmt_tablename(parser.name)
+    try:
+        con = await aiosqlite.connect(db_path)
+        cur = await con.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        await insert_fact_row(row=parser.data[0], tablename=tablename, db_path=db_path)
+        keys = await processed_keys(tablename=tablename, db_path=db_path)
         assert keys == ["26240811122233344455550010045645641789789784"]
+    finally:
+        await cur.close()
+        await con.close()
 
 
-def not_test_insert_fact_row_fail():
+@pytest.mark.asyncio
+async def not_test_insert_fact_row_fail(
+    temporary_db_path: Path,
+    get_failed_factparser: FactParser,
+):
     """Test fail cases of insert_fact_row() fail."""
-    with sqlite3.connect(":memory:") as con:
-        parser = FactParser(TEST_PARSER_INPUTS["v4_buy"])
-        parser.parse()
-        with pytest.raises(ValueError):
-            insert_fact_row(
-                row=parser.data[0], tablename=parser.name, con=con, close=False
-            )
+    db_path = temporary_db_path
+    parser = get_failed_factparser
+    if parser.name is None:
+        raise ValueError("Fetched a parser that could not parse it's name.")
+    with pytest.raises(ValueError):
+        await insert_fact_row(
+            row=parser.data[0], tablename=parser.name, db_path=db_path
+        )
