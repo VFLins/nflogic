@@ -2,6 +2,8 @@
 ![nflogic banner](https://raw.githubusercontent.com/VFLins/nflogic/refs/heads/main/resources/gh_banner-nflogic.png)
 
 [![documentation](https://img.shields.io/badge/documentação-274A63?style=for-the-badge)](https://vflins.github.io/nflogic/nflogic.html)
+[![code](https://img.shields.io/badge/Código-274A63?style=for-the-badge)](https://github.com/VFLins/nflogic)
+[![versions](https://img.shields.io/badge/Últimas%20versões-274A63?style=for-the-badge)](https://github.com/VFLins/nflogic/releases)
 
 Este software permite processar os dados de muitos arquivos de notas fiscais eletrônicas
 e transformá-los em um conjunto de dados prontos para ser analisado por um analista de
