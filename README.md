@@ -1,5 +1,5 @@
 
-![nflogic banner](./resources/gh_banner-nflogic.png)
+![nflogic banner](https://raw.githubusercontent.com/VFLins/nflogic/refs/heads/main/resources/gh_banner-nflogic.png)
 
 [![documentation](https://img.shields.io/badge/documentação-274A63?style=for-the-badge)](https://vflins.github.io/nflogic/nflogic.html)
 
