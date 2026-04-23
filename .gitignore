@@ -161,10 +161,10 @@ dmypy.json
 cython_debug/
 
 # Cache files
-src/nflogic/cache/*
+src/nflogic/api/cache/*
 
 # Database files
-src/nflogic/database/*
+src/nflogic/api/database/*
 
 # VS Code settings
 .vscode/settings.json
