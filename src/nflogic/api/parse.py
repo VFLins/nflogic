@@ -1,14 +1,26 @@
-from typing import TypedDict, Any, get_type_hints
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    get_type_hints,
+    TypedDict,
+    TypeVar,
+    ParamSpec,
+    Union,
+)
+from xml.parsers.expat import ExpatError
 from collections import OrderedDict
 from datetime import datetime
 from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
 from pathlib import Path
 from copy import copy
+import threading
+import asyncio
 import inspect
-from xml.parsers.expat import ExpatError
 import os
 import re
+
 
 SCRIPT_PATH = os.path.realpath(__file__)
 """@private Caminho para este *script*, não alterar."""
@@ -17,12 +29,74 @@ BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
 """@private Na realidade eu não sei para que isto serve."""
 
 
+P = ParamSpec("P")
+"""Specifies the exact parameter signature (positional and keyword arguments) 
+of the captured callable. Used by the type checker to validate arguments.
+"""
+
+R = TypeVar("R")
+"""Represents the dynamic return type of the wrapped function or coroutine.
+Ensures the type hint propagates correctly to the caller.
+"""
+
+
 def __funcname__():
     return inspect.stack()[1][3]
 
 
+def run_anywhere(
+    func_or_coro: Union[Callable[P, R], Callable[P, Coroutine[Any, Any, R]], Coroutine[Any, Any, R]], 
+    *args: P.args, 
+    **kwargs: P.kwargs
+) -> R:
+    """
+    Executes synchronous or asynchronous callables, or coroutine objects safely.
+
+    Compatible with command-line interfaces (CLI), GUI frameworks (e.g., PyQt, Tkinter),
+    and direct script execution. Automatically detects the current running event loop
+    and thread context to prevent deadlocks.
+
+    :param func_or_coro: A sync function, an async function, or an instantiated coroutine object.
+    :type func_or_coro: Union[Callable, Coroutine]
+    :param args: Positional arguments to pass to the callable.
+    :param kwargs: Keyword arguments to pass to the callable.
+    :return: The result of the synchronous function or resolved asynchronous coroutine.
+    :rtype: R
+    :raises RuntimeError: If called blocking from the main thread where the loop is running.
+    :raises Exception: Re-raises any exception thrown inside the target callable.
+    """
+    if inspect.iscoroutinefunction(func_or_coro):
+        coro = func_or_coro(*args, **kwargs)
+    elif inspect.iscoroutine(func_or_coro):
+        coro = func_or_coro
+    else:
+        return func_or_coro(*args, **kwargs)  # type: ignore
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        current_thread = threading.current_thread()
+        main_thread = threading.main_thread()
+
+        if loop.is_running():
+            if current_thread != main_thread:
+                future = asyncio.run_coroutine_threadsafe(coro, loop)
+                return future.result()
+            else:
+                raise RuntimeError(
+                    "Attempted to execute blocking async code on the main GUI/Event loop thread. "
+                    "To prevent freezing the interface, execute this call inside a "
+                    "secondary thread (Worker Thread) or use 'await'."
+                )
+        else:
+            return loop.run_until_complete(coro)
+
+
 # TYPES
 ###############
+
 
 
 class ParserInput(TypedDict):
