@@ -70,13 +70,14 @@ async def fact_row_exists(
             f"SELECT count(*) FROM {tablename} WHERE ChaveNFe=?;",
             [row.values[0]],
         )
-        res = await cur.fetchone()[0]
+        res = await cur.fetchone()
+        await cur.close()
     except aiosqlite.OperationalError:
         return False
+    else:
+        return bool(res[0])
     finally:
-        await cur.close()
         await con.close()
-    return bool(res)
 
 
 async def transac_row_exists(
@@ -129,13 +130,13 @@ async def transac_row_exists(
             """,
             row.values,
         )
-        res = cur.fetchone()[0]
+        res = await cur.fetchone()
+        await cur.close()
     except aiosqlite.OperationalError:
         return False
     finally:
-        await cur.close()
         await con.close()
-    return bool(res)
+    return bool(res[0])
 
 
 async def all_rows_in_db(
@@ -370,8 +371,8 @@ async def insert_fact_row(
             row.values,
         )
         await con.commit()
-    finally:
         await cur.close()
+    finally:
         await con.close()
 
 

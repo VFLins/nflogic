@@ -4,6 +4,7 @@ from nflogic import api
 from pathlib import Path
 from typing import Optional
 from typing_extensions import Annotated
+import asyncio
 
 # doc_path = Path(__file__).parent.parent.parent / "docs" / "CLI.md"
 # __doc__ = doc_path.read_text(encoding="utf-8") # use markdown file
@@ -137,20 +138,20 @@ def parse(
     """
     if parse_to in ["buyer", "both"]:
         print("Parsing to buyer...")
-        api.parse_dir(
+        asyncio.run(api.parse_dir(
             dir_path=directory,
             buy=True,
             full_parse=full_parse,
             ignore_cached_errors=ignore_cached_errors,
-        )
+        ))
     if parse_to in ["seller", "both"]:
         print("Parsing to seller...")
-        api.parse_dir(
+        asyncio.run(api.parse_dir(
             dir_path=directory,
             buy=False,
             full_parse=full_parse,
             ignore_cached_errors=ignore_cached_errors,
-        )
+        ))
 
 
 @nflogic_cli.command(help="Processa arquivos registrados em um cache de erros.")

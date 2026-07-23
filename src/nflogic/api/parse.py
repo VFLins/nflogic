@@ -30,13 +30,14 @@ BINDIR = os.path.join(os.path.split(SCRIPT_PATH)[0], "bin")
 
 
 P = ParamSpec("P")
-"""Specifies the exact parameter signature (positional and keyword arguments) 
-of the captured callable. Used by the type checker to validate arguments.
+"""Reflete a tipagem dos parâmetros de uma função ou co-rotina (posicionais ou keyword).
+Usado pelo type checker para validar os tipos.
 """
 
+
 R = TypeVar("R")
-"""Represents the dynamic return type of the wrapped function or coroutine.
-Ensures the type hint propagates correctly to the caller.
+"""Indica uma tipagem de retorno dinâmica, informando como o retorno esperado de uma
+função ou co-rotina será resolvido pelo seu wrapper.
 """
 
 
@@ -45,25 +46,29 @@ def __funcname__():
 
 
 def run_anywhere(
-    func_or_coro: Union[Callable[P, R], Callable[P, Coroutine[Any, Any, R]], Coroutine[Any, Any, R]], 
+    func_or_coro: Union[
+        Callable[P, R],
+        Callable[P, Coroutine[Any, Any, R]],
+        Coroutine[Any, Any, R]
+    ],
     *args: P.args, 
     **kwargs: P.kwargs
 ) -> R:
-    """
-    Executes synchronous or asynchronous callables, or coroutine objects safely.
 
-    Compatible with command-line interfaces (CLI), GUI frameworks (e.g., PyQt, Tkinter),
-    and direct script execution. Automatically detects the current running event loop
-    and thread context to prevent deadlocks.
+    """Executa callables síncronos ou assíncronos, ou objetos de corrotina de forma segura.
 
-    :param func_or_coro: A sync function, an async function, or an instantiated coroutine object.
+    Compatível com interfaces de linha de comando (CLI), frameworks de GUI (ex.: PyQt, Tkinter)
+    e execução direta de scripts. Detecta automaticamente o loop de eventos em execução no momento
+    e o contexto de threads para evitar deadlocks.
+
+    :param func_or_coro: Uma função síncrona, uma função assíncrona ou um objeto de corrotina instanciado.
     :type func_or_coro: Union[Callable, Coroutine]
-    :param args: Positional arguments to pass to the callable.
-    :param kwargs: Keyword arguments to pass to the callable.
-    :return: The result of the synchronous function or resolved asynchronous coroutine.
+    :param args: Argumentos posicionais a serem passados para o callable.
+    :param kwargs: Argumentos nomeados (keyword) a serem passados para o callable.
+    :return: O resultado da função síncrona ou da corrotina assíncrona resolvida.
     :rtype: R
-    :raises RuntimeError: If called blocking from the main thread where the loop is running.
-    :raises Exception: Re-raises any exception thrown inside the target callable.
+    :raises RuntimeError: Se for chamado de forma bloqueante a partir da thread principal onde o loop está em execução.
+    :raises Exception: Relança qualquer exceção disparada dentro do callable alvo.
     """
     if inspect.iscoroutinefunction(func_or_coro):
         coro = func_or_coro(*args, **kwargs)
@@ -75,6 +80,7 @@ def run_anywhere(
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
+        # RuntimeError raised when no loop is running
         return asyncio.run(coro)
     else:
         current_thread = threading.current_thread()
@@ -96,7 +102,6 @@ def run_anywhere(
 
 # TYPES
 ###############
-
 
 
 class ParserInput(TypedDict):

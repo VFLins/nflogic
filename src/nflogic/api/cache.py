@@ -1,12 +1,13 @@
 import pickle
 import logging
 import asyncio
-from typing import Generator
+from typing import AsyncGenerator
 from pathlib import Path
 import os
 
-from nflogic.api.parse import ParserInput, FactParser, FullParser, ParserInitError
+from nflogic.api.parse import ParserInput, FactParser, FullParser, ParserInitError, run_anywhere
 from nflogic.api import db
+
 
 SCRIPT_PATH = os.path.split(os.path.realpath(__file__))[0]
 """@private Caminho para este *script*, não alterar."""
@@ -20,8 +21,10 @@ LOG_PATH = os.path.join(SCRIPT_PATH, "log")
 LOG_FILE = os.path.join(SCRIPT_PATH, "log", f"{__name__}.log")
 """Caminho para o arquivo de log deste módulo."""
 
+
 for directory in [CACHE_PATH, LOG_PATH]:
     os.makedirs(directory, exist_ok=True)
+
 
 log = logging.getLogger(__name__)
 """Logger deste módulo."""
@@ -79,12 +82,12 @@ def get_cachenames() -> list[str]:
     return cachenames
 
 
-def get_not_processed_inputs(
+async def get_not_processed_inputs(
     filepaths: list[str],
     buy: bool,
     ignore_fails: bool,
     full_parse: bool,
-) -> Generator[ParserInput, None, None]:
+) -> AsyncGenerator[ParserInput, None]:
     """Cria um gerador de `.parse.ParserInput` que ainda não foram processados e
     registrados com sucesso no banco de dados.
 
@@ -104,11 +107,10 @@ def get_not_processed_inputs(
     if ignore_fails:
         fail_cache = CacheHandler("__could_not_parse_xml__", full_parse)
         ignore_data = ignore_data + fail_cache.data
-    return (
-        {"path": file, "buy": buy}
-        for file in filepaths
-        if {"path": file, "buy": buy} not in ignore_data
-    )
+    for f in filepaths:
+        inp = {"path": f, "buy": buy}
+        if inp not in ignore_data:
+            yield inp
 
 
 def _save_successfull_fileparse(parser: FactParser | FullParser):
@@ -344,7 +346,7 @@ class ParserManipulator:
         self.db_path: str | Path = db_path
         """Caminho para o arquivo de banco de dados onde a consulta será realizada."""
 
-    def add_parser(self, parser_input: ParserInput):
+    async def add_parser(self, parser_input: ParserInput):
         """Cria, testa e registra os dados de um *parser*.
 
         :param parser_input: Parâmetros usados para criar o *parser*.
@@ -353,12 +355,12 @@ class ParserManipulator:
         self.n_parsed = self.n_parsed + 1
         if parser.erroed():
             self._handle_cache_registry(parser=parser)
-        rows_in_db = db.all_rows_in_db(parser, db_path=self.db_path)
-        if asyncio.to_thread(rows_in_db):
+        rows_in_db = await db.all_rows_in_db(parser, db_path=self.db_path)
+        if rows_in_db:
             self.n_skipped = self.n_skipped + 1
             _save_successfull_fileparse(parser)
             return
-        self._handle_parser_success(parser=parser)
+        await self._handle_parser_success(parser=parser)
 
     def _get_parser(self, parser_input: ParserInput) -> FactParser | FullParser:
         """Produz um *parser* com base no valor atual de
@@ -444,7 +446,7 @@ class ParserManipulator:
         parse_fail_cache = CacheHandler(parser.name, self.full_parse)
         return init_fail_cache, parse_fail_cache
 
-    def _handle_parser_success(
+    async def _handle_parser_success(
         self,
         parser: FactParser | FullParser,
     ):
@@ -454,7 +456,7 @@ class ParserManipulator:
         :param parser: Um `.parse.FactParser` se `ParserManipulator.full_parse = False`, ou
             um `.parse.FullParser` caso contrário.
         """
-        asyncio.run(db.insert_rows(parser=parser, db_path=self.db_path))
+        await db.insert_rows(parser=parser, db_path=self.db_path)
         _save_successfull_fileparse(parser)
         self._remove_successful_parser_from_cache(parser)
 

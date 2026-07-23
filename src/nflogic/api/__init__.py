@@ -109,7 +109,7 @@ def summary_err_types(errdf: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(summary)
 
 
-def parse_dir(
+async def parse_dir(
     dir_path: str,
     buy: bool,
     full_parse: bool = False,
@@ -136,8 +136,8 @@ def parse_dir(
             full_parse=full_parse,
         )
         man = cache.ParserManipulator(full_parse=full_parse, db_path=db_path)
-        for parser_input in new_parser_inputs:
-            man.add_parser(parser_input)
+        async for parser_input in new_parser_inputs:
+            await man.add_parser(parser_input)
             print(
                 f"This might take a while... {man.n_parsed} files processed.", end="\r"
             )
